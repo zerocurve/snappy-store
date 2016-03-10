@@ -31,8 +31,8 @@ public class DHMTest extends TestCase {
 
   public void test1M() {
 
-    DenseIntValueHashMap<String> map = new DenseIntValueHashMap<>(new DHMDefaultSerializer(), 32);
-//    com.pivotal.gemfirexd.internal.engine.map.DenseIntValueHashMap<String> map = new com.pivotal.gemfirexd.internal.engine.map.DenseIntValueHashMap<>(new com.pivotal.gemfirexd.internal.engine.map.DHMBase64Serializer(), 32);
+    DenseIntValueHashMap<String> map = new DenseIntValueHashMap<>(new DHMDefaultSerializer(), 100);
+//    DenseIntValueHashMap<String> map = new DenseIntValueHashMap<>(new com.pivotal.gemfirexd.internal.engine.map.DHMBase64Serializer(), 32);
 //    HashMap<String, Integer> map = new HashMap<>(32);
 //    ConcurrentHashMap<String, Integer> map = new ConcurrentHashMap<>(32);
 //    TObjectIntHashMap map = new TObjectIntHashMap(32);

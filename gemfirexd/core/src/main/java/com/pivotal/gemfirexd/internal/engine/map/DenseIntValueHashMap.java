@@ -66,8 +66,14 @@ public class DenseIntValueHashMap<K> {
 
     this.serializer = serializer;
 
+    int capacity = 1;
+    // make capacity power of 2 instead of just taking a rounded off number.
+    // a rounded off number isn't good for probing.
+    while(capacity < initialCapacity)
+      capacity *= 2;
+
     for (int i = 0; i < segments.length; i++) {
-      segments[i] = new DenseIntValueHashMap.Segment(initialCapacity);
+      segments[i] = new DenseIntValueHashMap.Segment(capacity);
     }
   }
 
