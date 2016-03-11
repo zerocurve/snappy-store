@@ -76,6 +76,14 @@ public interface DenseHashMapSerializer<K> {
   boolean equals(byte[] entry1, byte[] entry2);
 
   /**
+   * Mainly for debugging purposes, extract key from the serialized value.
+   *
+   * @param entry byte[] returned from {@code serialize} method.
+   * @return key value with K type.
+   */
+  K getKey(byte[] entry);
+
+  /**
    * Extract int value from the serialized entry.
    *
    * @param entry byte[] returnred from {@code serialize} method.

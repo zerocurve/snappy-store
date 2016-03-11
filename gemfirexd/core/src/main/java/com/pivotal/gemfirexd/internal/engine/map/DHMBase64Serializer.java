@@ -109,6 +109,48 @@ class DHMBase64Serializer implements DenseHashMapSerializer<String> {
   }
 
   @Override
+  public String getKey(byte[] entry) {
+    int len = entry.length - VALUE_WIDTH;
+    final int totalChars = (int)Math.ceil((8d * len) / 6);
+    char[] v = new char[totalChars];
+    int j = 0;
+
+    for (int i = 0; i < len; i += 3) {
+
+      int val = ((entry[i] & 0xff) >>> 2) & 0x00ff;
+      char c = decodedChar(val); // 6 bits
+
+      v[j++] = c;
+
+
+      if (i + 1 >= len) break;
+
+      val = (((entry[i] & 0xff) << 6) & 0x00ff) >>> 2;
+      val = (byte)(val | (byte)((entry[i + 1] & 0xff) >> 4)); // 2 bits + 4 bits
+      c = decodedChar(val);
+
+      v[j++] = c;
+
+      if (i + 2 >= len) break;
+
+      val = (((entry[i + 1] & 0xff) << 4) & 0x00ff) >>> 2;
+      val = (byte)(val | ((entry[i + 2] & 0xff) >>> 6) & 0x00ff); // 4 bits + 2 bits
+      c = decodedChar(val);
+
+      v[j++] = c;
+
+      val = (((entry[i + 2] & 0xff) << 2) & 0x00ff) >> 2;
+      c = decodedChar(val);
+
+      v[j++] = c;
+    }
+
+    v[j++] = '\n';
+
+    return new String(v);
+  }
+
+  @Override
   public int deserializeValue(byte[] entry) {
     return MAX_VALUE & DenseIntValueHashMap.readInt(entry, entry.length - VALUE_WIDTH, VALUE_WIDTH);
   }
@@ -153,8 +195,8 @@ class DHMBase64Serializer implements DenseHashMapSerializer<String> {
       val = (((entry[i + 1] & 0xff) << 4) & 0x00ff) >>> 2;
       val = (byte)(val | ((entry[i + 2] & 0xff) >>> 6) & 0x00ff); // 4 bits + 2 bits
       c = decodedChar(val);
-      hash = addToHash(c, hash);
 
+      hash = addToHash(c, hash);
 
       val = (((entry[i + 2] & 0xff) << 2) & 0x00ff) >> 2;
       c = decodedChar(val);

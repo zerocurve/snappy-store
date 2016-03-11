@@ -39,7 +39,7 @@ public final class DHMDefaultSerializer implements DenseHashMapSerializer<String
   public boolean equals(String key, byte[] entry) {
 
     for (int i = 0, len = key.length(); i < len; i++) {
-      if (key.charAt(i) != entry[i]) {
+      if (key.charAt(i) != (char)entry[i]) {
         return false;
       }
     }
@@ -61,6 +61,16 @@ public final class DHMDefaultSerializer implements DenseHashMapSerializer<String
     }
 
     return true;
+  }
+
+  @Override
+  public String getKey(byte[] entry) {
+    int len = entry.length - VALUE_WIDTH;
+    char[] v = new char[len];
+    for (int i = 0; i < len; i++) {
+      v[i] = (char)entry[i];
+    }
+    return new String(v);
   }
 
   @Override
