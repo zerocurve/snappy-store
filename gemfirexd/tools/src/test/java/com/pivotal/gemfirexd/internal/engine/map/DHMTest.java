@@ -18,6 +18,8 @@ package com.pivotal.gemfirexd.internal.engine.map;
 
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 
 import junit.framework.TestCase;
 
@@ -99,61 +101,160 @@ public class DHMTest extends TestCase {
 
   }
 
-  public void test1MAddRemove() {
-
-    DenseIntValueHashMap<String> map = new DenseIntValueHashMap<>(new DHMDefaultSerializer(), 100);
-
-    final Random r = new Random(System.currentTimeMillis());
+  public void test1MAddRemove() throws BrokenBarrierException, InterruptedException {
 
     final int count = 1000000;
-    Runtime rt = Runtime.getRuntime();
+    DenseIntValueHashMap<String> map = new DenseIntValueHashMap<>(new DHMDefaultSerializer(), 100);
 
-    //String[] keys = getStaticKeys(count);
-
-    System.out.println("populating keys");
-    StringBuilder sb = new StringBuilder("new String[] {");
-    String[] keys = new String[count];
+    System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " populating keys");
+    final String[] keys = new String[count];
     for (int i = 0; i < count; i++) {
       keys[i] = UUID.randomUUID().toString();
     }
 
-    System.out.println("starting inserts.. in-memory keys taking " + (rt.totalMemory() - rt.freeMemory()) / 1048576.0 + " mb");
+    doARWork(map, keys, null);
+  }
 
-    System.out.printf("Count %d, Memory = %.2f mb", map.size(), (rt.totalMemory() - rt.freeMemory()) / 1048576.0).println();
-    long lastReport = System.currentTimeMillis();
+
+  public void testConcurrent5MAddRemove() throws InterruptedException {
+
+    final int count = 5000000;
+    final Thread[] concurrentTs = new Thread[10];
+    final DenseIntValueHashMap<String> map = new DenseIntValueHashMap<>(new DHMDefaultSerializer(), 100);
+
+    System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " populating keys");
+    final String[] keys = new String[count];
     for (int i = 0; i < count; i++) {
+      keys[i] = UUID.randomUUID().toString();
+    }
+
+    final CyclicBarrier barrier = new CyclicBarrier(concurrentTs.length, null);
+
+    for (int i = 0; i < concurrentTs.length; i++) {
+      concurrentTs[i] = new Thread(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            doARWork(map, keys, barrier);
+          } catch (BrokenBarrierException e) {
+            e.printStackTrace();
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      }, "testConcurrent1MAddRem-" + i);
+    }
+
+    for (int i = 0; i < concurrentTs.length; i++) {
+      concurrentTs[i].start();
+    }
+
+    for (int i = 0; i < concurrentTs.length; i++) {
+      concurrentTs[i].join();
+    }
+
+    System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " SUCCESS");
+  }
+
+  protected void doARWork(final DenseIntValueHashMap map, final String[] keys, final CyclicBarrier barrier) throws BrokenBarrierException, InterruptedException {
+
+    System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " starting inserts...");
+
+    for (int i = 0; i < keys.length; i++) {
       try {
         map.put(keys[i], i % 113);
         int _r = map.get(keys[i]);
         assert _r % 113 == i % 113 : "r=" + _r + ",i=" + i;
-        if (System.currentTimeMillis() - lastReport > 1000) {
-          System.out.printf("\rCount %d, Memory = %.2f mb", map.size(), (rt.totalMemory() - rt.freeMemory()) / 1048576.0).println();
-          lastReport = System.currentTimeMillis();
-        }
       } catch (RuntimeException e) {
         e.printStackTrace();
         break;
       }
     }
 
-    System.out.printf("\rCount %d, Memory = %.2f mb ", map.size(), (rt.totalMemory() - rt.freeMemory()) / 1048576.0);
+    if (barrier != null) {
+      System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " waiting...");
+      barrier.await();
+    }
+    System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " starting verification...");
 
     for (int c = 0; c < keys.length; c++) {
       int o = map.get(keys[c]);
       assert o % 113 == c % 113 : "o=" + o + ",c=" + c;
     }
 
+    if (barrier != null) {
+      System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " waiting...");
+      barrier.await();
+    }
+    System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " starting remove operations...");
     for (int c = 0; c < keys.length; c++) {
       int o = map.remove(keys[c]);
-      assert o % 113 == c % 113 : "o=" + o + ",c=" + c;
+      assert o == -1 || o % 113 == c % 113 : "o=" + o + ",c=" + c;
     }
 
-    System.out.println("\nAfter removing keys");
-    System.gc();
-    System.gc();
-    System.gc();
-    System.out.printf("\rCount %d, Memory = %.2f mb ", map.size(), (rt.totalMemory() - rt.freeMemory()) / 1048576.0);
+    System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " DONE");
   }
+
+  public void testConcurrentRandomOps() throws InterruptedException {
+
+    final int count = 1000000;
+    final long oneMinute = (60 * 1000);
+    final Thread[] concurrentTs = new Thread[10];
+    final DenseIntValueHashMap<String> map = new DenseIntValueHashMap<>(new DHMDefaultSerializer(), 100);
+
+    System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " populating keys");
+    final String[] keys = new String[count];
+    for (int i = 0; i < count; i++) {
+      keys[i] = UUID.randomUUID().toString();
+    }
+
+    for (int i = 0; i < concurrentTs.length; i++) {
+      concurrentTs[i] = new Thread(new Runnable() {
+        @Override
+        public void run() {
+          long startTime = System.currentTimeMillis();
+
+          final Random r = new Random(startTime);
+
+          System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " started operations");
+          for (; ; ) {
+            // do 10k ops before checking.
+            for (int iter = 0; iter < 10000; iter++) {
+              int index = r.nextInt(keys.length - 1);
+              map.put(keys[index], index%113);
+              int o = map.get(keys[index]);
+              assert o == -1 || o == index%113 : "o=" + o + " idx=" + index + " mod=" + (index%113);
+              index = r.nextInt(keys.length - 1);
+              o = map.get(keys[index]);
+              assert o == -1 || o == index%113 : "o=" + o + " idx=" + index + " mod=" + (index%113);
+              index = r.nextInt(keys.length - 1);
+              o = map.remove(keys[index]);
+              assert o == -1 || o == index%113;
+            }
+
+            long elapsed = (System.currentTimeMillis() - startTime);
+            if ((elapsed % 1000) == 0) {
+              System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " elapsed " + (elapsed / 1000) + " seconds");
+            }
+            if (elapsed > oneMinute)
+              break;
+          }
+
+        }
+      }, "testConcurrent1MAddRem-" + i);
+    }
+
+    for (int i = 0; i < concurrentTs.length; i++) {
+      concurrentTs[i].start();
+    }
+
+    for (int i = 0; i < concurrentTs.length; i++) {
+      concurrentTs[i].join();
+    }
+
+    System.out.println(new java.sql.Timestamp(System.currentTimeMillis()) + " " + Thread.currentThread().getName() + " SUCCESS");
+  }
+
 
   public void __test50M() {
 
@@ -217,7 +318,7 @@ public class DHMTest extends TestCase {
       System.exit(565);
     }
 
-    return new String[] {"fe1e7fbc-8eb5-4252-95be-69f3eeb6a882",
+    return new String[]{"fe1e7fbc-8eb5-4252-95be-69f3eeb6a882",
         "0773284f-9c09-4c00-aebd-e699e4b797be",
         "de594b70-2dc7-453b-b930-8206c264644c",
         "59da0d29-49b8-4c72-9e4f-b2b35b8d7b90",

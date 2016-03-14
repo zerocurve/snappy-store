@@ -16,6 +16,9 @@
  */
 package com.pivotal.gemfirexd.internal.engine.map;
 
+import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.locks.ReentrantLock;
+
 import com.pivotal.gemfirexd.internal.engine.store.RowFormatter;
 
 /**
@@ -43,8 +46,6 @@ import com.pivotal.gemfirexd.internal.engine.store.RowFormatter;
  * entries shows 12 bytes per entry overhead when measured using runtime memory usage
  * (computationally it has only 4 bytes overhead).
  * <p/>
- * TODO:
- * a) Add segment level read/write lock.
  */
 public class DenseIntValueHashMap<K> {
 
@@ -52,9 +53,11 @@ public class DenseIntValueHashMap<K> {
 
   protected final DenseHashMapSerializer<K> serializer;
 
-  private double loadFactor = 0.85f;
+  private float loadFactor = 0.85f;
 
-  private final DenseIntValueHashMap.Segment[] segments;
+  private final DenseIntValueHashMap.Segment<K>[] segments;
+
+  private static final boolean TRACE = true;
 
   public DenseIntValueHashMap() {
     this(new DHMDefaultSerializer(), 32, -1);
@@ -95,7 +98,7 @@ public class DenseIntValueHashMap<K> {
       capacity *= 2;
 
     for (int i = 0; i < segments.length; i++) {
-      segments[i] = new DenseIntValueHashMap.Segment(i, capacity);
+      segments[i] = new DenseIntValueHashMap.Segment(i, serializer, loadFactor, capacity);
     }
   }
 
@@ -138,81 +141,107 @@ public class DenseIntValueHashMap<K> {
     RowFormatter.writeInt(kv, val, offset, numBytes);
   }
 
-  private final class Segment {
+  static final class Segment<K> extends ReentrantLock {
 
     private final int id;
-    private byte[][] table; // a pair of key/value held here.
+    private final DenseHashMapSerializer serializer;
+    private final float loadFactor;
+
+    private AtomicReferenceArray<byte[]> table;
     private int size = 0;
     private int numBits;
     private int numRehash = 0;
 
-    protected Segment(int id, int initCapacity) {
+    protected Segment(int id, DenseHashMapSerializer serializer, float loadFactor, int initCapacity) {
       this.id = id;
-      table = new byte[initCapacity][];
+      this.serializer = serializer;
+      this.loadFactor = loadFactor;
+      table = new AtomicReferenceArray<>(initCapacity);
       this.numBits = Integer.bitCount(initCapacity);
     }
 
-    private void putEntry(K key, final int keyHash, int value, boolean putIfAbsent) {
+    void putEntry(K key, final int keyHash, int value, boolean putIfAbsent) {
+      lock();
 
-      int index = probeLinear(key, keyHash, this.table, null, this.numBits, true);
+      try {
+        int index = probeLinear(key, keyHash, table, numBits, null, true);
 
-      if (index < 0) {
-        if (putIfAbsent) {
-          return;
+        if (index < 0) {
+          if (putIfAbsent) {
+            return;
+          }
+          index = -index;
         }
-        index = -index;
-      }
 
-      table[index] = serializer.serialize(key, value);
-      if (index >= 0) {
-        size++;
-      }
+        table.set(index, serializer.serialize(key, value));
+        if (index >= 0) {
+          size++;
+        }
 
-      ensureCapacity();
+        ensureCapacity();
+
+      } finally {
+        unlock();
+      }
     }
 
     private int getEntry(K key, int keyHash) {
 
-      final byte[][] tab = this.table;
+      final AtomicReferenceArray<byte[]> tab = this.table;
       final int numBits = this.numBits;
 
-      int index = probeLinear(key, keyHash, tab, null, numBits, false);
+      int index = probeLinear(key, keyHash, tab, numBits, null, false);
       if (index < 0) {
         index = -index;
       }
 
-      return serializer.deserializeValue(tab[index]);
+      final byte[] entry = tab.get(index);
+      if(entry == null || entry == TOMBSTONE) {
+        return -1;
+      }
+
+      return serializer.deserializeValue(entry);
     }
 
     public int removeEntry(K key, int keyHash) {
-      final byte[][] tab = this.table;
-      final int numBits = this.numBits;
+      lock();
+      try {
+        final int numBits = this.numBits;
 
-      int index = probeLinear(key, keyHash, tab, null, numBits, false);
-      if (index < 0) {
-        index = -index;
+        int index = probeLinear(key, keyHash, table, numBits, null, false);
+        if (index < 0) {
+          index = -index;
+        }
+
+        final byte[] entry = table.getAndSet(index, TOMBSTONE);
+        if(entry == null || entry == TOMBSTONE) {
+          return -1;
+        }
+
+        int retVal = serializer.deserializeValue(entry);
+        size--;
+
+        reduceCapacity();
+
+        return retVal;
+      } finally {
+        unlock();
       }
-
-      int retVal = serializer.deserializeValue(tab[index]);
-      tab[index] = TOMBSTONE;
-      size--;
-
-      reduceCapacity();
-
-      return retVal;
     }
 
+
     private final int probeLinear(final K key,
-        int keyHash, final byte[][] table,
-        final byte[] entry1,
+        int keyHash,
+        AtomicReferenceArray<byte[]> table,
         final int numBits,
+        final byte[] entry1,
         final boolean forInsert) {
 
       assert key != null || entry1 != null : "key not supplied... ";
 
       final boolean useIndexInTable = entry1 != null;
 
-      int maxOffset = table.length - 1;
+      final int maxOffset = table.length() - 1;
 
       final int hashCode = useIndexInTable ?
           serializer.getHashCode(entry1) :
@@ -220,12 +249,13 @@ public class DenseIntValueHashMap<K> {
 
       int index = hashCode & maxOffset;
 
-      byte[] entry2 = table[index];
+      //byte[] entry2 = table[index];
+      byte[] entry2 = table.get(index);
 
       if (entry2 == null) {
         return index;
       } else if (entry2 == TOMBSTONE) {
-        if(forInsert) {
+        if (forInsert) {
           return index;
         }
       } else if (useIndexInTable) {
@@ -240,16 +270,24 @@ public class DenseIntValueHashMap<K> {
       stepValue = stepValue > 0 ? stepValue : 1;
       index = (index + stepValue) & maxOffset;
 
+      final StringBuilder sb;
+
+      if(TRACE) {
+        sb = new StringBuilder();
+      }
+
       int beginIdx = index;
       for (; ; ) {
-
-        entry2 = table[index];
+        //entry2 = table[index];
+        entry2 = table.get(index);
 
         if (entry2 == null) {
           return index;
         } else if (entry2 == TOMBSTONE) {
-          if(forInsert) {
+          if (forInsert) {
             return index;
+          } else {
+            return -index;
           }
         } else if (useIndexInTable) {
           if (serializer.equals(entry1, entry2)) {
@@ -266,8 +304,8 @@ public class DenseIntValueHashMap<K> {
     }
 
     private void ensureCapacity() {
-      if ((double)size / table.length > loadFactor) {
-        int newCapacity = table.length;
+      if ((double)size / table.length() > loadFactor) {
+        int newCapacity = table.length();
         // expand until loadFactor goes down 20% lesser than configured.
         while ((double)size / newCapacity > (loadFactor - 0.2)) {
           newCapacity *= 2;
@@ -278,29 +316,30 @@ public class DenseIntValueHashMap<K> {
     }
 
     private void reduceCapacity() {
-      int length = table.length;
+      int length = table.length();
       // are we dropping beyond 50% usage and 25% of loadFactor.
       while (length >= 2 && (double)size / length < (loadFactor / 4) && size < (length / 2)) {
         length /= 2;
       }
 
-      if (length < table.length) {
+      if (length < table.length()) {
         rehash(length);
       }
     }
 
     private final void rehash(final int newCapacity) {
       numRehash++;
-      final byte[][] newTable = new byte[newCapacity][];
+      final AtomicReferenceArray<byte[]> newTable = new AtomicReferenceArray<>(newCapacity);
       final int newNumBits = Integer.bitCount(newCapacity);
 
-      for (byte[] entry : table) {
+      for (int i = 0, len = table.length(); i < len; i++) {
+        final byte[] entry = table.get(i);
         if (entry == null || entry == TOMBSTONE) {
           continue;
         }
-        int index = probeLinear(null, -1, newTable, entry, newNumBits, false);
+        int index = probeLinear(null, -1, newTable, newNumBits, entry, false);
 //        System.out.println(numRehash + " id=" + id + ", key=" + serializer.getKey(entry) + " @ " + index);
-        newTable[index] = entry;
+        newTable.set(index, entry);
       }
 
       this.table = newTable;
@@ -313,6 +352,5 @@ public class DenseIntValueHashMap<K> {
     }
 
   } // Segment
-
 
 }
