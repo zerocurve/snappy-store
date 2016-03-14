@@ -33,18 +33,15 @@ import com.pivotal.gemfirexd.internal.engine.store.RowFormatter;
  * width value serialization. A base64 encoded key (assuming ascii only) or multiple entries packed
  * together into a single entry (a.k.a separate chaining) did not yield much memory benefit whereas
  * performance was significantly effected. In fact, for separate chaining memory consumption increased due to
- * every entry length written consuming 4 more bytes.
+ * length prefixed every entry consuming 4 more bytes.
  * <p/>
- * Concurrency is for the time being at Segment level. Number of segments by default is twice the number of
- * cpu cores and should be sufficient for parallelism. Per entry locking if required can
- * be done using a separate array with bit indicator for read/write (0 - Read, 1 - Write)
- * operation.
+ * Concurrency is at the Segment level. Number of segments by default is 8 times the number of
+ * cpu cores and should be sufficient for parallelism.
  * <p/>
  * This is based on open addressing and suffers usual primary clustering problem. This might show up
- * even more because of LoadFactor being 0.85 by default unlike 0.50 but compensates for it during expansion
+ * even more because of LoadFactor being 0.85 by default unlike proposed 0.50 but compensates for it during expansion
  * which brings down the LoadFactor to 0.65. Due to sparsity of the byte[][] total memory consumed for 1 million
- * entries shows 12 bytes per entry overhead when measured using runtime memory usage
- * (computationally it has only 4 bytes overhead).
+ * entries shows 12 bytes per entry overhead when measured using runtime memory usage.
  * <p/>
  */
 public class DenseIntValueHashMap<K> {
