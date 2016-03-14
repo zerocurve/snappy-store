@@ -31,6 +31,7 @@ import com.gemstone.gemfire.cache.UnsupportedVersionException;
 import com.gemstone.gemfire.internal.SocketCreator;
 import com.gemstone.gemfire.internal.VersionedDataInputStream;
 import com.gemstone.gemfire.internal.VersionedDataOutputStream;
+import com.gemstone.gemfire.internal.i18n.GemFireTracer;
 import com.gemstone.gemfire.internal.shared.UnsupportedGFXDVersionException;
 import com.gemstone.gemfire.internal.shared.Version;
 

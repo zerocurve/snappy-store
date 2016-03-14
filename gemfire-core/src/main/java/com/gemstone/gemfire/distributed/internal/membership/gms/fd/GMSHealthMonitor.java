@@ -52,7 +52,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.logging.log4j.Logger;
 import org.jgroups.util.UUID;
 
 import com.gemstone.gemfire.CancelException;
@@ -74,7 +73,7 @@ import com.gemstone.gemfire.distributed.internal.membership.gms.messages.Suspect
 import com.gemstone.gemfire.distributed.internal.membership.gms.messages.SuspectRequest;
 import com.gemstone.gemfire.internal.ConnectionWatcher;
 import com.gemstone.gemfire.internal.SocketCreator;
-import com.gemstone.gemfire.internal.Version;
+import com.gemstone.gemfire.internal.shared.Version;
 
 /**
  * Failure Detection

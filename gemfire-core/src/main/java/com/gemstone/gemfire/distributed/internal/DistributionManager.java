@@ -101,7 +101,7 @@ import com.gemstone.gemfire.internal.tcp.ReenteredConnectException;
 import com.gemstone.gemfire.internal.tcp.Stub;
 import com.gemstone.gemfire.internal.util.concurrent.StoppableReentrantLock;
 import com.gemstone.gnu.trove.THashSet;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * The <code>DistributionManager</code> uses a {@link
