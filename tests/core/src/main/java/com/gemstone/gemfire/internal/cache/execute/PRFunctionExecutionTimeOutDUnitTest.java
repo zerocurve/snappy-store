@@ -669,6 +669,7 @@ public class PRFunctionExecutionTimeOutDUnitTest extends
    * @throws Exception
    */
   public void testLocalMultiKeyExecution_byName() throws Exception {
+    addExpectedException("BucketMovedException");
     final String rName = getUniqueName();
     Host host = Host.getHost(0);
     VM localOnly = host.getVM(3);
@@ -799,6 +800,7 @@ public class PRFunctionExecutionTimeOutDUnitTest extends
     final VM datastore1 = host.getVM(1);
     final VM datastore2 = host.getVM(2);
     final VM datastore3 = host.getVM(3);
+    addExpectedException("BucketMovedException");
     getCache();
     SerializableCallable dataStoreCreate = new SerializableCallable(
         "Create PR with Function Factory") {

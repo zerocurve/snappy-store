@@ -221,7 +221,8 @@ public class GlobalRegionCCEDUnitTest extends GlobalRegionTest {
    * conflation happens correctly and that the statistic is being updated
    * properly
    */
-  public void testConcurrentEventsOnEmptyRegion() {
+  @Ignore("Disabling due to bug #52347")
+  public void DISABLED_testConcurrentEventsOnEmptyRegion() {
     versionTestConcurrentEventsOnEmptyRegion();
   }
 
@@ -240,8 +241,5 @@ public class GlobalRegionCCEDUnitTest extends GlobalRegionTest {
     versionTestGetAllWithVersions();
   }
 
-  public void testRegionVersionVectors() throws Exception {
-    versionTestRegionVersionVectors();
-  }
 
 }

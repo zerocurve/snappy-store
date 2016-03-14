@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.lang.reflect.Array;
+import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -41,8 +42,8 @@ import com.gemstone.gemfire.distributed.internal.locks.GrantorRequestProcessor;
 import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedMember;
 import com.gemstone.gemfire.distributed.internal.membership.MembershipManager;
 import com.gemstone.gemfire.distributed.internal.membership.QuorumChecker;
-import com.gemstone.gemfire.distributed.internal.membership.jgroup.JGroupMembershipManager;
-import com.gemstone.gemfire.distributed.internal.membership.jgroup.LocatorImpl;
+import com.gemstone.gemfire.distributed.internal.membership.gms.Services;
+import com.gemstone.gemfire.distributed.internal.membership.gms.mgr.GMSMembershipManager;
 import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.*;
 import com.gemstone.gemfire.internal.admin.remote.DistributionLocatorId;
@@ -518,14 +519,17 @@ public final class InternalDistributedSystem
    * current configuration state.
    */
   private void initialize() {
-    if (this.originalConfig.getMcastPort() == 0 && this.originalConfig.getLocators().equals("")) {
-      // no distribution
-      this.isLoner = true;
-//       throw new IllegalArgumentException("The "
-//                                          + DistributionConfig.LOCATORS_NAME
-//                                          + " attribute can not be empty when the "
-//                                          + DistributionConfig.MCAST_PORT_NAME
-//                                          + " attribute is zero.");
+    if (this.originalConfig.getLocators().equals("")) {
+      if (this.originalConfig.getMcastPort() != 0) {
+        throw new GemFireConfigException("The "
+                                          + DistributionConfig.LOCATORS_NAME
+                                          + " attribute can not be empty when the "
+                                          + DistributionConfig.MCAST_PORT_NAME
+                                          + " attribute is non-zero.");
+      } else {
+        // no distribution
+        this.isLoner = true;
+      }
     }
 
     if (this.isLoner) {
@@ -649,11 +653,16 @@ public final class InternalDistributedSystem
 
     Assert.assertTrue(this.dm.getSystem() == this);
 
-    this.id = this.dm.getChannelId();
-
-    if (!this.isLoner) {
-      this.dm.restartCommunications();
+    try {
+      this.id = this.dm.getChannelId();
+    } catch (DistributedSystemDisconnectedException e) {
+      // bug #48144 - The dm's channel threw an NPE.  It now throws this exception
+      // but during startup we should instead throw a SystemConnectException
+      throw new SystemConnectException(
+          LocalizedStrings.InternalDistributedSystem_DISTRIBUTED_SYSTEM_HAS_DISCONNECTED
+            .toLocalizedString(), e);
     }
+
     synchronized (this.isConnectedMutex) {
       this.isConnected = true;
     }
@@ -748,16 +757,10 @@ public final class InternalDistributedSystem
           boolean startedPeerLocation = false;
           try {
             this.startedLocator.startPeerLocation(true);
-            if (this.isConnected) {
-              InternalDistributedMember id = this.dm.getDistributionManagerId();
-              LocatorImpl gs = this.startedLocator.getLocatorHandler();
-              gs.setLocalAddress(id);
-            }
             startedPeerLocation = true;
           } finally {
             if (!startedPeerLocation) {
               this.startedLocator.stop();
-              this.startedLocator = null;
             }
           }
         }
@@ -790,7 +793,6 @@ public final class InternalDistributedSystem
       } finally {
         if (!finished) {
           this.startedLocator.stop();
-          this.startedLocator = null;
         }
       }
     }
@@ -1349,14 +1351,14 @@ public final class InternalDistributedSystem
   private static volatile boolean emergencyClassesLoaded = false;
 
   /**
-   * Ensure that the JGroupMembershipManager class gets loaded.
-   *
+   * Ensure that the MembershipManager class gets loaded.
+   * 
    * @see SystemFailure#loadEmergencyClasses()
    */
   static public void loadEmergencyClasses() {
     if (emergencyClassesLoaded) return;
     emergencyClassesLoaded = true;
-    JGroupMembershipManager.loadEmergencyClasses();
+    GMSMembershipManager.loadEmergencyClasses();
   }
 
   /**
@@ -1523,7 +1525,7 @@ public final class InternalDistributedSystem
           // we close the locator after the DM so that when split-brain detection
           // is enabled, loss of the locator doesn't cause the DM to croak
           if (this.startedLocator != null) {
-            this.startedLocator.stop(preparingForReconnect, false);
+            this.startedLocator.stop(forcedDisconnect, preparingForReconnect, false);
             this.startedLocator = null;
           }
         } finally { // timer canceled
@@ -1680,26 +1682,19 @@ public final class InternalDistributedSystem
 
     // @todo Do we need to compare SSL properties?
 
-    if (me.getMcastPort() != 0) {
-      // mcast
-      return me.getMcastPort() == other.getMcastPort() &&
-        me.getMcastAddress().equals(other.getMcastAddress());
+    // locators
+    String myLocators = me.getLocators();
+    String otherLocators = other.getLocators();
+
+    // quick check
+    if (myLocators.equals(otherLocators)) {
+      return true;
 
     } else {
-      // locators
-      String myLocators = me.getLocators();
-      String otherLocators = other.getLocators();
+      myLocators = canonicalizeLocators(myLocators);
+      otherLocators = canonicalizeLocators(otherLocators);
 
-      // quick check
-      if (myLocators.equals(otherLocators)) {
-        return true;
-
-      } else {
-        myLocators = canonicalizeLocators(myLocators);
-        otherLocators = canonicalizeLocators(otherLocators);
-
-        return myLocators.equals(otherLocators);
-      }
+      return myLocators.equals(otherLocators);
     }
   }
 
@@ -1713,24 +1708,22 @@ public final class InternalDistributedSystem
     StringTokenizer st = new StringTokenizer(locators, ",");
     while (st.hasMoreTokens()) {
       String l = st.nextToken();
-      StringBuilder canonical = new StringBuilder();
+      StringBuffer canonical = new StringBuffer();
       DistributionLocatorId locId = new DistributionLocatorId(l);
-      if (!locId.isMcastId()) {
-        String addr = locId.getBindAddress();
-        if (addr != null && addr.trim().length() > 0) {
-          canonical.append(addr);
-        }
-        else {
-          canonical.append(locId.getHost().getHostAddress());
-        }
-        canonical.append("[");
-        canonical.append(String.valueOf(locId.getPort()));
-        canonical.append("]");
-        sorted.add(canonical.toString());
+      String addr = locId.getBindAddress();
+      if (addr != null && addr.trim().length() > 0) {
+        canonical.append(addr);
       }
+      else {
+        canonical.append(locId.getHost().getHostAddress());
+      }
+      canonical.append("[");
+      canonical.append(String.valueOf(locId.getPort()));
+      canonical.append("]");
+      sorted.add(canonical.toString());
     }
 
-    StringBuilder sb = new StringBuilder();
+    StringBuffer sb = new StringBuffer();
     for (Iterator iter = sorted.iterator(); iter.hasNext(); ) {
       sb.append((String) iter.next());
       if (iter.hasNext()) {
@@ -1789,7 +1782,38 @@ public final class InternalDistributedSystem
   public Set<DistributedMember> getGroupMembers(String group) {
     return dm.getGroupMembers(group);
   }
+  
+  
 
+  @Override
+  public Set<DistributedMember> findDistributedMembers(InetAddress address) {
+    Set<InternalDistributedMember> allMembers = dm.getDistributionManagerIdsIncludingAdmin();
+    Set<DistributedMember> results = new HashSet<DistributedMember>(2);
+    
+    //Search through the set of all members
+    for(InternalDistributedMember member: allMembers) {
+      
+      Set<InetAddress> equivalentAddresses = dm.getEquivalents(member.getInetAddress());
+      //Check to see if the passed in address is matches one of the addresses on
+      //the given member.
+      if(address.equals(member.getInetAddress()) || equivalentAddresses.contains(address)) {
+        results.add(member);
+      }
+    }
+    
+    return results;
+  }
+
+  @Override
+  public DistributedMember findDistributedMember(String name) {
+    Set<DistributedMember> allMembers = dm.getDistributionManagerIdsIncludingAdmin();
+    for(DistributedMember member : allMembers) {
+      if(member.getName().equals(name)) {
+        return member;
+      }
+    }
+    return null;
+  }
 
   /**
    * Returns the configuration this distributed system was created with.
@@ -1833,7 +1857,7 @@ public final class InternalDistributedSystem
    */
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
+    StringBuffer sb = new StringBuffer();
     sb.append("Connected ");
     String name = this.getName();
     if (name != null && !name.equals("")) {
@@ -2285,8 +2309,8 @@ public final class InternalDistributedSystem
         }
       } catch (Throwable t) {
         Error err;
-        if (t instanceof Error && SystemFailure.isJVMFailureError(
-            err = (Error)t)) {
+        if (t instanceof OutOfMemoryError || t instanceof UnknownError) {
+          err = (Error)t;
           SystemFailure.initiateFailure(err);
           // If this ever returns, rethrow the error. We're poisoned
           // now, so don't let this thread continue.
@@ -2690,7 +2714,7 @@ public final class InternalDistributedSystem
             // allow the fabric-service to stop before dismantling everything
             notifyGfxdForcedDisconnectListener();
 
-            if (this.config.getDisableAutoReconnect()) {
+            if (config.getDisableAutoReconnect()) {
               if (logger.fineEnabled()) logger.fine("tryReconnect: auto reconnect after forced disconnect is disabled");
               return false;
             }
@@ -2774,10 +2798,7 @@ public final class InternalDistributedSystem
     int timeOut = oldConfig.getMaxWaitTimeForReconnect();
     int maxTries = oldConfig.getMaxNumReconnectTries();
     
-    boolean mcastDiscovery = oldConfig.getLocators().isEmpty()
-        && oldConfig.getStartLocator().isEmpty()
-        && oldConfig.getMcastPort() != 0;
-    boolean mcastQuorumContacted = false;
+
     
 
     if (Thread.currentThread().getName().equals("CloserThread")) {
@@ -2846,7 +2867,7 @@ public final class InternalDistributedSystem
           }
         }
 
-        logger.info(LocalizedStrings.DISTRIBUTED_SYSTEM_RECONNECTING,
+        log.info(LocalizedStrings.DISTRIBUTED_SYSTEM_RECONNECTING,
             new Object[]{reconnectAttemptCounter});
         try {
           disconnect(true, reason, false);
@@ -2886,25 +2907,6 @@ public final class InternalDistributedSystem
             System.setProperty(InternalLocator.FORCE_LOCATOR_DM_TYPE, "true");
           }
   //        log.fine("DistributedSystem@"+System.identityHashCode(this)+" reconnecting distributed system.  attempt #"+reconnectAttemptCounter);
-          if (mcastDiscovery  &&  (quorumChecker != null) && !mcastQuorumContacted) {
-            mcastQuorumContacted = quorumChecker.checkForQuorum(3*this.config.getMemberTimeout(),
-                log.convertToLogWriter());
-            if (!mcastQuorumContacted) {
-              if (log.fineEnabled()) {
-                log.fine("quorum check failed - skipping reconnect attempt");
-              }
-              continue;
-            }
-            if (log.infoEnabled()) {
-              log.info(LocalizedStrings.InternalDistributedSystem_QUORUM_OF_MEMBERS_CONTACTED);
-            }
-            mcastQuorumContacted = true;
-            // bug #51527: become more aggressive about reconnecting since there are other 
-            // members around now
-            if (timeOut > 5000) {
-              timeOut = 5000;
-            }
-          }
           configProps.put(DistributionConfig.DS_RECONNECTING_NAME, Boolean.TRUE);
           if (quorumChecker != null) {
             configProps.put(DistributionConfig.DS_QUORUM_CHECKER_NAME, quorumChecker);

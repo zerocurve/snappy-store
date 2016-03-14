@@ -94,7 +94,7 @@ import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.security.AuthorizeRequestPP;
 import com.gemstone.gemfire.internal.shared.Version;
 import com.gemstone.gemfire.security.AccessControl;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * Class <code>CacheClientProxy</code> represents the server side of the

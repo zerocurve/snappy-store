@@ -25,7 +25,7 @@ import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.ClassPathLoader;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.jta.TransactionUtils;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * GemFireBasicDataSource extends AbstractDataSource. This is a datasource class

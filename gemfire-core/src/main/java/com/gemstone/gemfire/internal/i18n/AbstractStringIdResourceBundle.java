@@ -20,7 +20,7 @@ package com.gemstone.gemfire.internal.i18n;
 import com.gemstone.gemfire.InternalGemFireException;
 import com.gemstone.gemfire.i18n.StringIdImpl;
 import com.gemstone.gemfire.internal.ClassPathLoader;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 import java.io.BufferedReader;
 import java.io.IOException;

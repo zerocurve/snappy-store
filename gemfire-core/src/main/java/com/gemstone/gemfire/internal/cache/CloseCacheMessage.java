@@ -46,7 +46,7 @@ public final class CloseCacheMessage extends HighPriorityDistributionMessage
   }
   
   @Override
-  public boolean sendViaJGroups() {
+  public boolean sendViaUDP() {
     return true;
   }
   

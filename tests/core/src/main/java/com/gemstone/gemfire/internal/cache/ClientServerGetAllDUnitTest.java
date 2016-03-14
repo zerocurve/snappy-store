@@ -55,11 +55,11 @@ import java.util.*;
     final VM server = host.getVM(0);
     final VM client = host.getVM(1);
     final String regionName = getUniqueName();
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
-    final int serverPort = AvailablePortHelper.getRandomAvailableTCPPortOnVM(server);
+    final int mcastPort = 0; /* loner is ok for this test*/ //AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int serverPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server.getHost());
 
-    createBridgeServer(server, mcastPort, regionName, serverPort, false);
+    createBridgeServer(server, regionName, serverPort, false, false);
 
     createBridgeClient(client, regionName, serverHost, new int[] {serverPort});
 
@@ -116,14 +116,14 @@ import java.util.*;
     final VM server2 = host.getVM(1);
     final VM client = host.getVM(2);
     final String regionName = getUniqueName();
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
-    final int server1Port = AvailablePortHelper.getRandomAvailableTCPPortOnVM(server1);
-    final int server2Port = AvailablePortHelper.getRandomAvailableTCPPortOnVM(server2);
+    int[] ports = AvailablePortHelper.getRandomAvailableTCPPorts(2);
+    final int server1Port = ports[0];
+    final int server2Port = ports[1];
     final String serverHost = getServerHostName(server1.getHost());
 
-    createBridgeServer(server1, mcastPort, regionName, server1Port, true);
+    createBridgeServer(server1, regionName, server1Port, true, false);
 
-    createBridgeServer(server2, mcastPort, regionName, server2Port, true);
+    createBridgeServer(server2, regionName, server2Port, true, false);
 
     createBridgeClient(client, regionName, serverHost, new int[] {server1Port, server2Port});
 
@@ -183,11 +183,10 @@ import java.util.*;
     final VM server = host.getVM(0);
     final VM client = host.getVM(1);
     final String regionName = getUniqueName();
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
-    final int serverPort = AvailablePortHelper.getRandomAvailableTCPPortOnVM(server);
+    final int serverPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server.getHost());
 
-    createBridgeServer(server, mcastPort, regionName, serverPort, false);
+    createBridgeServer(server, regionName, serverPort, false, false);
 
     createBridgeClient(client, regionName, serverHost, new int[] {serverPort});
 
@@ -247,12 +246,11 @@ import java.util.*;
     final VM server = host.getVM(0);
     final VM client = host.getVM(1);
     final String regionName = getUniqueName();
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
-    final int serverPort = AvailablePortHelper.getRandomAvailableTCPPortOnVM(server);
+    final int serverPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server.getHost());
     final int numLocalValues = 101;
     
-    createBridgeServerWithoutLoader(server, mcastPort, regionName, serverPort, false);
+    createBridgeServerWithoutLoader(server, regionName, serverPort, false);
 
     createBridgeClient(client, regionName, serverHost, new int[] {serverPort});
 
@@ -319,16 +317,21 @@ import java.util.*;
     stopBridgeServer(server);
   }
 
+  private void createBridgeServer(VM server, final String regionName, final int serverPort, final boolean createPR, final boolean expectCallback) {
+    createBridgeServer(server, regionName, serverPort, createPR, expectCallback, false);
+  }
   
 
-  private void createBridgeServer(VM server, final int mcastPort, final String regionName, final int serverPort, final boolean createPR) {
+  private void createBridgeServer(VM server, final String regionName, final int serverPort, final boolean createPR, final boolean expectCallback, final boolean offheap) {
     server.invoke(new CacheSerializableRunnable("Create server") {
       @Override
       public void run2() throws CacheException {
         // Create DS
         Properties config = new Properties();
-        config.setProperty(DistributionConfig.MCAST_PORT_NAME, String.valueOf(mcastPort));
-        config.setProperty(DistributionConfig.LOCATORS_NAME, "");
+        config.setProperty("locators", "localhost["+getDUnitLocatorPort()+"]");
+        if (offheap) {
+          config.setProperty(DistributionConfig.OFF_HEAP_MEMORY_SIZE_NAME, "350m");
+        }
         getSystem(config);
 
         // Create Region
@@ -353,14 +356,15 @@ import java.util.*;
       }
     });
   }
+  
+  private static final String CALLBACK_ARG = "ClientServerGetAllDUnitTestCB";
 
-  private void createBridgeServerWithoutLoader(VM server, final int mcastPort, final String regionName, final int serverPort, final boolean createPR) {
+  private void createBridgeServerWithoutLoader(VM server, final String regionName, final int serverPort, final boolean createPR) {
     server.invoke(new CacheSerializableRunnable("Create server") {
       public void run2() throws CacheException {
         // Create DS
         Properties config = new Properties();
-        config.setProperty(DistributionConfig.MCAST_PORT_NAME, String.valueOf(mcastPort));
-        config.setProperty(DistributionConfig.LOCATORS_NAME, "");
+        config.setProperty("locators", "localhost["+getDUnitLocatorPort()+"]");
         getSystem(config);
 
         // Create Region
@@ -387,6 +391,10 @@ import java.util.*;
   }
   
   private void createBridgeClient(VM client, final String regionName, final String serverHost, final int[] serverPorts) {
+    createBridgeClient(client, regionName, serverHost, serverPorts, false);
+  }
+  
+  private void createBridgeClient(VM client, final String regionName, final String serverHost, final int[] serverPorts, final boolean proxy) {
     client.invoke(new CacheSerializableRunnable("Create client") {
       @Override
       public void run2() throws CacheException {
@@ -399,10 +407,16 @@ import java.util.*;
         // Create Region
         AttributesFactory factory = new AttributesFactory();
         factory.setScope(Scope.LOCAL);
+        if (proxy) {
+          factory.setDataPolicy(DataPolicy.EMPTY);
+        }
         {
           PoolFactory pf = PoolManager.createFactory();
           for (int i=0; i < serverPorts.length; i++) {
             pf.addServer(serverHost, serverPorts[i]);
+          }
+          if (proxy) {
+            pf.setReadTimeout(30000);
           }
           pf.create("myPool");
         }
@@ -419,6 +433,17 @@ import java.util.*;
         stopBridgeServers(getCache());
       }
     });
+  }
+  private void checkServerForOrphans(VM server, final String regionName) {
+    server.invoke(new CacheSerializableRunnable("Stop Server") {
+      @Override
+      public void run2() throws CacheException {
+        Region region = getRootRegion(regionName);
+        region.close();
+        OffHeapTestUtil.checkOrphans();
+      }
+    });
+
   }
 }
 

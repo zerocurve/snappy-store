@@ -1,23 +1,24 @@
 /*
- * Copyright (c) 2010-2015 Pivotal Software, Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you
- * may not use this file except in compliance with the License. You
- * may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * permissions and limitations under the License. See accompanying
- * LICENSE file.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.gemstone.gemfire.distributed;
 
 import java.io.File;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -67,10 +68,10 @@ import com.gemstone.gemfire.security.GemFireSecurityException;
  *
  * When a program connects to the distributed system, a "distribution
  * manager" is started in this VM and the other members of the
- * distributed system are located.  This discovery can be performed
- * using either IP multicast (default) or by contacting "locators"
- * running on a given host and port.  All connections that are
- * configured to use the same multicast address/port and the same
+ * distributed system are located.  This discovery is performed
+ * by contacting "locators"
+ * running on a given host and port.  All DistributedSystems that are
+ * configured to use the same same
  * locators are part of the same distributed system.
  *
  * <P>
@@ -145,13 +146,10 @@ import com.gemstone.gemfire.security.GemFireSecurityException;
  * <dl>
  *   <a name="mcast-port"><dt>mcast-port</dt></a>
  *   <dd><U>Description</U>: The port used for multicast networking.
- *   If zero, then multicast will be disabled and locators must be used to find the other members
- *   of the distributed system.
- *   If "mcast-port" is zero and "locators" is ""
- *   then this distributed system will be isolated from all other GemFire
- *   processes.
+ *   If zero, then multicast will be disabled and unicast messaging will
+ *   be used.
  *   </dd>
- *   <dd><U>Default</U>: "0" if locators is ""; otherwise "10334"</dd>
+ *   <dd><U>Default</U>: "0"</dd>
  * </dl>
  *
  * <dl>
@@ -314,7 +312,7 @@ import com.gemstone.gemfire.security.GemFireSecurityException;
  *   instead of a colon to separate the host name and bind address.
  *   For example, "server1@fdf0:76cf:a0ed:9449::5[12233]" specifies a locator
  *   running on "server1" and bound to fdf0:76cf:a0ed:9449::5 on port 12233.<p>
- *   If "mcast-port" is zero and "locators" is ""
+ *   If "locators" is empty
  *   then this distributed system will be isolated from all other GemFire
  *   processes.<p>
  *   </dd>
@@ -516,13 +514,19 @@ import com.gemstone.gemfire.security.GemFireSecurityException;
  * <dl>
  * 
  * </dl>
- *   <a name="departure-correlation-window"><dt>departure-correlation-window</dt></a>
- *   <dd><u>Description</u>: deprecated. This was used in GemFire's previous network
- *   partition detection algorithm.
- *   </dd>
- *   <dd><u>Default</u>: "120"</dd>
- * </dl>
  * 
+ * <dl>
+ *   <a name="max-wait-time-reconnect"><dt>max-wait-time-reconnect</dt></a>
+ *   <dd><U>Description</U>: Specifies the time in milliseconds to wait before each reconnect attempt when
+ *   a member of the distributed system is forced out of the system and auto-reconnect
+ *   is enabled (see <a href="#disable-auto-reconnect"><code>disable-auto-reconnect</code></a>) or if the deprecated required-roles
+ *   feature is being used and a role-loss has triggered a shutdown and reconnect.
+ *   </dd>
+ *   <dd><U>Default</U>: "60000"</dd>
+ *   <dd><U>Since</U>: 5.0</dd>
+ * </dl>
+ *
+ *
  * <b>Redundancy Management</b>
  * 
  * <dl>
@@ -672,10 +676,10 @@ import com.gemstone.gemfire.security.GemFireSecurityException;
  *
  * <dl>
  *   <a name="max-wait-time-reconnect"><dt>max-wait-time-reconnect</dt></a>
- *   <dd><U>Description</U>: Specifies the maximum number of milliseconds
- *   to wait for the distributed system to reconnect in case of required role
- *   loss. The system will attempt to <a href="#max-num-reconnect-tries">reconnect
- *   more than once</a>, and this timeout period applies to each reconnection attempt.
+ *   <dd><U>Description</U>: Specifies the time in milliseconds to wait before each reconnect attempt when
+ *   a member of the distributed system is forced out of the system and auto-reconnect
+ *   is enabled (see <a href="#disable-auto-reconnect"><code>disable-auto-reconnect</code></a>) or if the deprecated required-roles
+ *   feature is being used and a role-loss has triggered a shutdown and reconnect.
  *   </dd>
  *   <dd><U>Default</U>: "60000"</dd>
  *   <dd><U>Since</U>: 5.0</dd>
@@ -685,6 +689,7 @@ import com.gemstone.gemfire.security.GemFireSecurityException;
  *   <a name="max-num-reconnect-tries"><dt>max-num-reconnect-tries</dt></a>
  *   <dd><U>Description</U>: Specifies the maximum number or times to attempt
  *   to reconnect to the distributed system when required roles are missing.
+ *   This does not apply to reconnect attempts due to a forced disconnect.
  *   </dd>
  *   <dd><U>Default</U>: "3"</dd>
  *   <dd><U>Since</U>: 5.0</dd>
@@ -1366,6 +1371,27 @@ public abstract class DistributedSystem implements StatisticsFactory {
    * @since 7.0
    */
   public abstract Set<DistributedMember> getGroupMembers(String group);
+  
+  
+  /**
+   * Find the set of distributed members running on a given address
+   * 
+   * @return a set of all DistributedMembers that have any interfaces
+   * that match the given IP address. May be empty if there are no members.
+   * 
+   * @since 7.1
+   */ 
+   public abstract Set<DistributedMember> findDistributedMembers(InetAddress address);
+
+   /**
+   * Find the distributed member with the given name
+   * 
+   * @return the distributed member that has the given name, or null if
+   * no member is currently running with the given name.
+   * 
+   * @since 7.1
+   */
+   public abstract DistributedMember findDistributedMember(String name);
 
   /**
    * Returns the <a href="#name">name</a> of this connection to the

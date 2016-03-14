@@ -15,9 +15,11 @@
  * LICENSE file.
  */
 package com.gemstone.gemfire.internal.tcp;
-
+import com.gemstone.gemfire.distributed.DistributedMember;
 import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
+
+
 import java.io.*;
 import java.net.*;
 import java.nio.channels.*;
@@ -42,6 +44,10 @@ import com.gemstone.gemfire.distributed.internal.DMStats;
 import com.gemstone.gemfire.distributed.internal.LonerDistributionManager;
 import com.gemstone.gemfire.distributed.internal.direct.DirectChannel;
 import com.gemstone.gemfire.distributed.internal.membership.*;
+
+import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedMember;
+import com.gemstone.gemfire.distributed.internal.membership.MembershipManager;
+import com.gemstone.gemfire.internal.SocketCreator;
 
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
@@ -103,7 +109,7 @@ public class TCPConduit implements Runnable {
 
 //  private transient DistributedMembershipListener messageReceiver;
   
-  private final MembershipManager membershipManager;
+  private MembershipManager membershipManager;
   
   /** true if NIO can be used for the server socket */
   private boolean useNIO;
@@ -175,9 +181,8 @@ public class TCPConduit implements Runnable {
   
   ////////////////// runtime state that is re-initialized on a restart
 
-  /** id is an endpoint Stub representing this server.  It holds the
-      actual port the server is listening on */
-  private Stub id;
+  /** server socket address */
+  private InetSocketAddress id;
 
   protected volatile boolean stopped;
 
@@ -357,7 +362,7 @@ public class TCPConduit implements Runnable {
     try {
       localPort = socket.getLocalPort();
 
-      id = new Stub(socket.getInetAddress(), localPort, 0);
+      id = new InetSocketAddress(socket.getInetAddress(), localPort);
       stopped = false;
       ThreadGroup group =
         LogWriterImpl.createThreadGroup("P2P Listener Threads", logger);
@@ -376,22 +381,12 @@ public class TCPConduit implements Runnable {
         this.hsPool.shutdownNow();
       }
     } catch (IOException io) {
-      String s = "While creating ServerSocket and Stub on port " + p;
+      String s = "While creating ServerSocket on port " + p;
       throw new ConnectionException(s, io);
     }
     this.port = localPort;
   }
-
-  /**
-   * After startup we install the view ID into the conduit stub to avoid
-   * confusion during overlapping shutdown/startup from the same member.
-   * 
-   * @param viewID
-   */
-  public void setVmViewID(int viewID) {
-    this.id.setViewID(viewID);
-  }
-
+  
   /** creates the server sockets.  This can be used to recreate the
    *  socket using this.port and this.bindAddress, which must be set
    *  before invoking this method.
@@ -683,11 +678,9 @@ public class TCPConduit implements Runnable {
         //safe to ignore
       }
       catch (ClosedChannelException e) {
-//      getLogger().fine("TCPConduit encountered exception", e);
         break; // we're dead
       }
       catch (CancelException e) {
-//        getLogger().fine("TCPConduit encountered exception", e);
         break;
       }
       catch (Exception e) {
@@ -783,7 +776,6 @@ public class TCPConduit implements Runnable {
       }
     }
     catch (CancelException e) {
-//      getLogger().fine("TCPConduit encountered exception", e);
     }
     catch (Exception e) {
       if (!stopped) {
@@ -816,8 +808,8 @@ public class TCPConduit implements Runnable {
    * @since 5.1
    */
   public void getThreadOwnedOrderedConnectionState(
-    Stub member,
-    HashMap result)
+    DistributedMember member,
+    Map result)
   {
     getConTable().getThreadOwnedOrderedConnectionState(member, result);
   }
@@ -828,7 +820,7 @@ public class TCPConduit implements Runnable {
    * with the key
    * @since 5.1
    */
-  public void waitForThreadOwnedOrderedConnectionState(Stub member, HashMap channelState)
+  public void waitForThreadOwnedOrderedConnectionState(DistributedMember member, Map channelState)
     throws InterruptedException
   {
     // if (Thread.interrupted()) throw new InterruptedException(); not necessary done in waitForThreadOwnedOrderedConnectionState
@@ -853,13 +845,12 @@ public class TCPConduit implements Runnable {
       DistributionMessage msg = message;
       msg.setBytesRead(bytesRead);
       msg.setSender(receiver.getRemoteAddress());
-      directChannel.receive(msg, bytesRead, receiver.getRemoteId());
+      directChannel.receive(msg, bytesRead);
     }
   }
 
-  /** gets the Stub representing this conduit's ServerSocket endpoint.  This
-      is used to generate other stubs containing endpoint information. */
-  public Stub getId() {
+  /** gets the address of this conduit's ServerSocket endpoint */
+  public InetSocketAddress getId() {
     return id;
   }
 
@@ -881,13 +872,9 @@ public class TCPConduit implements Runnable {
   }
 
   
-  /** gets the channel that is used to process non-Stub messages */
+  /** gets the channel that is used to process non-DistributedMember messages */
   public DirectChannel getDirectChannel() {
     return directChannel;
-  }
-
-  public InternalDistributedMember getMemberForStub(Stub s, boolean validate) {
-    return membershipManager.getMemberForStub(s, validate);
   }
 
 /** establishes the logwriter used by the conduit */
@@ -900,7 +887,7 @@ public class TCPConduit implements Runnable {
     localAddr = addr;
   }
   
-  public InternalDistributedMember getLocalId() {
+  public InternalDistributedMember getLocalAddr() {
     return localAddr;
   }
 
@@ -944,7 +931,6 @@ public class TCPConduit implements Runnable {
    * member is in the membership view and the system is not shutting down.
    * 
    * @param memberAddress the IDS associated with the remoteId
-   * @param remoteId the TCPConduit stub for this member
    * @param preserveOrder whether this is an ordered or unordered connection
    * @param retry false if this is the first attempt
    * @param startTime the time this operation started
@@ -952,11 +938,10 @@ public class TCPConduit implements Runnable {
    * @param ackSATimeout the ack-severe-alert-threshold * 1000 for the operation to be transmitted (or zero)
    * @return the connection
    */
-  public final Connection getConnection(
-      InternalDistributedMember memberAddress, Stub remoteId,
-      final boolean preserveOrder, boolean retry, long startTime,
-      long ackTimeout, long ackSATimeout, boolean threadOwnsResources)
-      throws java.io.IOException, DistributedSystemDisconnectedException {
+  public Connection getConnection(InternalDistributedMember memberAddress, final boolean preserveOrder, boolean retry, long startTime,
+      long ackTimeout, long ackSATimeout)
+    throws java.io.IOException, DistributedSystemDisconnectedException
+  {
     //final boolean preserveOrder = (processorType == DistributionManager.SERIAL_EXECUTOR )|| (processorType == DistributionManager.PARTITIONED_REGION_EXECUTOR);
     if (stopped) {
       throw new DistributedSystemDisconnectedException(LocalizedStrings.TCPConduit_THE_CONDUIT_IS_STOPPED.toLocalizedString());
@@ -973,11 +958,7 @@ public class TCPConduit implements Runnable {
       // problems.  Tear down the connection so that it gets
       // rebuilt.
       if (retry || conn != null) { // not first time in loop
-        // Consult with the membership manager; if member has gone away,
-        // there will not be an entry for this stub.
-        InternalDistributedMember m = this.membershipManager.getMemberForStub(remoteId, true);
-        if (m == null) {
-          // OK, the member left.  Just register an error.
+        if (!membershipManager.memberExists(memberAddress) || membershipManager.isShunned(memberAddress) || membershipManager.shutdownInProgress()) {
           throw new IOException(LocalizedStrings.TCPConduit_TCPIP_CONNECTION_LOST_AND_MEMBER_IS_NOT_IN_VIEW.toLocalizedString());
         }
         // bug35953: Member is still in view; we MUST NOT give up!
@@ -992,15 +973,14 @@ public class TCPConduit implements Runnable {
         }
         
         // try again after sleep
-        m = this.membershipManager.getMemberForStub(remoteId, true);
-        if (m == null) {
+        if (!membershipManager.memberExists(memberAddress) || membershipManager.isShunned(memberAddress)) {
           // OK, the member left.  Just register an error.
           throw new IOException(LocalizedStrings.TCPConduit_TCPIP_CONNECTION_LOST_AND_MEMBER_IS_NOT_IN_VIEW.toLocalizedString());
         }
         
         // Print a warning (once)
         if (memberInTrouble == null) {
-          memberInTrouble = m;
+          memberInTrouble = memberAddress;
           getLogger().warning(LocalizedStrings.TCPConduit_ATTEMPTING_TCPIP_RECONNECT_TO__0, memberInTrouble);
         }
         else {
@@ -1012,7 +992,7 @@ public class TCPConduit implements Runnable {
         if (conn != null) {
           try { 
             if (getLogger().fineEnabled()) {
-              getLogger().fine("Closing old connection.  conn=" + conn + " before retrying.  remoteID=" + remoteId
+              getLogger().fine("Closing old connection.  conn=" + conn + " before retrying.  "
                 + " memberInTrouble=" + memberInTrouble);
             }
             conn.closeForReconnect("closing before retrying"); 
@@ -1034,12 +1014,10 @@ public class TCPConduit implements Runnable {
         boolean debugRetry = false;
         do {
           retryForOldConnection = false;
-          conn = getConTable().get(remoteId, preserveOrder, startTime,
-              ackTimeout, ackSATimeout, threadOwnsResources);
-        //      getLogger().info ("connections returned " + conn);
+          conn = getConTable().get(memberAddress, preserveOrder, startTime, ackTimeout, ackSATimeout);
           if (conn == null) {
             // conduit may be closed - otherwise an ioexception would be thrown
-            problem = new IOException(LocalizedStrings.TCPConduit_UNABLE_TO_RECONNECT_TO_SERVER_POSSIBLE_SHUTDOWN_0.toLocalizedString(remoteId));
+            problem = new IOException(LocalizedStrings.TCPConduit_UNABLE_TO_RECONNECT_TO_SERVER_POSSIBLE_SHUTDOWN_0.toLocalizedString(memberAddress));
           } else if (conn.isClosing() || !conn.getRemoteAddress().equals(memberAddress)) {
             if (getLogger().fineEnabled()) {
               getLogger().fine("got an old connection for " + memberAddress
@@ -1079,8 +1057,7 @@ public class TCPConduit implements Runnable {
 
       if (problem != null) {
         // Some problems are not recoverable; check and error out early.
-        InternalDistributedMember m = this.membershipManager.getMemberForStub(remoteId, true);
-        if (m == null) { // left the view
+        if (!membershipManager.memberExists(memberAddress) || membershipManager.isShunned(memberAddress)) { // left the view
           // Bracket our original warning
           if (memberInTrouble != null) {
             // make this msg info to bracket warning
@@ -1088,7 +1065,7 @@ public class TCPConduit implements Runnable {
                 LocalizedStrings.TCPConduit_ENDING_RECONNECT_ATTEMPT_BECAUSE_0_HAS_DISAPPEARED,
                 memberInTrouble);
           }
-          throw new IOException(LocalizedStrings.TCPConduit_PEER_HAS_DISAPPEARED_FROM_VIEW.toLocalizedString(remoteId));
+          throw new IOException(LocalizedStrings.TCPConduit_PEER_HAS_DISAPPEARED_FROM_VIEW.toLocalizedString(memberAddress));
         } // left the view
 
         if (membershipManager.shutdownInProgress()) { // shutdown in progress
@@ -1108,11 +1085,11 @@ public class TCPConduit implements Runnable {
         if (memberInTrouble == null) {
           logger.warning(
           LocalizedStrings.TCPConduit_ERROR_SENDING_MESSAGE_TO_0_WILL_REATTEMPT_1,
-          new Object[] {m, problem});
-          memberInTrouble = m;
+          new Object[] {memberAddress, problem});
+          memberInTrouble = memberAddress;
         }
         else {
-          logger.fine("Error sending message to " + m, problem);
+          logger.fine("Error sending message to " + memberAddress, problem);
         }
 
         if (breakLoop) {
@@ -1125,7 +1102,7 @@ public class TCPConduit implements Runnable {
             throw (IOException)problem;
           }
           else {
-            IOException ioe = new IOException( LocalizedStrings.TCPConduit_PROBLEM_CONNECTING_TO_0.toLocalizedString(remoteId));
+            IOException ioe = new IOException( LocalizedStrings.TCPConduit_PROBLEM_CONNECTING_TO_0.toLocalizedString(memberAddress));
             ioe.initCause(problem);
             throw ioe;
           }
@@ -1141,7 +1118,7 @@ public class TCPConduit implements Runnable {
             LocalizedStrings.TCPConduit_SUCCESSFULLY_RECONNECTED_TO_MEMBER_0,
             memberInTrouble);
         if (logger.finerEnabled()) {
-          logger.finer("new connection is " + conn + " remoteId=" + remoteId
+          logger.finer("new connection is " + conn 
               + " memberAddress=" + memberAddress);
       }
       }
@@ -1334,6 +1311,19 @@ public class TCPConduit implements Runnable {
     return "" + id;
   }
 
+  public boolean threadOwnsResources() {
+    ConnectionTable ct = this.conTable;
+    if (ct == null) {
+      return false;
+    } else {
+      DM d = getDM();
+      if (d != null) {
+        return d.getSystem().threadOwnsResources();
+      } else {
+        return false;
+      }
+    }
+  }
   /**
    * Returns the distribution manager of the direct channel
    */
@@ -1341,22 +1331,22 @@ public class TCPConduit implements Runnable {
     return directChannel.getDM();
   }
   /**
-   * Closes any connections used to communicate with the given stub
+   * Closes any connections used to communicate with the given member
    */
-  public void removeEndpoint(Stub stub, String reason) {
-    removeEndpoint(stub, reason, true);
+  public void removeEndpoint(DistributedMember mbr, String reason) {
+    removeEndpoint(mbr, reason, true);
   }
   
-  public void removeEndpoint(Stub stub, String reason, boolean notifyDisconnect) {
+  public void removeEndpoint(DistributedMember mbr, String reason, boolean notifyDisconnect) {
     ConnectionTable ct = this.conTable;
     if (ct == null) {
       return;
     }
-    ct.removeEndpoint(stub, reason, notifyDisconnect);
+    ct.removeEndpoint(mbr, reason, notifyDisconnect);
   }
   
   /** check to see if there are still any receiver threads for the given end-point */
-  public boolean hasReceiversFor(Stub endPoint) {
+  public boolean hasReceiversFor(DistributedMember endPoint) {
     ConnectionTable ct = this.conTable;
     return (ct != null) && ct.hasReceiversFor(endPoint);
   }

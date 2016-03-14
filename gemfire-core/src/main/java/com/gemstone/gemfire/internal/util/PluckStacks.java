@@ -158,7 +158,9 @@ public class PluckStacks {
       lastStack = new ThreadStack(firstLine, secondLine, line, reader);
       lastStack.addBreadcrumbs(breadcrumbs);
       if (DEBUG) {
-        System.out.println("added " + breadcrumbs.size() + " breadcrumbs to " + lastStack.getThreadName());
+        if (breadcrumbs.size() > 0) {
+          System.out.println("added " + breadcrumbs.size() + " breadcrumbs to " + lastStack.getThreadName());
+        }
         System.out.println("examining thread " + lastStack.getThreadName());
       }
       if (!isExpectedStack(lastStack)) {
@@ -187,15 +189,45 @@ public class PluckStacks {
     
     // check these first for efficiency
     
+    if (threadName.startsWith("Cache Client Updater Thread")) {
+      return stackSize == 13 && thread.get(2).contains("SocketInputStream.socketRead0");
+    }
+    if (threadName.startsWith("Client Message Dispatcher")) {
+      return stackSize == 13 && thread.get(1).contains("TIMED_WAITING");
+    }
     if (threadName.startsWith("Function Execution Processor")) {
       return isIdleExecutor(thread);
     }
+    if (threadName.startsWith("Geode Failure Detection Server")) {
+      return stackSize < 11 && thread.getFirstFrame().contains("socketAccept");
+    }
+    if (threadName.startsWith("Geode Membership Timer")) {
+//      System.out.println("gf timer stack size = " + stackSize + "; frame = " + thread.get(1));
+      return stackSize < 9 && !thread.isRunnable();
+    }
+    if (threadName.startsWith("Geode Membership View Creator")) {
+//    System.out.println("gf view creator stack size = " + stackSize + "; frame = " + thread.get(1));
+    return stackSize < 8 && !thread.isRunnable();
+    }
+    if (threadName.startsWith("Geode Heartbeat Sender")) {
+      return stackSize <= 8 && !thread.isRunnable();
+    }
+    // thread currently disabled
+//    if (threadName.startsWith("Geode Suspect Message Collector")) {
+//      return stackSize <= 7 && thread.get(1).contains("Thread.State: WAITING");
+//    }
+    if (threadName.startsWith("multicast receiver")) {
+    return (stackSize > 2 && thread.get(2).contains("PlainDatagramSocketImpl.receive"));
+  }
+    if (threadName.startsWith("P2P Listener")) {
+//      System.out.println("p2p listener stack size = " + stackSize + "; frame = " + thread.get(2));
+      return (stackSize == 8 && thread.get(2).contains("SocketChannelImpl.accept"));
+    }
     if (threadName.startsWith("P2P message reader")) {
-      return isIdleExecutor(thread) // gemfirexd uses a thread pool
-          || (stackSize <= 13 && 
-            (thread.getFirstFrame().contains("FileDispatcherImpl.read") ||
-             thread.getFirstFrame().contains("FileDispatcher.read") ||
-             thread.getFirstFrame().contains("SocketDispatcher.read")));
+      return (stackSize <= 14 && 
+        (thread.getFirstFrame().contains("FileDispatcherImpl.read") ||
+         thread.getFirstFrame().contains("FileDispatcher.read") ||
+         thread.getFirstFrame().contains("SocketDispatcher.read")));
     }
     if (threadName.startsWith("PartitionedRegion Message Processor")) {
       return isIdleExecutor(thread);
@@ -214,8 +246,23 @@ public class PluckStacks {
     }
     if (threadName.startsWith("ServerConnection")) {
       if (thread.getFirstFrame().contains("socketRead")
-          && (stackSize > 5 && thread.get(4).contains("fetchHeader"))) return true; // reading from a client
+          && (stackSize > 6 && thread.get(6).contains("fetchHeader"))) return true; // reading from a client
       return isIdleExecutor(thread);
+    }
+    if (threadName.startsWith("TCP Check ServerSocket Thread")) {
+      return (stackSize >= 3 && thread.get(2).contains("socketAccept"));
+    }
+    if (threadName.startsWith("Timer runner")) {
+//      System.out.println("timer runner stack size = " + stackSize + "; frame = " + thread.get(1));
+      return (stackSize <= 10 && thread.get(1).contains("TIMED_WAITING"));
+    }
+    if (threadName.startsWith("TransferQueueBundler")) {
+//      System.out.println("transfer bundler stack size = " + stackSize + "; frame = " + thread.get(2));
+      return (stackSize == 9 && thread.get(2).contains("sun.misc.Unsafe.park"));
+    }
+    if (threadName.startsWith("unicast receiver")) {
+//      System.out.println("unicast receiver stack size = " + stackSize + "; frame = " + thread.get(3));
+      return (stackSize > 2 && thread.get(2).contains("PlainDatagramSocketImpl.receive"));
     }
     
     /////////////////////////////////////////////////////////////////////////
@@ -246,19 +293,13 @@ public class PluckStacks {
     if (threadName.startsWith("DM-MemberEventInvoker")) {
       return !thread.isRunnable() && (stackSize == 9 && thread.get(6).contains("Queue.take"));
     }
-    if (threadName.startsWith("FD_SOCK ClientConnectionHandler")) {
-      return true;
-    }
-    if (threadName.startsWith("FD_SOCK Ping thread")) {
-      return (stackSize <= 9 && thread.getFirstFrame().contains("socketRead"));
-    }
-    if (threadName.startsWith("FD_SOCK listener thread")) {
-      return (stackSize <= 9  && thread.getFirstFrame().contains("socketAccept"));
+    if (threadName.startsWith("Event Processor for GatewaySender")) {
+      return !thread.isRunnable() && thread.get(3).contains("ConcurrentParallelGatewaySenderQueue.peek"); 
     }
     if (threadName.startsWith("GC Daemon")) {
       return !thread.isRunnable() && stackSize <= 6;
     }
-    if (threadName.contains("Garbage Collection Thread ")) {
+    if (threadName.startsWith("GemFire Garbage Collection Thread")) {
       return !thread.isRunnable() && (stackSize <= 7);
     }
     if (threadName.equals("GemFire Time Service")) {

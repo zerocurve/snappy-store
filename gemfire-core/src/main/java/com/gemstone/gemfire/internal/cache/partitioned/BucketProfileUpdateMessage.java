@@ -73,6 +73,11 @@ public final class BucketProfileUpdateMessage extends DistributionMessage
   }
 
   @Override
+  public boolean sendViaUDP() {
+    return true;
+  }
+
+  @Override
   protected void process(DistributionManager dm)
   {
     LogWriterI18n logger = dm.getLoggerI18n();

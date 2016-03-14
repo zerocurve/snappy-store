@@ -433,7 +433,7 @@ public class StateFlushOperation  {
               boolean useMulticast = dr != null && dr.getMulticastEnabled()
                                     && dr.getSystem().getConfig().getMcastPort() != 0;
               if (initialized) {
-                HashMap channelStates = dm.getMembershipManager().getChannelStates(relayRecipient, useMulticast);
+                Map channelStates = dm.getMembershipManager().getMessageState(relayRecipient, useMulticast);
                 if (gr.channelState != null) {
                   gr.channelState.putAll(channelStates);
                 } else {
@@ -543,7 +543,7 @@ public class StateFlushOperation  {
     protected int processorId;
     /** a map of the communication channel state between the sending process
      *  and the receiving process */
-    protected HashMap channelState;
+    protected Map channelState;
     /** whether this is a simple request/response two-party flush or (false) a proxied flush */
     protected boolean isSingleFlushTo;
     
@@ -589,7 +589,7 @@ public class StateFlushOperation  {
                 dm.getCancelCriterion().checkCancelInProgress(null);
                 boolean interrupted = Thread.interrupted();
                 try {
-                  dm.getMembershipManager().waitForChannelState(getSender(), channelState);
+                  dm.getMembershipManager().waitForMessageState(getSender(), channelState);
                   break;
                 }
                 catch (InterruptedException e) {

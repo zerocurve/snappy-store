@@ -1,18 +1,18 @@
 /*
- * Copyright (c) 2010-2015 Pivotal Software, Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you
- * may not use this file except in compliance with the License. You
- * may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * permissions and limitations under the License. See accompanying
- * LICENSE file.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.gemstone.gemfire.admin.internal;
 
@@ -456,11 +456,6 @@ implements com.gemstone.gemfire.admin.AdminDistributedSystem,
     
     if (isAnyMemberRunning()) return true;
     return false;
-  }
-  
-  /** Returns true if this system is using multicast instead of locators */
-  public boolean isMcastDiscovery() {
-    return this.isMcastEnabled() && (this.getLocators().length() == 0);
   }
   
   /** Returns true if this system can use multicast for communications */
@@ -1322,11 +1317,9 @@ implements com.gemstone.gemfire.admin.AdminDistributedSystem,
           this.getMcastPort()).append("]").toString();
       locatorIds.add(new DistributionLocatorId(mcastId));
     }
-    if (!isMcastDiscovery()) {
-      StringTokenizer st = new StringTokenizer(this.getLocators(), ",");
-      while (st.hasMoreTokens()) {
-        locatorIds.add(new DistributionLocatorId(st.nextToken()));
-      }
+    StringTokenizer st = new StringTokenizer(this.getLocators(), ",");
+    while (st.hasMoreTokens()) {
+      locatorIds.add(new DistributionLocatorId(st.nextToken()));
     }
 
     if (this.getLogWriter().fineEnabled()) {
@@ -1755,10 +1748,10 @@ implements com.gemstone.gemfire.admin.AdminDistributedSystem,
    */
   private GfManagerAgentConfig buildAgentConfig(LogWriterI18n log) {
     RemoteTransportConfig conf = new RemoteTransportConfig(
-        isMcastEnabled(), isMcastDiscovery(), getDisableTcp(),
+        isMcastEnabled(), getDisableTcp(),
         getDisableAutoReconnect(),
         getBindAddress(), buildSSLConfig(), parseLocators(), 
-        getMembershipPortRange(), getTcpPort());
+        getMembershipPortRange(), getTcpPort(), DistributionManager.ADMIN_ONLY_DM_TYPE);
     return new GfManagerAgentConfig(
         getSystemName(), conf, log, this.alertLevel.getSeverity(), this, this);
   }
@@ -1781,13 +1774,6 @@ implements com.gemstone.gemfire.admin.AdminDistributedSystem,
    */
   private String getBindAddress() {
     return this.config.getBindAddress();
-
-//     String bindAddress = 
-//         System.getProperty("gemfire.jg-bind-address");
-//     if (bindAddress == null || bindAddress.length() == 0) {
-//       return DistributionConfig.DEFAULT_BIND_ADDRESS;
-//     }
-//     return bindAddress;
   }
 
   /** Returns whether or not the given member is running */

@@ -18,7 +18,6 @@
 package com.gemstone.gemfire.i18n;
 
 import com.gemstone.gemfire.internal.i18n.AbstractStringIdResourceBundle;
-import com.gemstone.org.jgroups.util.StringId;
 
 import java.text.MessageFormat;
 import java.util.Locale;

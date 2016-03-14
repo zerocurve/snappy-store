@@ -2113,13 +2113,16 @@ public class SystemAdmin {
   }
 
   public static void main(String[] args) {
-    final SystemAdmin admin = new SystemAdmin();
     try {
+      final SystemAdmin admin = new SystemAdmin();
       admin.initHelpMap();
       admin.initUsageMap();
       admin.invoke(args);
-    } catch (GemFireTerminateError term) {
-      System.exit(term.getExitCode());
+    } finally {
+      InternalDistributedSystem sys = InternalDistributedSystem.getConnectedInstance();
+      if (sys != null) {
+        sys.disconnect();
+      }
     }
   }
 

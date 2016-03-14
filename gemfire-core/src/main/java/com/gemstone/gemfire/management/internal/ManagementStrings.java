@@ -17,7 +17,7 @@
 package com.gemstone.gemfire.management.internal;
 
 import com.gemstone.gemfire.i18n.StringIdImpl;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * All Management Localization strings are to be

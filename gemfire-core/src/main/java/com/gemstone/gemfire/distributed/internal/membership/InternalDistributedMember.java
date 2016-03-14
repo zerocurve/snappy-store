@@ -1,43 +1,24 @@
 /*
- * Copyright (c) 2010-2015 Pivotal Software, Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you
- * may not use this file except in compliance with the License. You
- * may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * permissions and limitations under the License. See accompanying
- * LICENSE file.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.gemstone.gemfire.distributed.internal.membership;
 
-import com.gemstone.gemfire.DataSerializer;
-import com.gemstone.gemfire.InternalGemFireError;
-import com.gemstone.gemfire.distributed.DistributedMember;
-import com.gemstone.gemfire.distributed.DurableClientAttributes;
-import com.gemstone.gemfire.distributed.Role;
-import com.gemstone.gemfire.distributed.internal.DistributionManager;
-import com.gemstone.gemfire.distributed.internal.DistributionAdvisor.ProfileId;
-import com.gemstone.gemfire.distributed.internal.membership.jgroup.GFJGBasicAdapter;
-import com.gemstone.gemfire.distributed.internal.membership.jgroup.GFJGPeerAdapter;
-import com.gemstone.gemfire.distributed.internal.membership.jgroup.JGroupMember;
-import com.gemstone.gemfire.internal.Assert;
-import com.gemstone.gemfire.internal.DataSerializableFixedID;
-import com.gemstone.gemfire.internal.HeapDataOutputStream;
-import com.gemstone.gemfire.internal.InternalDataSerializer;
-import com.gemstone.gemfire.internal.SocketCreator;
-import com.gemstone.gemfire.internal.cache.versions.VersionSource;
-import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
-import com.gemstone.gemfire.internal.shared.Version;
-import com.gemstone.org.jgroups.stack.IpAddress;
-
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.EOFException;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -51,20 +32,26 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.gemstone.gemfire.DataSerializer;
+import com.gemstone.gemfire.InternalGemFireError;
+import com.gemstone.gemfire.cache.UnsupportedVersionException;
+import com.gemstone.gemfire.distributed.DistributedMember;
+import com.gemstone.gemfire.distributed.DurableClientAttributes;
+import com.gemstone.gemfire.distributed.Role;
+import com.gemstone.gemfire.distributed.internal.DistributionAdvisor.ProfileId;
+import com.gemstone.gemfire.distributed.internal.DistributionManager;
+import com.gemstone.gemfire.internal.Assert;
+import com.gemstone.gemfire.internal.DataSerializableFixedID;
+import com.gemstone.gemfire.internal.InternalDataSerializer;
+import com.gemstone.gemfire.internal.OSProcess;
+import com.gemstone.gemfire.internal.SocketCreator;
+import com.gemstone.gemfire.internal.shared.Version;
+import com.gemstone.gemfire.internal.cache.versions.VersionSource;
+import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
+
 /**
  * This is the fundamental representation of a member of a GemFire distributed
  * system.
- *
- * Unfortunately, this class serves two distinct functions. First, it is the
- * fundamental element of membership in the GemFire distributed system. As such,
- * it is used in enumerations and properly responds to hashing and equals()
- * comparisons.
- *
- * Second, it is used as a cheap way of representing an address. This is
- * unfortunate, because as a NetMember, it holds two separate port numbers: the
- * "membership" descriptor as well as a direct communication channel.
- *
- * TODO fix this.
  */
 public final class InternalDistributedMember
  implements DistributedMember,
@@ -73,8 +60,10 @@ public final class InternalDistributedMember
 {
   private final static long serialVersionUID = -2785249969777296507L;
   
-  protected NetMember ipAddr; // the underlying member object, e.g. from JGroups
-  // private IpAddress ipAddr;
+  // whether to show NetMember components in toString()
+  private final boolean SHOW_NETMEMBER = Boolean.getBoolean("gemfire.show_netmembers");
+  
+  protected NetMember netMbr; // the underlying member object, e.g. from JGroups
 
   /**
    * This is the direct channel port. The underlying NetMember must be able to
@@ -92,7 +81,7 @@ public final class InternalDistributedMember
    * This is a representation of the type of VM. The underlying NetMember must
    * be able to serialize and deliver this value.
    */
-  private int vmKind = -1;
+  private int vmKind = DistributionManager.NORMAL_DM_TYPE;
   
   /**
    * This is the view identifier where this ID was born, or zero if this is
@@ -131,12 +120,6 @@ public final class InternalDistributedMember
    * Note: this should be displayable.
    */
   private String uniqueTag = null;
-  
-  /**
-   * essentialData is the serialized form of data that uniquely identifies this
-   * member.  It is used to accelerate repeated serialization of the ID
-   */
-  private byte[] essentialData;
 
   /** serialization bit mask */
   private static final int SB_ENABLED_MASK = 0x1;
@@ -156,7 +139,6 @@ public final class InternalDistributedMember
   private String hostName = null;
 
   private transient short version = Version.CURRENT_ORDINAL;
-
   private transient Version versionObj = Version.CURRENT;
 
   /**
@@ -165,23 +147,11 @@ public final class InternalDistributedMember
   private DurableClientAttributes durableClientAttributes = null;
 
   /** The versions in which this message was modified */
-  private static final Version[] dsfidVersions = null;
+  private static final Version[] dsfidVersions = new Version[] {
+        Version.GFE_71, Version.GFE_90 };
 
   private void defaultToCurrentHost() {
-    int defaultDcPort = MemberAttributes.DEFAULT.getPort();
- // [bruce] disabled to allow loners to modify the ID post-connect
- //    Assert.assertTrue(defaultDcPort > 0); 
-
-    this.dcPort = defaultDcPort;;
-    this.vmKind = MemberAttributes.DEFAULT.getVmKind();
-    this.vmPid = MemberAttributes.DEFAULT.getVmPid();
-    this.name = MemberAttributes.DEFAULT.getName();
-    this.groups = MemberAttributes.DEFAULT.getGroups();
-    this.vmViewId = MemberAttributes.DEFAULT.getVmViewId();
-    this.durableClientAttributes = MemberAttributes.DEFAULT.getDurableClientAttributes();
-    if (this.ipAddr instanceof JGroupMember) {
-      ((JGroupMember)this.ipAddr).getAddress().setProcessId(this.vmPid);
-    }
+    this.vmPid = OSProcess.getId();
     try {
       if (SocketCreator.resolve_dns) {
         this.hostName = SocketCreator.getHostName(SocketCreator.getLocalHost());
@@ -193,7 +163,7 @@ public final class InternalDistributedMember
     catch(UnknownHostException ee){
       throw new InternalGemFireError(ee);
     }
-//    checkHostName();
+    synchPayload();
   }
 
 
@@ -226,11 +196,18 @@ public final class InternalDistributedMember
     this.name = attr.getName();
     this.groups = attr.getGroups();
     this.durableClientAttributes = attr.getDurableClientAttributes();
-    this.ipAddr = MemberFactory.newNetMember(i, p, splitBrainEnabled, canBeCoordinator, attr);
+    this.netMbr = MemberFactory.newNetMember(i, p, splitBrainEnabled, canBeCoordinator, Version.CURRENT_ORDINAL, attr);
     this.hostName = SocketCreator.resolve_dns? SocketCreator.getHostName(i) : i.getHostAddress();
+    this.version = netMbr.getVersionOrdinal();
+    try {
+      this.versionObj = Version.fromOrdinal(version, false);
+    } catch (UnsupportedVersionException e) {
+      this.versionObj = Version.CURRENT;
+    }
 //    checkHostName();
   }
 
+  
   /**
    * Construct a InternalDistributedMember based on the given NetMember.<p>
    * This is not the preferred way of creating an instance since the NetMember
@@ -239,11 +216,11 @@ public final class InternalDistributedMember
    * @param m
    */
   public InternalDistributedMember(NetMember m) {
-    ipAddr = m;
+    netMbr = m;
 
     MemberAttributes attr = m.getAttributes();
-    this.hostName = SocketCreator.resolve_dns? SocketCreator.getHostName(m.getIpAddress()) :
-      m.getIpAddress().getHostAddress();
+    this.hostName = SocketCreator.resolve_dns? SocketCreator.getHostName(m.getInetAddress()) :
+      m.getInetAddress().getHostAddress();
 //    checkHostName();
     if (attr == null) {
       // no extended information available, so this address is crippled
@@ -257,14 +234,16 @@ public final class InternalDistributedMember
       this.groups = attr.getGroups();
       this.durableClientAttributes = attr.getDurableClientAttributes();
     }
-    final IpAddress addr = ((JGroupMember)m).getAddress();
-    this.version = addr.getVersionOrdinal();
-    this.versionObj = Version.fromOrdinalOrCurrent(version);
+    this.version = m.getVersionOrdinal();
+    try {
+      this.versionObj = Version.fromOrdinal(version, false);
+    } catch (UnsupportedVersionException e) {
+      this.versionObj = Version.CURRENT;
+    }
     cachedToString = null;
-    essentialData = null;
   }
-  
-//  private void checkHostName() {
+
+  //  private void checkHostName() {
 //    // bug #44858: debug method to find who is putting a host name instead of addr into an ID
 //    if (!SocketCreator.resolve_dns
 //        && this.hostName != null && this.hostName.length() > 0
@@ -291,10 +270,47 @@ public final class InternalDistributedMember
    * @throws UnknownHostException if the given hostname cannot be resolved
    */
   public InternalDistributedMember(String i, int p) throws UnknownHostException {
-    ipAddr = MemberFactory.newNetMember(i, p);
+    this(i, p, Version.CURRENT);
+  }
+  
+  /**
+   * Create a InternalDistributedMember referring to the current host (as defined by the given
+   * string).<p>
+   *
+   * <b>
+   * [bruce]THIS METHOD IS FOR TESTING ONLY.  DO NOT USE IT TO CREATE IDs FOR
+   * USE IN THE PRODUCT.  IT DOES NOT PROPERLY INITIALIZE ATTRIBUTES NEEDED
+   * FOR P2P FUNCTIONALITY.
+   * </b>
+   *
+   * 
+   * @param i
+   *          the hostname, must be for the current host
+   * @param p
+   *          the membership listening port
+   * @param version
+   *          the version of this member
+   * @throws UnknownHostException if the given hostname cannot be resolved
+   */
+  public InternalDistributedMember(String i, int p, Version version) throws UnknownHostException {
+    this (i, p, version, MemberFactory.newNetMember(i, p));
+  }
+  
+  /**
+   * Create a InternalDistributedMember referring to the current host (as defined by the given
+   * string).<p>
+   *
+   * <b>
+   * THIS METHOD IS FOR TESTING ONLY.  DO NOT USE IT TO CREATE IDs FOR
+   * USE IN THE PRODUCT.  IT DOES NOT PROPERLY INITIALIZE ATTRIBUTES NEEDED
+   * FOR P2P FUNCTIONALITY.
+   * </b>
+   **/
+  public InternalDistributedMember(String i, int p, Version version, NetMember netMember) throws UnknownHostException {
+    netMbr = netMember;
     defaultToCurrentHost();
     this.vmKind = DistributionManager.NORMAL_DM_TYPE;
-    GFJGBasicAdapter.insertDefaultGemFireAttributes(((JGroupMember)ipAddr).getAddress());
+    this.versionObj = version;
   }
 
   /**
@@ -309,7 +325,7 @@ public final class InternalDistributedMember
    * WITHOUT TALKING TO ME FIRST.  IT DOES NOT PROPERLY INITIALIZE THE ID.
    * </b>
    *
-   * @param i
+   * @param host
    *          the hostname, must be for the current host
    * @param p
    *          the membership listening port
@@ -317,14 +333,30 @@ public final class InternalDistributedMember
    *          gemfire properties connection name
    * @param u
    *          unique string used make the member more unique
+   * @param vmKind the dmType
+   * @param groups the server groups / roles
+   * @param attr durable client attributes, if any
+   * 
    * @throws UnknownHostException if the given hostname cannot be resolved
    */
-  public InternalDistributedMember(String i, int p, String n, String u) throws UnknownHostException {
-    ipAddr = MemberFactory.newNetMember(i, p);
+  public InternalDistributedMember(String host, int p, String n, String u,
+      int vmKind, String[] groups, DurableClientAttributes attr) throws UnknownHostException {
+    MemberAttributes mattr = new MemberAttributes(p,
+        com.gemstone.gemfire.internal.OSProcess.getId(),
+        vmKind, -1,
+        n,
+        groups, attr);
+    InetAddress addr = SocketCreator.toInetAddress(host);
+    netMbr = MemberFactory.newNetMember(addr, p, false, true, Version.CURRENT_ORDINAL, mattr);
     defaultToCurrentHost();
-    GFJGBasicAdapter.insertDefaultGemFireAttributes(((JGroupMember)ipAddr).getAddress());
     this.name = n;
     this.uniqueTag = u;
+    this.vmKind = vmKind;
+    this.dcPort = p;
+    this.durableClientAttributes = attr;
+    this.hostName = host;
+    this.vmPid = OSProcess.getId();
+    this.groups = groups;
   }
 
   /**
@@ -344,7 +376,7 @@ public final class InternalDistributedMember
    *          the membership listening port
    */
   public InternalDistributedMember(InetAddress i, int p) {
-    ipAddr = MemberFactory.newNetMember(i, p);
+    netMbr = MemberFactory.newNetMember(i, p);
     defaultToCurrentHost();
   }
 
@@ -370,7 +402,7 @@ public final class InternalDistributedMember
   public InternalDistributedMember(InetAddress addr,
                                    int p,
                                    boolean isCurrentHost) {
-    ipAddr = MemberFactory.newNetMember(addr, p);
+    netMbr = MemberFactory.newNetMember(addr, p);
     if (isCurrentHost) {
       defaultToCurrentHost();
     }
@@ -381,22 +413,22 @@ public final class InternalDistributedMember
    *
    * @return the underlying host address
    */
-  public final InetAddress getIpAddress()
+  public InetAddress getInetAddress()
   {
-    return ipAddr.getIpAddress();
+    return netMbr.getInetAddress();
   }
 
   public NetMember getNetMember() {
-    return ipAddr;
+    return netMbr;
   }
 
   /**
    * Return the underlying port (membership port)
    * @return the underlying membership port
    */
-  public final int getPort()
+  public int getPort()
   {
-    return ipAddr.getPort();
+    return netMbr.getPort();
   }
 
 
@@ -413,7 +445,7 @@ public final class InternalDistributedMember
    * [GemStone] Returns the kind of VM that hosts the distribution manager with
    * this address.
    *
-   * @see com.gemstone.gemfire.distributed.internal.DistributionManager#getDistributionManagerType
+   * @see com.gemstone.gemfire.distributed.internal.DistributionManager#getDMType()
    * @see com.gemstone.gemfire.distributed.internal.DistributionManager#NORMAL_DM_TYPE
    */
   public int getVmKind()
@@ -443,7 +475,7 @@ public final class InternalDistributedMember
       if (tmpRolesSet == null) {
         final String[] tmpRoles = this.groups;
         // convert array of string role names to array of Roles...
-        if (tmpRoles.length == 0) {
+        if (tmpRoles == null  ||  tmpRoles.length == 0) {
           tmpRolesSet = Collections.emptySet();
         }
         else {
@@ -475,7 +507,7 @@ public final class InternalDistributedMember
   }
 
   private void synchPayload() {
-    ipAddr.setAttributes(new MemberAttributes(dcPort, vmPid, vmKind, 
+    netMbr.setAttributes(new MemberAttributes(dcPort, vmPid, vmKind, 
         vmViewId, name, groups, durableClientAttributes));
   }
 
@@ -484,14 +516,12 @@ public final class InternalDistributedMember
     vmKind = p;
     synchPayload();
     cachedToString = null;
-    essentialData = null;
   }
   
   public void setVmViewId(int p) {
     this.vmViewId = p;
     synchPayload();
     cachedToString = null;
-    essentialData = null;
   }
 
   /**
@@ -560,8 +590,11 @@ public final class InternalDistributedMember
    *              if the specified object's type prevents it from being compared
    *              to this Object.
    */
-  public int compareTo(DistributedMember o)
-  {
+  public int compareTo(DistributedMember o) {
+    return compareTo(o, true);
+  }
+  
+  public int compareTo(DistributedMember o, boolean checkNetMembersIfEqual) {
     if (this == o) {
       return 0;
     }
@@ -578,8 +611,8 @@ public final class InternalDistributedMember
       return 1;
 
 
-    InetAddress myAddr = getIpAddress();
-    InetAddress otherAddr = other.getIpAddress();
+    InetAddress myAddr = getInetAddress();
+    InetAddress otherAddr = other.getInetAddress();
 
     // Discard null cases
     if (myAddr == null && otherAddr == null) {
@@ -612,30 +645,30 @@ public final class InternalDistributedMember
         return 1; // same as far as they go, but longer...
     }
 
-    // [bruce] names are no longer transmitted in writeEssentialData and
-    // so cannot be used in comparing IDs
-//    if (this.name == null && other.name == null) {
-//      // do nothing
-//    } else if (this.name == null) {
-//      return -1;
-//    }
-//    else if (other.name == null) {
-//      return 1;
-//    }
-//    else {
-//      int i = this.name.compareTo(other.name);
-//      if (i != 0) {
-//        return i;
-//      }
-//    }
+    if (this.name == null && other.name == null) {
+      // do nothing
+    } else if (this.name == null) {
+      return -1;
+    }
+    else if (other.name == null) {
+      return 1;
+    }
+    else {
+      int i = this.name.compareTo(other.name);
+      if (i != 0) {
+        return i;
+      }
+    }
 
     if (this.uniqueTag == null && other.uniqueTag == null) {
       // not loners, so look at P2P view ID
-      if (this.vmViewId < other.vmViewId) {
-        return -1;
-      } else if (this.vmViewId > other.vmViewId) {
-        return 1;
-      } // else they're the same, so continue
+      if (this.vmViewId >= 0 && other.vmViewId >= 0) {
+        if (this.vmViewId < other.vmViewId) {
+          return -1;
+        } else if (this.vmViewId > other.vmViewId) {
+          return 1;
+        } // else they're the same, so continue
+      }
     } else if (this.uniqueTag == null) {
       return -1;
     }
@@ -648,10 +681,16 @@ public final class InternalDistributedMember
         return i;
       }
     }
-
+    
+    if (checkNetMembersIfEqual
+        && this.netMbr != null && other.netMbr != null) {
+      return this.netMbr.compareTo(other.netMbr);
+    } else {
+      return 0;
+    }
+    
     // purposely avoid comparing roles
     // @todo Add durableClientAttributes to compare
-    return 0;
   }
 
   @Override
@@ -664,75 +703,14 @@ public final class InternalDistributedMember
     if ((obj == null) || !(obj instanceof InternalDistributedMember)) {
       return false;
     }
-    return equals((InternalDistributedMember)obj);
-  }
-
-  public final boolean equals(InternalDistributedMember m) {
-    if (this == m) {
-      return true;
-    }
-    if (m == null) {
-      return false;
-    }
-    
-    if (getPort() != m.getPort()) {
-      return false;
-    }
-
-    final InetAddress myAddr = getIpAddress();
-    final InetAddress otherAddr = m.getIpAddress();
-
-    // Discard null cases
-    if (myAddr == null && otherAddr == null) {
-        return true;
-    }
-    else if (myAddr == null || otherAddr == null) {
-      return false;
-    }
-    
-    if(!myAddr.equals(otherAddr)) {
-      return false;
-    }
-    
-    // [bruce] names are no longer transmitted in writeEssentialData and
-    // so cannot be used in comparing IDs
-//    if (this.name == null && other.name == null) {
-//      // do nothing
-//    } else if (this.name == null) {
-//      return -1;
-//    }
-//    else if (other.name == null) {
-//      return 1;
-//    }
-//    else {
-//      int i = this.name.compareTo(other.name);
-//      if (i != 0) {
-//        return i;
-//      }
-//    }
-
-    if (this.uniqueTag == null && m.uniqueTag == null) {
-      // not loners, so look at P2P view ID
-      if (this.vmViewId != m.vmViewId) {
-        return false;
-      } // else they're the same, so continue
-    } else if (this.uniqueTag == null || m.uniqueTag == null) {
-      return false;
-    }
-    else if (!this.uniqueTag.equals(m.uniqueTag) ){
-      return false;
-    }
-
-    // purposely avoid comparing roles
-    // @todo Add durableClientAttributes to compare
-    return true;
+    return compareTo((InternalDistributedMember)obj) == 0;
   }
 
   @Override
   public int hashCode()
   {
     int result = 0;
-     result = result + ipAddr.getIpAddress().hashCode();
+     result = result + netMbr.getInetAddress().hashCode();
     result = result + getPort();
     return result;
   }
@@ -754,16 +732,13 @@ public final class InternalDistributedMember
   private transient String cachedToString;
 
   @Override
-  public String toString() {
-    return toString(null);
-  }
-
-  public String toString(final String vmKindStr) {
+  public String toString()
+  {
     String result = cachedToString;
-    if (result == null || vmKindStr != null) {
+    if (result == null) {
       String host;
 
-      InetAddress add = getIpAddress();
+      InetAddress add = getInetAddress();
         if (add.isMulticastAddress())
           host = add.getHostAddress();
         else {
@@ -775,8 +750,7 @@ public final class InternalDistributedMember
       sb.append(host);
 
       String myName = getName();
-      if (vmPid > 0 || vmKind != DistributionManager.NORMAL_DM_TYPE
-          || vmKindStr != null || !"".equals(myName)) {
+      if (vmPid > 0 || vmKind != DistributionManager.NORMAL_DM_TYPE || !"".equals(myName)) {
         sb.append("(");
 
         if (!"".equals(myName)) {
@@ -807,24 +781,11 @@ public final class InternalDistributedMember
           vmStr = ":<unknown:" + vmKind + ">";
           break;
         }
-        if (vmKindStr != null) {
-          sb.append(vmKindStr);
-        }
-        else {
-          sb.append(vmStr);
-        }
-        // for split-brain and security debugging we need to know if the
-        // member has the "can't be coordinator" bit set
-//        JGroupMember jgm = (JGroupMember)ipAddr;
-//        if (!jgm.getAddress().canBeCoordinator()) {
-//          sb.append("<p>");
-//        }
+        sb.append(vmStr);
         sb.append(")");
       }
-      if (ipAddr.splitBrainEnabled()) {
-        if (ipAddr.canBeCoordinator()) {
-          sb.append("<ec>");
-        }
+      if (vmKind != DistributionManager.LONER_DM_TYPE && netMbr.preferredForCoordinator()) {
+        sb.append("<ec>");
       }
       if (this.vmViewId >= 0) {
         sb.append("<v" + this.vmViewId + ">");
@@ -854,12 +815,18 @@ public final class InternalDistributedMember
             .append(')');
       }
 
+      if (SHOW_NETMEMBER) {
+        sb.append("[[").append(this.netMbr).append("]]");
+      }
+
       // leave out Roles on purpose
+      
+//      if (netMbr instanceof GMSMember) {
+//        sb.append("(UUID=").append(((GMSMember)netMbr).getUUID()).append(")");
+//      }
 
       result = sb.toString();
-      if (vmKindStr == null) {
-        cachedToString = result;
-      }
+      cachedToString = result;
     }
     return result;
   }
@@ -867,9 +834,14 @@ public final class InternalDistributedMember
   private void readVersion(int flags, DataInput in) throws IOException {
     if ((flags & VERSION_MASK) != 0) {
       this.version = Version.readOrdinal(in);
-      // assume compatibility with CURRENT; if not then remote peer will
-      // reject us eventually at JGroups or Connection handshake layer
-      this.versionObj = Version.fromOrdinalOrCurrent(this.version);
+      this.versionObj = Version.fromOrdinalNoThrow(this.version, false);
+    } else {
+      // prior to 7.1 member IDs did not serialize their version information
+      Version v = InternalDataSerializer.getVersionForDataStreamOrNull(in);
+      if (v != null) {
+        this.versionObj = v;
+        this.version = v.ordinal();
+      }
     }
   }
 
@@ -880,13 +852,9 @@ public final class InternalDistributedMember
    */
   public void writeExternal(ObjectOutput out) throws IOException {
     Assert.assertTrue(vmKind > 0);
-    // [sumedh] loner VMs will have port as zero if no GFE client is connected
-    // e.g. with GFXD clients
-    Assert.assertTrue(vmKind == DistributionManager.LONER_DM_TYPE
-        || getPort() > 0);
 
     // do it the way we like
-    byte[] address = getIpAddress().getAddress();
+    byte[] address = getInetAddress().getAddress();
 
     out.writeInt(address.length); // IPv6 compatible
     out.write(address);
@@ -895,8 +863,8 @@ public final class InternalDistributedMember
     DataSerializer.writeString(this.hostName, out);
     
     int flags = 0;
-    if (ipAddr.splitBrainEnabled()) flags |= SB_ENABLED_MASK;
-    if (ipAddr.canBeCoordinator()) flags |= COORD_ENABLED_MASK;
+    if (netMbr.splitBrainEnabled()) flags |= SB_ENABLED_MASK;
+    if (netMbr.preferredForCoordinator()) flags |= COORD_ENABLED_MASK;
     if (this.isPartial) flags |= PARTIAL_ID_MASK;
     // always write product version but enable reading from older versions
     // that do not have it
@@ -914,6 +882,7 @@ public final class InternalDistributedMember
     DataSerializer.writeString(this.durableClientAttributes==null ? "" : this.durableClientAttributes.getId(), out);
     DataSerializer.writeInteger(Integer.valueOf(this.durableClientAttributes==null ? 300 : this.durableClientAttributes.getTimeout()), out);
     Version.writeOrdinal(out, this.version, true);
+    netMbr.writeAdditionalData(out);
   }
 
   /**
@@ -923,7 +892,6 @@ public final class InternalDistributedMember
     */
    public void readExternal(ObjectInput in)
    throws IOException, ClassNotFoundException {
-     // do it the way we like
      int len = in.readInt(); // IPv6 compatible
      byte addr[] = new byte[len];
      in.readFully(addr);
@@ -951,15 +919,17 @@ public final class InternalDistributedMember
 
      readVersion(flags, in);
 
-     ipAddr = MemberFactory.newNetMember(inetAddr, port, sbEnabled, elCoord,
+     netMbr = MemberFactory.newNetMember(inetAddr, port, sbEnabled, elCoord, version,
          new MemberAttributes(dcPort, vmPid, vmKind, vmViewId, name, groups, durableClientAttributes));
-     ((JGroupMember)ipAddr).getAddress().setVersionOrdinal(this.version);
+     if (this.version >= Version.GFE_90.ordinal()) {
+       try {
+         netMbr.readAdditionalData(in);
+       } catch (java.io.EOFException e) {
+         // old version quand-meme
+       }
+     }
 
      Assert.assertTrue(this.vmKind > 0);
-     // [sumedh] loner VMs will have port as zero if no GFE client is connected
-     // e.g. with GFXD clients
-     Assert.assertTrue(vmKind == DistributionManager.LONER_DM_TYPE
-         || getPort() > 0);
    }
 
   public int getDSFID() {
@@ -967,25 +937,26 @@ public final class InternalDistributedMember
   }
 
   public void toData(DataOutput out) throws IOException {
+    toDataPre_GFE_9_0_0_0(out);
+    if (this.version >= Version.GFE_90.ordinal()) {
+      getNetMember().writeAdditionalData(out);
+    }
+  }
+  
+  
+  public void toDataPre_GFE_9_0_0_0(DataOutput out) throws IOException {
     Assert.assertTrue(vmKind > 0);
-    // [bruce] disabled to allow post-connect setting of the port for loner systems
-//    Assert.assertTrue(getPort() > 0);
-//    if (this.getPort() == 0) {
-//      InternalDistributedSystem.getLoggerI18n().warning(LocalizedStrings.DEBUG,
-//          "Serializing ID with zero port", new Exception("Stack trace"));
-//    }
-
     // NOTE: If you change the serialized format of this class
     //       then bump Connection.HANDSHAKE_VERSION since an
     //       instance of this class is sent during Connection handshake.
-    DataSerializer.writeInetAddress(getIpAddress(), out);
+    DataSerializer.writeInetAddress(getInetAddress(), out);
     out.writeInt(getPort());
 
     DataSerializer.writeString(this.hostName, out);
 
     int flags = 0;
-    if (ipAddr.splitBrainEnabled()) flags |= SB_ENABLED_MASK;
-    if (ipAddr.canBeCoordinator()) flags |= COORD_ENABLED_MASK;
+    if (netMbr.splitBrainEnabled()) flags |= SB_ENABLED_MASK;
+    if (netMbr.preferredForCoordinator()) flags |= COORD_ENABLED_MASK;
     if (this.isPartial) flags |= PARTIAL_ID_MASK;
     // always write product version but enable reading from older versions
     // that do not have it
@@ -1008,48 +979,61 @@ public final class InternalDistributedMember
     Version.writeOrdinal(out, this.version, true);
   }
 
-//  public void toDataPre_GFE_7_1_0_0(DataOutput out) throws IOException {
-//      Assert.assertTrue(vmKind > 0);
-//    // [bruce] disabled to allow post-connect setting of the port for loner systems
-////    Assert.assertTrue(getPort() > 0);
-////    if (this.getPort() == 0) {
-////      InternalDistributedSystem.getLoggerI18n().warning(LocalizedStrings.DEBUG,
-////          "Serializing ID with zero port", new Exception("Stack trace"));
-////    }
-//
-//    // NOTE: If you change the serialized format of this class
-//    //       then bump Connection.HANDSHAKE_VERSION since an
-//    //       instance of this class is sent during Connection handshake.
-//    DataSerializer.writeInetAddress(getIpAddress(), out);
-//    out.writeInt(getPort());
-//
-//    DataSerializer.writeString(this.hostName, out);
-//
-//    int flags = 0;
-//    if (ipAddr.splitBrainEnabled()) flags |= SB_ENABLED_MASK;
-//    if (ipAddr.canBeCoordinator()) flags |= COORD_ENABLED_MASK;
-//    if (this.isPartial) flags |= PARTIAL_ID_MASK;
-//    out.writeByte((byte)(flags & 0xff));
-//
-//    out.writeInt(dcPort);
-//    out.writeInt(vmPid);
-//    out.writeByte(vmKind);
-//    DataSerializer.writeStringArray(this.groups, out);
-//
-//    DataSerializer.writeString(this.name, out);
-//    if (this.vmKind == DistributionManager.LONER_DM_TYPE) {
-//      DataSerializer.writeString(this.uniqueTag, out);
-//    } else {  // added in 6.5 for unique identifiers in P2P
-//      DataSerializer.writeString(String.valueOf(this.vmViewId), out);
+  public void toDataPre_GFE_7_1_0_0(DataOutput out) throws IOException {
+      Assert.assertTrue(vmKind > 0);
+    // [bruce] disabled to allow post-connect setting of the port for loner systems
+//    Assert.assertTrue(getPort() > 0);
+//    if (this.getPort() == 0) {
+//      InternalDistributedSystem.getLoggerI18n().warning(LocalizedStrings.DEBUG,
+//          "Serializing ID with zero port", new Exception("Stack trace"));
 //    }
-//    DataSerializer.writeString(this.durableClientAttributes==null ? "" : this.durableClientAttributes.getId(), out);
-//    DataSerializer.writeInteger(Integer.valueOf(this.durableClientAttributes==null ? 300 : this.durableClientAttributes.getTimeout()), out);
-//
-//  }
+
+    // NOTE: If you change the serialized format of this class
+    //       then bump Connection.HANDSHAKE_VERSION since an
+    //       instance of this class is sent during Connection handshake.
+    DataSerializer.writeInetAddress(getInetAddress(), out);
+    out.writeInt(getPort());
+
+    DataSerializer.writeString(this.hostName, out);
+
+    int flags = 0;
+    if (netMbr.splitBrainEnabled()) flags |= SB_ENABLED_MASK;
+    if (netMbr.preferredForCoordinator()) flags |= COORD_ENABLED_MASK;
+    if (this.isPartial) flags |= PARTIAL_ID_MASK;
+    out.writeByte((byte)(flags & 0xff));
+    
+    out.writeInt(dcPort);
+    out.writeInt(vmPid);
+    out.writeByte(vmKind);
+    DataSerializer.writeStringArray(this.groups, out);
+
+    DataSerializer.writeString(this.name, out);
+    if (this.vmKind == DistributionManager.LONER_DM_TYPE) {
+      DataSerializer.writeString(this.uniqueTag, out);
+    } else {  // added in 6.5 for unique identifiers in P2P
+      DataSerializer.writeString(String.valueOf(this.vmViewId), out);
+    }
+    DataSerializer.writeString(this.durableClientAttributes==null ? "" : this.durableClientAttributes.getId(), out);
+    DataSerializer.writeInteger(Integer.valueOf(this.durableClientAttributes==null ? 300 : this.durableClientAttributes.getTimeout()), out);
+ 
+  }
   
   public void fromData(DataInput in)
   throws IOException, ClassNotFoundException {
-    // do it the way we like it.
+    fromDataPre_GFE_9_0_0_0(in);
+    // just in case this is just a non-versioned read
+    // from a file we ought to check the version
+    if (this.version >= Version.GFE_90.ordinal()) {
+      try {
+        netMbr.readAdditionalData(in);
+      } catch (EOFException e) {
+        // nope - it's from a pre-GEODE client or WAN site
+      }
+    }
+  }
+  
+  public void fromDataPre_GFE_9_0_0_0(DataInput in)
+  throws IOException, ClassNotFoundException {
     InetAddress inetAddr = DataSerializer.readInetAddress(in);
     int port = in.readInt();
 
@@ -1084,8 +1068,7 @@ public final class InternalDistributedMember
 
     MemberAttributes attr = new MemberAttributes(this.dcPort, this.vmPid,
         this.vmKind, this.vmViewId, this.name, this.groups, this.durableClientAttributes);
-    ipAddr = MemberFactory.newNetMember(inetAddr, port, sbEnabled, elCoord, attr);
-    ((JGroupMember)ipAddr).getAddress().setVersionOrdinal(this.version);
+    netMbr = MemberFactory.newNetMember(inetAddr, port, sbEnabled, elCoord, version, attr);
 
     synchPayload();
 
@@ -1093,46 +1076,46 @@ public final class InternalDistributedMember
 //    Assert.assertTrue(getPort() > 0);
   }
 
-//  public void fromDataPre_GFE_7_1_0_0(DataInput in)  throws IOException, ClassNotFoundException {
-//    // do it the way we like it.
-//    InetAddress inetAddr = DataSerializer.readInetAddress(in);
-//    int port = in.readInt();
-//
-//    this.hostName = DataSerializer.readString(in);
-//    this.hostName = SocketCreator.resolve_dns? SocketCreator.getCanonicalHostName(inetAddr, hostName) : inetAddr.getHostAddress();
-//
-//    int flags = in.readUnsignedByte();
-//    boolean sbEnabled = (flags & SB_ENABLED_MASK) != 0;
-//    boolean elCoord = (flags & COORD_ENABLED_MASK) != 0;
-//    this.isPartial = (flags & PARTIAL_ID_MASK) != 0;
-//
-//    this.dcPort = in.readInt();
-//    this.vmPid = in.readInt();
-//    this.vmKind = in.readUnsignedByte();
-//    this.groups = DataSerializer.readStringArray(in);
-//
-//    this.name = DataSerializer.readString(in);
-//    if (this.vmKind == DistributionManager.LONER_DM_TYPE) {
-//      this.uniqueTag = DataSerializer.readString(in);
-//    } else {
-//      String str = DataSerializer.readString(in);
-//      if (str != null) { // backward compatibility from earlier than 6.5
-//        this.vmViewId = Integer.parseInt(str);
-//      }
-//    }
-//
-//    String durableId = DataSerializer.readString(in);
-//    int durableTimeout = DataSerializer.readInteger(in).intValue();
-//    this.durableClientAttributes = new DurableClientAttributes(durableId, durableTimeout);
-//
-//    MemberAttributes attr = new MemberAttributes(this.dcPort, this.vmPid,
-//        this.vmKind, this.vmViewId, this.name, this.groups, this.durableClientAttributes);
-//    ipAddr = MemberFactory.newNetMember(inetAddr, port, sbEnabled, elCoord, attr);
-//
-//    synchPayload();
-//
-//    Assert.assertTrue(this.vmKind > 0);
-//  }
+  public void fromDataPre_GFE_7_1_0_0(DataInput in)  throws IOException, ClassNotFoundException {
+    InetAddress inetAddr = DataSerializer.readInetAddress(in);
+    int port = in.readInt();
+
+    this.hostName = DataSerializer.readString(in);
+    this.hostName = SocketCreator.resolve_dns? SocketCreator.getCanonicalHostName(inetAddr, hostName) : inetAddr.getHostAddress();
+
+    int flags = in.readUnsignedByte();
+    boolean sbEnabled = (flags & SB_ENABLED_MASK) != 0;
+    boolean elCoord = (flags & COORD_ENABLED_MASK) != 0;
+    this.isPartial = (flags & PARTIAL_ID_MASK) != 0;
+
+    this.dcPort = in.readInt();
+    this.vmPid = in.readInt();
+    this.vmKind = in.readUnsignedByte();
+    this.groups = DataSerializer.readStringArray(in);
+
+    this.name = DataSerializer.readString(in);
+    if (this.vmKind == DistributionManager.LONER_DM_TYPE) {
+      this.uniqueTag = DataSerializer.readString(in);
+    } else {
+      String str = DataSerializer.readString(in);
+      if (str != null) { // backward compatibility from earlier than 6.5
+        this.vmViewId = Integer.parseInt(str);
+      }
+    }
+
+    String durableId = DataSerializer.readString(in);
+    int durableTimeout = DataSerializer.readInteger(in).intValue();
+    this.durableClientAttributes = new DurableClientAttributes(durableId, durableTimeout);
+
+    MemberAttributes attr = new MemberAttributes(this.dcPort, this.vmPid,
+        this.vmKind, this.vmViewId, this.name, this.groups, this.durableClientAttributes);
+    netMbr = MemberFactory.newNetMember(inetAddr, port, sbEnabled, elCoord, 
+        InternalDataSerializer.getVersionForDataStream(in).ordinal(), attr);
+
+    synchPayload();
+
+    Assert.assertTrue(this.vmKind > 0);
+  }
 
   /** this writes just the parts of the ID that are needed for comparisons and communications */
    public static InternalDistributedMember readEssentialData(DataInput in)
@@ -1166,62 +1149,46 @@ public final class InternalDistributedMember
        }
      }
 
-     /*this.name =*/ DataSerializer.readString(in);
+     this.name = DataSerializer.readString(in);
 
      MemberAttributes attr = new MemberAttributes(this.dcPort, this.vmPid,
          this.vmKind, this.vmViewId, this.name, this.groups, this.durableClientAttributes);
-     ipAddr = MemberFactory.newNetMember(inetAddr, port, sbEnabled, elCoord, attr);
+     netMbr = MemberFactory.newNetMember(inetAddr, port, sbEnabled, elCoord, 
+         InternalDataSerializer.getVersionForDataStream(in).ordinal(), attr);
 
      synchPayload();
+
+     if (InternalDataSerializer.getVersionForDataStream(in).compareTo(Version.GFE_90)>=0) {
+       netMbr.readAdditionalData(in);
+     }
    }
 
 
-   /**
-   * NOTE: the data the method serializes is read by old clients in CacheClientUpdater.
-   * So if you add data here add it to the end so the old client can still read it.
-   * See bug 45160.
-   */
-   @Override
-   public void writeEssentialData(DataOutput dout) throws IOException {
-     byte[] ed = this.essentialData;
-     Version targetVersion = InternalDataSerializer.getVersionForDataStream(dout);
-     boolean isOldServer = (targetVersion.compareTo(Version.GFE_75) < 0); 
-     if (ed == null || isOldServer) {
-       HeapDataOutputStream out = new HeapDataOutputStream(20, Version.CURRENT);
-       
-       Assert.assertTrue(vmKind > 0);
-       DataSerializer.writeInetAddress(getIpAddress(), out);
-       out.writeInt(getPort());
-  
-       int flags = 0;
-       if (ipAddr.splitBrainEnabled()) flags |= SB_ENABLED_MASK;
-       if (ipAddr.canBeCoordinator()) flags |= COORD_ENABLED_MASK;
-       flags |= PARTIAL_ID_MASK;
-       out.writeByte((byte)(flags & 0xff));
-       
-  //     out.writeInt(dcPort);
-       out.writeByte(vmKind);
-  
-       if (this.vmKind == DistributionManager.LONER_DM_TYPE) {
-         DataSerializer.writeString(this.uniqueTag, out);
-       } else {  // added in 6.5 for unique identifiers in P2P
-         DataSerializer.writeString(String.valueOf(this.vmViewId), out);
-       }
-       // write name last to fix bug 45160
-       if (isOldServer) {
-         DataSerializer.writeString(this.name, out);
-       } else {
-         // [bruce] we no longer write names with essential id info and
-         // they are no longer used in ID comparison
-         DataSerializer.writeString("", out);
-       }
-       ed = out.toByteArray();
-       if (!isOldServer) {
-         // cache the current form for future use
-         this.essentialData = ed;
-       }
+   public void writeEssentialData(DataOutput out) throws IOException {
+     Assert.assertTrue(vmKind > 0);
+     DataSerializer.writeInetAddress(getInetAddress(), out);
+     out.writeInt(getPort());
+
+     int flags = 0;
+     if (netMbr.splitBrainEnabled()) flags |= SB_ENABLED_MASK;
+     if (netMbr.preferredForCoordinator()) flags |= COORD_ENABLED_MASK;
+     flags |= PARTIAL_ID_MASK;
+     out.writeByte((byte)(flags & 0xff));
+     
+//     out.writeInt(dcPort);
+     out.writeByte(vmKind);
+
+     if (this.vmKind == DistributionManager.LONER_DM_TYPE) {
+       DataSerializer.writeString(this.uniqueTag, out);
+     } else {  // added in 6.5 for unique identifiers in P2P
+       DataSerializer.writeString(String.valueOf(this.vmViewId), out);
      }
-     dout.write(ed);
+     // write name last to fix bug 45160
+     DataSerializer.writeString(this.name, out);
+
+     if (InternalDataSerializer.getVersionForDataStream(out).compareTo(Version.GFE_90)>=0) {
+       netMbr.writeAdditionalData(out);
+     }
    }
 
   /**
@@ -1239,10 +1206,9 @@ public final class InternalDistributedMember
    */
   public void setPort(int p) {
     assert this.vmKind == DistributionManager.LONER_DM_TYPE;
-    this.ipAddr.setPort(p);
+    this.netMbr.setPort(p);
     synchPayload();
     cachedToString = null;
-    essentialData = null;
   }
   
   /** drop the cached toString rep of this ID */
@@ -1251,7 +1217,7 @@ public final class InternalDistributedMember
   }
 
   public String getHost() {
-    return this.ipAddr.getIpAddress().getCanonicalHostName();
+    return this.netMbr.getInetAddress().getCanonicalHostName();
   }
 
   public int getProcessId() {
@@ -1293,15 +1259,17 @@ public final class InternalDistributedMember
       sb.append(hostname);
     }
   }*/
-
-  public final short getVersionOrdinal() {
-    return this.version;
+  
+  public final void setVersionObjectForTest(Version v) {
+    this.version = v.ordinal();
+    this.versionObj = v;
+    netMbr.setVersion(v);
   }
 
   public final Version getVersionObject() {
     return this.versionObj;
   }
-
+  
   @Override
   public Version[] getSerializationVersions() {
     return dsfidVersions;
@@ -1314,7 +1282,7 @@ public final class InternalDistributedMember
     int size = 0;
   
     // ipaddr:  1 byte length + 4 bytes (IPv4) or 16 bytes (IPv6)
-    if (ipAddr.getIpAddress() instanceof Inet4Address){
+    if (netMbr.getInetAddress() instanceof Inet4Address){
       size += 5;
     } else {
       size += 17;

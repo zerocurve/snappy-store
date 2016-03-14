@@ -47,8 +47,7 @@ import com.gemstone.gemfire.internal.Banner;
 import com.gemstone.gemfire.internal.LocalLogWriter;
 import com.gemstone.gemfire.internal.LogWriterImpl;
 import com.gemstone.gemfire.internal.ManagerLogWriter;
-import com.gemstone.org.jgroups.util.StringId;
-
+import com.gemstone.gemfire.i18n.StringId;
 /**
  * An implementation of the configuration object for an
  * <code>AdminDistributedSystem</code>.  After a config has been used

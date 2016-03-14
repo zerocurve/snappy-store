@@ -55,9 +55,6 @@ import com.gemstone.gemfire.internal.VersionedDataOutputStream;
 import com.gemstone.gemfire.internal.cache.GemFireCacheImpl;
 import com.gemstone.gemfire.internal.shared.Version;
 import com.gemstone.gemfire.distributed.internal.DistributionStats;
-import com.gemstone.org.jgroups.stack.GossipServer;
-import com.gemstone.org.jgroups.util.GemFireTracer;
-import com.gemstone.org.jgroups.util.ExternalStrings;
 
 /**
  * TCP server which listens on a port and delegates requests to a request
@@ -74,7 +71,7 @@ import com.gemstone.org.jgroups.util.ExternalStrings;
  */
 public class TcpServer {
   /**
-   * The version of the gossip protocol
+   * The version of the tcp server protocol
    * <p>
    * This should be incremented if the gossip message structures change
    * 
@@ -85,12 +82,12 @@ public class TcpServer {
    * with the addition of support for all old versions of clients you can no
    * longer change this version number
    */
-  public final static int GOSSIPVERSION = GossipServer.getCurrentGossipVersion();
+  public final static int GOSSIPVERSION = 1002;
   // Don't change it ever. We did NOT send GemFire version in a Gossip request till 1001 version.
   // This GOSSIPVERSION is used in _getVersionForAddress request for getting GemFire version of a GossipServer.
-  public final static int OLDGOSSIPVERSION = GossipServer.getOldGossipVersion();
-  private static /* GemStoneAddition */
-    final Map<Integer, Short> GOSSIP_TO_GEMFIRE_VERSION_MAP = new HashMap<>();
+  public final static int OLDGOSSIPVERSION = 1001;
+
+  private static/* GemStoneAddition */final Map GOSSIP_TO_GEMFIRE_VERSION_MAP = new HashMap();
 
   // For test purpose only
   public static boolean isTesting = false;
@@ -98,7 +95,7 @@ public class TcpServer {
   public static int TESTVERSION = GOSSIPVERSION;
   public static int OLDTESTVERSION = OLDGOSSIPVERSION;
 
-  private static final long SHUTDOWN_WAIT_TIME = 60 * 1000;
+  public static final long SHUTDOWN_WAIT_TIME = 60 * 1000;
   private static int MAX_POOL_SIZE = Integer.getInteger("gemfire.TcpServer.MAX_POOL_SIZE", 100).intValue();
   private static int POOL_IDLE_TIMEOUT = 60 * 1000;
   protected/*GemStoneAddition*/ final/*GemStoneAddition*/ static int READ_TIMEOUT = Integer.getInteger("gemfire.TcpServer.READ_TIMEOUT", 60 * 1000).intValue();
@@ -245,11 +242,9 @@ public class TcpServer {
     return srv_sock.getLocalSocketAddress(); 
   }
 
-  protected/*GemStoneAddition*/ void run() {
+  protected void run() {
     Socket sock = null;
-    // boolean looping=true;
 
-    // while(looping) {
     while (!shuttingDown) {
       if (SystemFailure.getFailure() != null) {
         // Allocate no objects here!
@@ -280,7 +275,6 @@ public class TcpServer {
         continue;
       }
     }
-    // [GemStoneAddition] Close the server socket, duh. See bug 32856.
     try {
       srv_sock.close();
 
@@ -346,16 +340,16 @@ public class TcpServer {
               && GOSSIP_TO_GEMFIRE_VERSION_MAP.containsKey(gossipVersion)) {
             versionOrdinal = (short) GOSSIP_TO_GEMFIRE_VERSION_MAP
                 .get(gossipVersion);
-            if (gossipVersion < getCurrentGossipVersion()) {
-              if (log.isTraceEnabled()) {
-                log.debug(
-                    "Received request from "
-                        + sock.getInetAddress().getHostAddress()
-                        + " This locator is running: " + getCurrentGossipVersion()
-                        + ", but request was version: " + gossipVersion
-                        + ", version ordinal: " + versionOrdinal);
-              }
-            }
+//            if (gossipVersion < getCurrentGossipVersion()) {
+//              if (log.isTraceEnabled()) {
+//                log.debug(
+//                    "Received request from "
+//                        + sock.getInetAddress().getHostAddress()
+//                        + " This locator is running: " + getCurrentGossipVersion()
+//                        + ", but request was version: " + gossipVersion
+//                        + ", version ordinal: " + versionOrdinal);
+//              }
+//            }
           }
           // Close the socket. We can not accept requests from older GOSSIP
           // VERSION.
@@ -413,8 +407,6 @@ public class TcpServer {
 
           handler.endResponse(request,startTime);
 
-          // input.close(); GemStoneAddition close in finally block
-          // sock.close(); GemStoneAddition close in finally block
         } catch (EOFException ex) {
           // client went away - ignore
         } catch (CancelException ex) {
@@ -445,13 +437,7 @@ public class TcpServer {
                 ExternalStrings.TCPSERVER_EXCEPTION_IN_PROCESSING_REQUEST_FROM_0,
                 sender, ex);
           }
-            // GemStoneAddition do this in the finally block
-            // try {
-            // sock.close();
-            // }
-            // catch (IOException ioe) {
-            // log.getLogWriter().warning("Exception closing socket", ioe);
-            // }
+
         } catch (Throwable ex) {
           Error err;
           if (ex instanceof Error
@@ -541,7 +527,7 @@ public class TcpServer {
     return new InfoResponse(info);
   }
 
-  protected /*GemStone Addition */ Object handleVersionRequest(Object request) {
+  protected Object handleVersionRequest(Object request) {
     VersionResponse response = new VersionResponse();
     response.setVersionOrdinal(Version.CURRENT_ORDINAL);
     return response;

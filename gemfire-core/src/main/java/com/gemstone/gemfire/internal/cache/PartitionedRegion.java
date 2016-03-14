@@ -261,7 +261,7 @@ import com.gemstone.gemfire.internal.util.concurrent.StoppableCountDownLatch;
 import com.gemstone.gnu.trove.THashMap;
 import com.gemstone.gnu.trove.THashSet;
 import com.gemstone.gnu.trove.TObjectObjectProcedure;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * A Region whose total storage is split into chunks of data (partitions) which

@@ -138,8 +138,7 @@ import com.gemstone.gemfire.internal.util.ArraySortedCollection;
 import com.gemstone.gemfire.internal.util.concurrent.StoppableCountDownLatch;
 import com.gemstone.gnu.trove.TObjectIntProcedure;
 import com.gemstone.gnu.trove.TObjectObjectProcedure;
-import com.gemstone.org.jgroups.util.StringId;
-
+import com.gemstone.gemfire.i18n.StringId;
 /**
  * 
  * @author Eric Zoerner

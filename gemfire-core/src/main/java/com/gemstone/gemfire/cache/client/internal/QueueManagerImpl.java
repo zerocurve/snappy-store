@@ -65,7 +65,7 @@ import com.gemstone.gemfire.internal.concurrent.CDL;
 import com.gemstone.gemfire.internal.concurrent.CFactory;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.security.GemFireSecurityException;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * Manages Client Queues. Responsible for creating callback connections and

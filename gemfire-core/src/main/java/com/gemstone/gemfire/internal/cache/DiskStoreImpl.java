@@ -115,6 +115,7 @@ import com.gemstone.gemfire.internal.shared.SystemProperties;
 import com.gemstone.gemfire.internal.shared.Version;
 import com.gemstone.gnu.trove.THashMap;
 import com.gemstone.gnu.trove.THashSet;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * Represents a (disk-based) persistent store for region data. Used for both
@@ -3633,7 +3634,7 @@ public class DiskStoreImpl implements DiskStore, ResourceListener<MemoryEvent> {
     
     //NOTE - do NOT use DM.cacheTimeMillis here. See bug #49920
     long timestamp = System.currentTimeMillis();
-    PersistentMemberID id = new PersistentMemberID(getDiskStoreID(), memberId.getIpAddress(),
+    PersistentMemberID id = new PersistentMemberID(getDiskStoreID(), memberId.getInetAddress(),
         firstDir.getAbsolutePath(), memberId.getName(),
         timestamp, (short) 0);
     return id;
@@ -3641,7 +3642,7 @@ public class DiskStoreImpl implements DiskStore, ResourceListener<MemoryEvent> {
 
   public PersistentID getPersistentID() {
     InetAddress host = cache.getDistributedSystem().getDistributedMember()
-        .getIpAddress();
+        .getInetAddress();
     String dir = getDiskDirs()[0].getAbsolutePath();
     return new PersistentMemberPattern(host, dir, this.diskStoreID.toUUID(), 0);
   }

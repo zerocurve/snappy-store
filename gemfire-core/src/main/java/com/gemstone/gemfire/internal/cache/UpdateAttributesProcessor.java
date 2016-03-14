@@ -260,6 +260,11 @@ public class UpdateAttributesProcessor {
     public int getProcessorId() {
       return this.processorId;
     }
+    
+    @Override
+    public boolean sendViaUDP() {
+      return true;
+    }
 
     @Override
     protected void process(DistributionManager dm) {

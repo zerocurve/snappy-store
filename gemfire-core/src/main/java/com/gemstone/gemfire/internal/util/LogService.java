@@ -82,6 +82,15 @@ public class LogService {
     // skipping happens-before means this could happen multiple times
     return configure(InternalDistributedSystem.getLoggerI18n());
   }
+
+  /**
+   * Returns the configured log writer.
+   * @return the logger
+   */
+  public static LogWriterI18n getLogger() {
+    // skipping happens-before means this could happen multiple times
+    return configure(InternalDistributedSystem.getLoggerI18n());
+  }
   
   public static LogWriter logWriter() {
     return logger().convertToLogWriter();

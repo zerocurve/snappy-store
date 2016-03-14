@@ -50,11 +50,11 @@ import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.GfeConsoleReaderFactory.GfeConsoleReader;
 import com.gemstone.gemfire.internal.cache.wan.TransportFilterServerSocket;
 import com.gemstone.gemfire.internal.cache.wan.TransportFilterSocketFactory;
+import com.gemstone.gemfire.internal.i18n.GFLogWriter;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.shared.ClientSharedUtils;
 import com.gemstone.gemfire.internal.util.PasswordUtil;
-import com.gemstone.org.jgroups.util.ConnectionWatcher;
-import com.gemstone.org.jgroups.util.GFLogWriter;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * Analyze configuration data (gemfire.properties) and configure sockets
@@ -77,7 +77,7 @@ import com.gemstone.org.jgroups.util.GFLogWriter;
  * Additional properties will be set as System properties to be available
  * as needed by other provider implementations.
  */
-public class SocketCreator  implements com.gemstone.org.jgroups.util.SockCreator {
+public class SocketCreator {
 
   private static final Map<InetAddress, String> hostNames;
 
@@ -857,7 +857,6 @@ public class SocketCreator  implements com.gemstone.org.jgroups.util.SockCreator
    * The parameter <i>timeout</i> is ignored if SSL is being used, as there is no
    * timeout argument in the ssl socket factory
    */
-  @Override
   public Socket connect(InetAddress inetadd, int port, GFLogWriter log,
       int timeout, ConnectionWatcher optionalWatcher, boolean clientSide)
       throws IOException {
@@ -865,7 +864,6 @@ public class SocketCreator  implements com.gemstone.org.jgroups.util.SockCreator
         -1, this.useSSL);
   }
 
-  @Override
   /**
    * Return a client socket, timing out if unable to connect and timeout > 0 (millis).
    * The parameter <i>timeout</i> is ignored if SSL is being used, as there is no

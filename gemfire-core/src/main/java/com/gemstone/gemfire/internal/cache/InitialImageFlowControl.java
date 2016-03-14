@@ -35,7 +35,7 @@ import com.gemstone.gemfire.distributed.internal.ProcessorKeeper21;
 import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedMember;
 import com.gemstone.gemfire.internal.DataSerializableFixedID;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * This class keeps track of how many InitialImageMessages are in flight between the

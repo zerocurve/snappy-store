@@ -45,7 +45,7 @@ public class ProductUseLogDUnitTest extends DistributedTestCase {
     VM vm0 = host.getVM(0);
 
     // use a locator so we will monitor server load and record member->server mappings
-    int locatorPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int locatorPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     Properties p = new Properties();
     p.put(DistributionConfig.START_LOCATOR_NAME, "localhost["+locatorPort+"],peer=false");
     InternalDistributedSystem system = getSystem(p);

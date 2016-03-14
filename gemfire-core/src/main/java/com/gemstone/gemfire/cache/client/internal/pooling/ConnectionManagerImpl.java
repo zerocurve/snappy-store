@@ -48,7 +48,7 @@ import com.gemstone.gemfire.internal.concurrent.L.C;
 import com.gemstone.gemfire.internal.concurrent.RL;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.security.GemFireSecurityException;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * Manages client to server connections for the connection pool. This class contains

@@ -85,7 +85,7 @@ import com.gemstone.gemfire.internal.concurrent.AL;
 import com.gemstone.gemfire.internal.concurrent.CFactory;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.tools.gfsh.app.commands.pr;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * This class provides the redundancy management for partitioned region. It will

@@ -104,8 +104,8 @@ public class CopyOnReadIndexDUnitTest extends CacheTestCase {
     final int[] port = AvailablePortHelper.getRandomAvailableTCPPorts(2);
     final int mcastPort = AvailablePortHelper.getRandomAvailableUDPPort();
     
-    startCacheServer(vm0, port[0], mcastPort);
-    startCacheServer(vm1, port[1], mcastPort);
+    startCacheServer(vm0, port[0]);
+    startCacheServer(vm1, port[1]);
     
     createPartitionRegion(vm0, "portfolios");
     
@@ -201,10 +201,10 @@ public class CopyOnReadIndexDUnitTest extends CacheTestCase {
       }
     });
   }
-  private void startCacheServer(VM server, final int port, final int mcastPort) throws Exception {
+  private void startCacheServer(VM server, final int port) throws Exception {
     server.invoke(new SerializableCallable() {
       public Object call() throws Exception {
-        getSystem(getServerProperties(mcastPort));
+        getSystem(getServerProperties());
         
         GemFireCacheImpl cache = (GemFireCacheImpl)getCache();
         cache.setCopyOnRead(true);
@@ -242,12 +242,12 @@ public class CopyOnReadIndexDUnitTest extends CacheTestCase {
     return p;
   }
 
-  protected Properties getServerProperties(int mcastPort) {
+  protected Properties getServerProperties() {
     Properties p = new Properties();
-    p.setProperty(DistributionConfig.MCAST_PORT_NAME, mcastPort+"");
-    p.setProperty(DistributionConfig.LOCATORS_NAME, "");
+    p.setProperty(DistributionConfig.LOCATORS_NAME, "localhost["+getDUnitLocatorPort()+"]");
     return p;
   }
+
   
   
 

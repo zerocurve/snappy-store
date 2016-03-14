@@ -17,7 +17,8 @@
 package com.gemstone.gemfire.internal.i18n;
 
 import com.gemstone.gemfire.i18n.StringIdImpl;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
+
 
 /**
  * Added as parent class of LocalizedStrings because Eclipse is complaining
@@ -49,14 +50,14 @@ class ParentLocalizedStrings {
   public static final StringId AbstractHealthEvaluator_OKAY_HEALTH__0 = new StringIdImpl(1025, "OKAY_HEALTH:  {0}");
   public static final StringId AbstractHealthEvaluator_POOR_HEALTH__0 = new StringIdImpl(1026, "POOR_HEALTH:  {0}");
   public static final StringId AbstractRegion_CACHECALLBACK_CLOSE_EXCEPTION = new StringIdImpl(1027, "CacheCallback close exception");
-  public static final StringId AbstractUpdateOperation_PROCESSING__0 = new StringIdImpl(1028, "Processing  {0}");
-  public static final StringId AcceptorImpl_BRIDGE_SERVER_CONNECTION_LISTENER_BOUND_TO_ADDRESS_0_WITH_BACKLOG_1 = new StringIdImpl(1029, "Bridge server connection listener bound to address {0} with backlog {1}.");
-  public static final StringId AcceptorImpl_BRIDGE_SERVER_FAILED_ACCEPTING_CLIENT_CONNECTION_DUE_TO_SOCKET_TIMEOUT = new StringIdImpl(1030, "Bridge server: failed accepting client connection due to socket timeout.");
-  public static final StringId AcceptorImpl_BRIDGE_SERVER_FAILED_ACCEPTING_CLIENT_CONNECTION__0 = new StringIdImpl(1031, "Bridge server: failed accepting client connection  {0}");
-  public static final StringId AcceptorImpl_BRIDGE_SERVER_ON_PORT_0_IS_SHUTTING_DOWN = new StringIdImpl(1032, "Bridge server on port {0} is shutting down.");
-  public static final StringId AcceptorImpl_BRIDGE_SERVER_TIMED_OUT_WAITING_FOR_HANDSHAKE_FROM__0 = new StringIdImpl(1033, "Bridge server: timed out waiting for handshake from  {0}");
-  public static final StringId AcceptorImpl_BRIDGE_SERVER_UNEXPECTED_EXCEPTION = new StringIdImpl(1034, "Bridge server: Unexpected Exception");
-  public static final StringId AcceptorImpl_BRIDGE_SERVER_UNEXPECTED_IOEXCEPTION_FROM_ACCEPT = new StringIdImpl(1035, "Bridge server: Unexpected IOException from accept");
+  public static final StringId PoolManagerImpl_POOL_NAMED_0_ALREADY_EXISTS = new StringIdImpl(1028, "A pool named \"{0}\" already exists");
+  public static final StringId AcceptorImpl_CACHE_SERVER_CONNECTION_LISTENER_BOUND_TO_ADDRESS_0_WITH_BACKLOG_1 = new StringIdImpl(1029, "Cache server connection listener bound to address {0} with backlog {1}.");
+  public static final StringId AcceptorImpl_CACHE_SERVER_FAILED_ACCEPTING_CLIENT_CONNECTION_DUE_TO_SOCKET_TIMEOUT = new StringIdImpl(1030, "Cache server: failed accepting client connection due to socket timeout.");
+  public static final StringId AcceptorImpl_CACHE_SERVER_FAILED_ACCEPTING_CLIENT_CONNECTION__0 = new StringIdImpl(1031, "Cache server: failed accepting client connection  {0}");
+  public static final StringId AcceptorImpl_CACHE_SERVER_ON_PORT_0_IS_SHUTTING_DOWN = new StringIdImpl(1032, "Cache server on port {0} is shutting down.");
+  public static final StringId AcceptorImpl_CACHE_SERVER_TIMED_OUT_WAITING_FOR_HANDSHAKE_FROM__0 = new StringIdImpl(1033, "Cache server: timed out waiting for handshake from  {0}");
+  public static final StringId AcceptorImpl_CACHE_SERVER_UNEXPECTED_EXCEPTION = new StringIdImpl(1034, "Cache server: Unexpected Exception");
+  public static final StringId AcceptorImpl_CACHE_SERVER_UNEXPECTED_IOEXCEPTION_FROM_ACCEPT = new StringIdImpl(1035, "Cache server: Unexpected IOException from accept");
   public static final StringId AcceptorImpl_EXCEEDED_MAX_CONNECTIONS_0 = new StringIdImpl(1036, "exceeded max-connections {0}");
   public static final StringId AcceptorImpl_IGNORING = new StringIdImpl(1037, "ignoring");
   public static final StringId AcceptorImpl_IGNORING_EVENT_ON_SELECTOR_KEY__0 = new StringIdImpl(1038, "ignoring event on selector key  {0}");
@@ -88,7 +89,7 @@ class ParentLocalizedStrings {
   public static final StringId AgentImpl_SNMPADAPTOR_ALREADY_REGISTERED_AS__0 = new StringIdImpl(1064, "SnmpAdaptor already registered as  {0}");
   public static final StringId AgentImpl_STOPPING_JMX_AGENT = new StringIdImpl(1065, "Stopping JMX agent");
   public static final StringId AgentImpl_XSLTPROCESSOR_ALREADY_REGISTERED_AS__0 = new StringIdImpl(1066, "XsltProcessor already registered as  {0}");
-  public static final StringId AlertLevelChangeMessage_ADDED_NEW_ALERTLISTENER_TO_APP_LOG_WRITER = new StringIdImpl(1067, "Added new AlertListener to application log writer");
+  public static final StringId AbstractRegion_THE_CONNECTION_POOL_0_HAS_NOT_BEEN_CREATED = new StringIdImpl(1067, "The connection pool \"{0}\" has not been created");
   public static final StringId AttributesFactory_0_WAS_NOT_AN_EXISTING_DIRECTORY = new StringIdImpl(1068, "\"{0}\" was not an existing directory.");
   public static final StringId AttributesFactory_ADDCACHELISTENER_PARAMETER_WAS_NULL = new StringIdImpl(1069, "addCacheListener parameter was null");
   public static final StringId AttributesFactory_AN_EVICTION_CONTROLLER_WITH_LOCAL_DESTROY_EVICTION_ACTION_IS_INCOMPATIBLE_WITH_DISTRIBUTED_REPLICATION = new StringIdImpl(1070, "An Eviction Controller with local destroy eviction action is incompatible with distributed replication");
@@ -142,16 +143,11 @@ class ParentLocalizedStrings {
   public static final StringId BaseCommand_UNKNOWN_QUERY_EXCEPTION = new StringIdImpl(1117, "Uknown query Exception.");
   public static final StringId BaseCommand_SEVERE_CACHE_EXCEPTION_0 = new StringIdImpl(1118, "Severe cache exception : {0}");
   public static final StringId BaseCommand_UNEXPECTED_QUERYINVALIDEXCEPTION_WHILE_PROCESSING_QUERY_0 = new StringIdImpl(1119, "Unexpected QueryInvalidException while processing query {0}");
-  public static final StringId BridgeLoader_THE_BRIDGELOADER_COULD_NOT_ACQUIRE_OR_CREATE_A_CONNECTION_BECAUSE__0 = new StringIdImpl(1120, "The BridgeLoader could not acquire or create a Connection because  {0}");
-  public static final StringId BridgeLoader_THE_SERVER_IS_UNREACHABLE_COULD_NOT_CONNECT_AFTER_0_ATTEMPTS = new StringIdImpl(1121, "The Server is unreachable, could not connect after {0} attempts.");
-  public static final StringId BridgeServerImpl_CACHESERVER_CONFIGURATION___0 = new StringIdImpl(1122, "CacheServer Configuration:   {0}");
-  public static final StringId BridgeServerImpl_FORCING_NOTIFYBYSUBSCRIPTION_TO_SUPPORT_DYNAMIC_REGIONS = new StringIdImpl(1123, "Forcing notifyBySubscription to support dynamic regions");
-  public static final StringId BridgeServerImpl_STARTED__0 = new StringIdImpl(1124, "Started  {0}");
-  public static final StringId BridgeWriter_0_NO_ACTIVE_SERVERS_WERE_FOUND = new StringIdImpl(1126, "{0}: No active servers were found.");
-  public static final StringId BridgeWriter_0_NO_AVAILABLE_CONNECTION_WAS_FOUND_BUT_THE_FOLLOWING_ACTIVE_SERVERS_EXIST_1 = new StringIdImpl(1127, "{0}: No available connection was found, but the following active server(s) exist: {1}");
-  public static final StringId BridgeWriter_0_THE_BRIDGEWRITER_HAS_BEEN_CLOSED = new StringIdImpl(1128, "{0}: The BridgeWriter has been closed.");
-  public static final StringId BridgeWriter_THE_BRIDGEWRCLEARITER_COULD_NOT_ACQUIRE_OR_CREATE_A_CONNECTION_BECAUSE_0 = new StringIdImpl(1129, "The BridgeWrcleariter could not acquire or create a Connection because: {0}");
-  public static final StringId BridgeWriter_THE_BRIDGEWRITER_COULD_NOT_ACQUIRE_OR_CREATE_A_CONNECTION_BECAUSE__0 = new StringIdImpl(1130, "The BridgeWriter could not acquire or create a Connection because:  {0}");
+  public static final StringId LocalRegion_THE_REGION_0_WAS_CONFIGURED_TO_USE_OFF_HEAP_MEMORY_BUT_OFF_HEAP_NOT_CONFIGURED = new StringIdImpl(1120, "The region {0} was configured to use off heap memory but no off heap memory was configured");
+  // ok to reuse 1121
+  public static final StringId CacheServerImpl_CACHESERVER_CONFIGURATION___0 = new StringIdImpl(1122, "CacheServer Configuration:   {0}");
+  public static final StringId CacheServerImpl_FORCING_NOTIFYBYSUBSCRIPTION_TO_SUPPORT_DYNAMIC_REGIONS = new StringIdImpl(1123, "Forcing notifyBySubscription to support dynamic regions");
+  // ok to reuse 1124..1130
   public static final StringId BucketAdvisor_ATTEMPTED_TO_CLOSE_BUCKETADVISOR_THAT_IS_ALREADY_CLOSED = new StringIdImpl(1131, "Attempted to close BucketAdvisor that is already CLOSED");
   public static final StringId AgentImpl_COULD_NOT_TAIL_0_BECAUSE_1 = new StringIdImpl(1132, "Could not tail \"{0}\" because: {1}");
   public static final StringId SystemAdmin_USED_TO_SPECIFY_A_HOST_NAME_OR_IP_ADDRESS_TO_GIVE_TO_CLIENTS_SO_THEY_CAN_CONNECT_TO_A_LOCATOR = new StringIdImpl(1133, "Used to specify a host name or IP address to give to clients so they can connect to a locator.");
@@ -159,7 +155,7 @@ class ParentLocalizedStrings {
   public static final StringId BucketBackupMessage_BUCKETBACKUPMESSAGE_DATA_STORE_NOT_CONFIGURED_FOR_THIS_MEMBER = new StringIdImpl(1135, "BucketBackupMessage: data store not configured for this member");
   public static final StringId BucketCleanupMessage_BUCKETCLEANUPMESSAGE_DATA_STORE_NOT_CONFIGURED_FOR_THIS_MEMBER = new StringIdImpl(1136, "BucketCleanupMessage: data store not configured for this member");
   public static final StringId BucketRegion_FAILED_TO_SEND_OLD_VALUE_TO_THE_FOLLOWING_MEMBERS_0 = new StringIdImpl(1137, "Failed to send old value to the following members: {0}");
-  public static final StringId BucketSizeMessage_0__PROCESSED__1 = new StringIdImpl(1138, "{0}  processed  {1}");
+  // ok to reuse 1138
   public static final StringId CFactory_COULD_NOT_CREATE_CF5IMPL = new StringIdImpl(1139, "Could not create CF5Impl");
   public static final StringId CacheClientNotifier_0_REGISTERCLIENT_EXCEPTION_ENCOUNTERED_IN_REGISTRATION_1 = new StringIdImpl(1140, "{0} :registerClient: Exception encountered in registration {1}");
   public static final StringId CacheClientNotifier_CACHECLIENTNOTIFIER_KEEPING_PROXY_FOR_DURABLE_CLIENT_NAMED_0_FOR_1_SECONDS_2 = new StringIdImpl(1141, "CacheClientNotifier: Keeping proxy for durable client named {0} for {1} seconds {2}.");
@@ -202,7 +198,7 @@ class ParentLocalizedStrings {
   public static final StringId CacheDistributionAdvisor_WAITING_FOR_CURRENT_OPERATIONS_TO_FINISH_0_ = new StringIdImpl(1178, "Waiting for current operations to finish( {0} )");
   public static final StringId CacheFactory_0_AN_OPEN_CACHE_ALREADY_EXISTS = new StringIdImpl(1179, "{0}: An open cache already exists.");
   public static final StringId InternalDistributedSystem_shutdownHook_shuttingdown = new StringIdImpl(1180, "VM is exiting - shutting down distributed system");
-  public static final StringId JGroupMembershipManager_entered_into_membership_in_group_0_with_id_1 = new StringIdImpl(1181, "Entered into membership with ID {0}.");
+  public static final StringId GroupMembershipService_entered_into_membership_in_group_0_with_id_1 = new StringIdImpl(1181, "Finished joining (took {0}ms).");
   public static final StringId CacheServerLauncher_CACHE_SERVER_ERROR = new StringIdImpl(1182, "Cache server error");
   public static final StringId CacheXmlParser_XML_PARSER_CHARACTERS_APPENDED_CHARACTER_DATA_0 = new StringIdImpl(1183, "XML Parser characters, appended character data: {0}");
   public static final StringId CacheXmlParser_XML_PARSER_CHARACTERS_NEW_CHARACTER_DATA_0 = new StringIdImpl(1184, "XML Parser characters, new character data: {0}");
@@ -308,7 +304,7 @@ class ParentLocalizedStrings {
   public static final StringId Connection_UNKNOWN_P2P_MESSAGE_TYPE_0 = new StringIdImpl(1284, "Unknown P2P message type: {0}");
   public static final StringId Connection_UNKNOWN_PROCESSOR_TYPE_0 = new StringIdImpl(1285, "Unknown processor type: {0}");
   public static final StringId ContainsKeyValueMess_PARTITIONED_REGION_0_IS_NOT_CONFIGURED_TO_STORE_DATA = new StringIdImpl(1286, "Partitioned Region {0} is not configured to store data");
-  public static final StringId ContainsKeyValueMessage_0__PROCESSED__1 = new StringIdImpl(1287, "{0}  processed  {1}");
+  // ok to reuse 1287
   public static final StringId ContainsKey_0_THE_INPUT_KEY_FOR_THE_CONTAINSKEY_REQUEST_IS_NULL = new StringIdImpl(1288, "{0}: The input key for the containsKey request is null");
   public static final StringId ContainsKey_0_THE_INPUT_REGION_NAME_FOR_THE_CONTAINSKEY_REQUEST_IS_NULL = new StringIdImpl(1289, "{0}: The input region name for the containsKey request is null");
   public static final StringId ContainsKey_THE_INPUT_KEY_FOR_THE_CONTAINSKEY_REQUEST_IS_NULL = new StringIdImpl(1290, " The input key for the containsKey request is null");
@@ -343,10 +339,10 @@ class ParentLocalizedStrings {
   public static final StringId CqQueryImpl_REGION__0_SPECIFIED_WITH_CQ_NOT_FOUND_CQNAME_1 = new StringIdImpl(1319, "Region : {0} specified with cq not found. CqName: {1}");
   public static final StringId CqQueryImpl_RUNTIMEEXCEPTION_OCCOURED_IN_THE_CQLISTENER_OF_THE_CQ_CQNAME_0_ERROR_1 = new StringIdImpl(1320, "RuntimeException occurred in the CqListener of the CQ, CqName : {0} Error : {1}");
   public static final StringId CqQueryImpl_SELECT_DISTINCT_QUERIES_NOT_SUPPORTED_IN_CQ = new StringIdImpl(1321, "select DISTINCT queries not supported in CQ");
-  public static final StringId CqQueryImpl_THE_ESTABLISHCALLBACKCONNECTION_ON_BRIDGEWRITER_CLIENT_INSTALLED_ON_REGION_0_IS_SET_TO_FALSE = new StringIdImpl(1322, "The ''establishCallbackConnection'' on BridgeWriter/Client installed on Region {0} is set to false.");
+  // ok to reuse 1322
   public static final StringId CqQueryImpl_THE_WHERE_CLAUSE_IN_CQ_QUERIES_CANNOT_REFER_TO_A_REGION = new StringIdImpl(1323, "The WHERE clause in CQ queries cannot refer to a region");
   public static final StringId CqQueryImpl_UNABLE_TO_CREATE_CQ_0_ERROR__1 = new StringIdImpl(1324, "Unable to create cq {0} Error : {1}");
-  public static final StringId CqQueryImpl_UNABLE_TO_GET_THE_CONNECTIONPROXY_THE_REGION_MAY_NOT_HAVE_A_BRIDGEWRITER_OR_BRIDGECLIENT_INSTALLED_ON_IT = new StringIdImpl(1325, "Unable to get the connectionProxy. The Region may not have BridgeWriter or BridgeClient installed on it.");
+  // ok to reuse 1325
   public static final StringId CqQueryImpl_UNSUPPORTED_SEND_REQUEST_TO_SERVER = new StringIdImpl(1326, "Unsupported send request to Server.");
   public static final StringId CqQueryImpl_CQ_IS_IN_RUNNING_STATE_CQNAME_0 = new StringIdImpl(1327, "CQ is in running state, CqName : {0}");
   public static final StringId CqService_0_FAILED_TO_GET_THE_SPECIFIED_CQ_1 = new StringIdImpl(1328, "{0}: Failed to get the specified CQ: {1}");
@@ -734,31 +730,31 @@ class ParentLocalizedStrings {
   public static final StringId InternalLocator_STOPPING__0 = new StringIdImpl(1709, "Stopping {0}");
   public static final StringId InternalLocator_USING_EXISTING_DISTRIBUTED_SYSTEM__0 = new StringIdImpl(1710, "Using existing distributed system:  {0}");
   public static final StringId Invalid_0_INVALID_MESSAGE_TYPE_WITH_TX_1_FROM_2 = new StringIdImpl(1711, "{0}: INVALID message type with tx: {1} from {2}");
-  public static final StringId InvalidateMessage_0__PROCESSED__1 = new StringIdImpl(1712, "{0}  processed  {1}");
+  // ok to reuse 1712
   public static final StringId JCAConnectionManagerImpl_EXCEPTION_CAUGHT_WHILE_INITIALIZING = new StringIdImpl(1713, "JCAConnectionManagerImpl::Constructor: An exception was caught while initialising due to {0}" );
-  public static final StringId JGroupMembershipManager_CONNECTED_TO_JGROUPS_CHANNEL_TOOK__0__MS = new StringIdImpl(1714, "Connected to Jgroups channel (took  {0}  ms)");
-  public static final StringId JGroupMembershipManager_FAILED_TO_SEND_MESSAGE_0_TO_MEMBER_1_VIEW_2 = new StringIdImpl(1715, "Failed to send message <{0}> to member <{1}> view = {2}");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_ADDED_SHUNNED_MEMBER__0_ = new StringIdImpl(1716, "Membership: added shunned member < {0} >");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_DESTROYING__0_ = new StringIdImpl(1717, "Membership: destroying < {0} >");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_DISPATCHING_UPLEVEL_DEPARTURE_EVENT_FOR__0_ = new StringIdImpl(1718, "Membership: dispatching uplevel departure event for < {0} >");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_ERROR_HANDLING_MEMBER_DEPARTURE__0 = new StringIdImpl(1719, "Membership: Error handling member departure:  {0}");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_ERROR_HANDLING_STARTUP_EVENT = new StringIdImpl(1720, "Membership: Error handling startup event");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_FAULT_WHILE_PROCESSING_VIEW_ADDITION_OF__0 = new StringIdImpl(1721, "Membership: Fault while processing view addition of  {0}");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_FAULT_WHILE_PROCESSING_VIEW_REMOVAL_OF__0 = new StringIdImpl(1722, "Membership: Fault while processing view removal of  {0}");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_FINISHED_VIEW_PROCESSING_VIEWID___0 = new StringIdImpl(1723, "Membership: Finished view processing viewID =  {0}");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_GEMFIRE_RECEIVED_A_MESSAGE_WITH_NO_SENDER_ADDRESS = new StringIdImpl(1724, "Membership: GemFire received a message with no sender address");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_GEMFIRE_RECEIVED_NULL_MESSAGE_FROM__0 = new StringIdImpl(1725, "Membership: GemFire received null message from  {0}");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_IGNORING_SURPRISE_CONNECT_FROM_SHUNNED_MEMBER_0 = new StringIdImpl(1726, "Membership: Ignoring surprise connect from shunned member <{0}>");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_MESSAGE_HEADERS__0 = new StringIdImpl(1727, "Membership: message headers:  {0}");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_NO_LONGER_SHUNNING___0_ = new StringIdImpl(1728, "Membership: no longer shunning <  {0} >");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_PAUSING_TO_ALLOW_OTHER_CONCURRENT_PROCESSES_TO_JOIN_THE_DISTRIBUTED_SYSTEM = new StringIdImpl(1729, "Membership: Pausing to allow other concurrent processes to join the distributed system");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_PROCESSING_ADDITION__0_ = new StringIdImpl(1730, "Membership: Processing addition < {0} >");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_PROCESSING_DEPARTING_MEMBER__0_ = new StringIdImpl(1731, "Membership: Processing departing member ( {0} )");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_PROCESSING_SURPRISE_ADDITION__0_ = new StringIdImpl(1732, "Membership: Processing surprise addition < {0} >");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_PROCESSING_VIEW_ID___0___1__ON__2 = new StringIdImpl(1733, "Membership: Processing view (id =  {0} ) ( {1} ) on  {2}");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_REQUESTED_TO_SEND_MESSAGE_BUT_CHANNEL_IS_NOT_CONNECTED__0 = new StringIdImpl(1734, "Membership: requested to send message but channel is not connected:  {0}");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_SENDING__0__VIA_MULTICAST = new StringIdImpl(1735, "Membership: sending < {0} > via multicast");
-  public static final StringId JGroupMembershipManager_MEMBERSHIP_SHUNNING_MEMBER__0__DURING_OUR_SHUTDOWN = new StringIdImpl(1736, "Membership: shunning member < {0} > during our shutdown");
+  public static final StringId GroupMembershipService_JOINED_TOOK__0__MS = new StringIdImpl(1714, "Joined the distributed system (took  {0}  ms)");
+  public static final StringId GroupMembershipService_FAILED_TO_SEND_MESSAGE_0_TO_MEMBER_1_VIEW_2 = new StringIdImpl(1715, "Failed to send message <{0}> to member <{1}> view = {2}");
+  // ok to reuse 1716
+  // ok to reuse 1717
+  // ok to reuse 1718
+  public static final StringId GroupMembershipService_MEMBERSHIP_ERROR_HANDLING_MEMBER_DEPARTURE__0 = new StringIdImpl(1719, "Membership: Error handling member departure:  {0}");
+  public static final StringId GroupMembershipService_MEMBERSHIP_ERROR_HANDLING_STARTUP_EVENT = new StringIdImpl(1720, "Membership: Error handling startup event");
+  public static final StringId GroupMembershipService_MEMBERSHIP_FAULT_WHILE_PROCESSING_VIEW_ADDITION_OF__0 = new StringIdImpl(1721, "Membership: Fault while processing view addition of  {0}");
+  public static final StringId GroupMembershipService_MEMBERSHIP_FAULT_WHILE_PROCESSING_VIEW_REMOVAL_OF__0 = new StringIdImpl(1722, "Membership: Fault while processing view removal of  {0}");
+  public static final StringId GroupMembershipService_MEMBERSHIP_FINISHED_VIEW_PROCESSING_VIEWID___0 = new StringIdImpl(1723, "Membership: Finished view processing viewID =  {0}");
+  public static final StringId GroupMembershipService_MEMBERSHIP_GEMFIRE_RECEIVED_A_MESSAGE_WITH_NO_SENDER_ADDRESS = new StringIdImpl(1724, "Membership: GemFire received a message with no sender address");
+  // ok to reuse 1725
+  public static final StringId GroupMembershipService_MEMBERSHIP_IGNORING_SURPRISE_CONNECT_FROM_SHUNNED_MEMBER_0 = new StringIdImpl(1726, "Membership: Ignoring surprise connect from shunned member <{0}>");
+  // ok to reuse 1727
+  // ok to reuse 1728
+  public static final StringId GroupMembershipService_MEMBERSHIP_PAUSING_TO_ALLOW_OTHER_CONCURRENT_PROCESSES_TO_JOIN_THE_DISTRIBUTED_SYSTEM = new StringIdImpl(1729, "Membership: Pausing to allow other concurrent processes to join the distributed system");
+  public static final StringId GroupMembershipService_MEMBERSHIP_PROCESSING_ADDITION__0_ = new StringIdImpl(1730, "Membership: Processing addition < {0} >");
+  public static final StringId GroupMembershipService_MEMBERSHIP_PROCESSING_DEPARTING_MEMBER__0_ = new StringIdImpl(1731, "Membership: Processing departing member ( {0} )");
+  public static final StringId GroupMembershipService_MEMBERSHIP_PROCESSING_SURPRISE_ADDITION__0_ = new StringIdImpl(1732, "Membership: Processing surprise addition < {0} >");
+  public static final StringId GroupMembershipService_MEMBERSHIP_PROCESSING_VIEW_ID___0___1__ON__2 = new StringIdImpl(1733, "Membership: Processing view (id =  {0} ) ( {1} ) on  {2}");
+  public static final StringId GroupMembershipService_MEMBERSHIP_REQUESTED_TO_SEND_MESSAGE_BUT_CHANNEL_IS_NOT_CONNECTED__0 = new StringIdImpl(1734, "Membership: requested to send message but channel is not connected:  {0}");
+  // ok to reuse 1735
+  public static final StringId GroupMembershipService_MEMBERSHIP_SHUNNING_MEMBER__0__DURING_OUR_SHUTDOWN = new StringIdImpl(1736, "Membership: shunning member < {0} > during our shutdown");
   public static final StringId JNDIInvoker_JNDIINVOKERMAPTRANSACTIONSNAMINGEXCEPTION_WHILE_BINDING_TRANSACTIONMANAGERUSERTRANSACTION_TO_APPLICATION_SERVER_JNDI_TREE = new StringIdImpl(1737, "JNDIInvoker::mapTransactions::NamingException while binding TransactionManager/UserTransaction to Application Server JNDI Tree");
   public static final StringId JNDIInvoker_JNDIINVOKERMAPTRANSACTIONSNAMINGEXCEPTION_WHILE_BINDING_TRANSACTIONMANAGERUSERTRANSACTION_TO_GEMFIRE_JNDI_TREE = new StringIdImpl(1738, "JNDIInvoker::mapTransactions::NamingException while binding TransactionManager/UserTransaction to GemFire JNDI Tree");
   public static final StringId JNDIInvoker_JNDIINVOKERMAPTRANSACTIONSSYSTEMEXCEPTION_WHILE_BINDING_TRANSACTIONMANAGERUSERTRANSACTION_TO_APPLICATION_SERVER_JNDI_TREE = new StringIdImpl(1739, "JNDIInvoker::mapTransactions::SystemException while binding TransactionManager/UserTransaction to Application Server JNDI Tree");
@@ -770,7 +766,22 @@ class ParentLocalizedStrings {
   public static final StringId KeySet_0_THE_INPUT_REGION_NAME_FOR_THE_KEY_SET_REQUEST_IS_NULL = new StringIdImpl(1745, "{0}: The input region name for the key set request is null");
   public static final StringId DataSerializer_ENUM_TO_SERIALIZE_IS_NULL = new StringIdImpl(1746, "The enum constant to serialize is null");
   public static final StringId DataSerializer_ENUM_CLASS_TO_DESERIALIZE_IS_NULL = new StringIdImpl(1747, "the enum class to deserialize is null");
-  /* 1748-1763 unused */
+  public static final StringId LicenseHelper_0_WAS_NOT_GRANTED_TO_NODE_1_BECAUSE_IT_IS_LIMITED_TO_NODE_2 = new StringIdImpl(1748, "{0} was not granted to node \"{1}\" because it is limited to node \"{2}\".");
+  public static final StringId LicenseHelper_CHECKING_FOR_LICENSE_IN__0_ = new StringIdImpl(1749, "Checking for license in \"{0}\".");
+  public static final StringId LicenseHelper_COULD_NOT_FIND_A_LICENSE_OF_TYPE_0_FOR_PLATFORM_1_AND_PRODUCT_2_IN_3_USE_THE_LICENSETYPE_CONFIGURATION_PROPERTY_TO_SPECIFY_THE_TYPE_OF_LICENSE_YOU_WANT_4 = new StringIdImpl(1750, "Could not find a license of type \"{0}\" for platform \"{1}\" and product \"{2}\" in \"{3}\".  Use the \"license-type\" configuration property to specify the type of license you want. {4}");
+  public static final StringId LicenseHelper_FAILED_READING_ZIPPED_LICENSE_FILE_0_WITH_1 = new StringIdImpl(1751, "Failed while reading zipped license file \"{0}\" with: {1}");
+  public static final StringId LicenseHelper_FOUND_A_LICENSE_OF_TYPE_0_FOR_PLATFORM_1_AND_PRODUCT_2_BUT_3_4 = new StringIdImpl(1752, "Found a license of type \"{0}\" for platform \"{1}\" and product \"{2}\" but {3}. {4}");
+  public static final StringId LicenseHelper_IGNORED_LICENSE_0_BECAUSE_1 = new StringIdImpl(1753, "Ignored license \"{0}\" because: {1}");
+  public static final StringId LicenseHelper_IGNORED_LICENSE_0_BECAUSE_ITS_VERSION_1_DOES_NOT_MATCH_THIS_PRODUCTS_VERSION_2 = new StringIdImpl(1754, "Ignored license \"{0}\" because its version \"{1}\" does not match this product''s version \"{2}\".");
+  public static final StringId LicenseHelper_IGNORED_LICENSE_0_BECAUSE_IT_DID_NOT_HAVE_A_1_PROPERTY_DEFINED = new StringIdImpl(1755, "Ignored license \"{0}\" because it did not have a \"{1}\" property defined.");
+  public static final StringId LicenseHelper_IGNORED_LICENSE_0_BECAUSE_IT_WAS_FOR_PLATFORMS_1_AND_NOT_FOR_PLATFORM_2 = new StringIdImpl(1756, "Ignored license \"{0}\" because it was for platforms \"{1}\" and not for platform \"{2}\".");
+  public static final StringId LicenseHelper_IGNORED_LICENSE_0_BECAUSE_IT_WAS_FOR_PRODUCT_1_AND_NOT_FOR_PRODUCT_2 = new StringIdImpl(1757, "Ignored license \"{0}\" because it was for product \"{1}\" and not for product \"{2}\".");
+  public static final StringId LicenseHelper_LICENSEBOILERPLATE = new StringIdImpl(1758, "To obtain a license or extend an expired license contact GemStone, at \"keyfiles@gemstone.com\", and send the output obtained by executing \"gemfire license\". To troubleshoot licensing problems give the same output to technical support using the website at \"http://support.gemstone.com\".");
+  public static final StringId LicenseHelper_LICENSE_0_HAS_EXPIRED = new StringIdImpl(1759, "License \"{0}\" has expired.");
+  public static final StringId LicenseHelper_LICENSE_0_WAS_NOT_GRANTED_BECAUSE_ITS_TIME_LIMIT_1_HAS_BEEN_REACHED = new StringIdImpl(1760, "license \"{0}\" was not granted because its time limit \"{1}\" has been reached.");
+  public static final StringId LicenseHelper_LICENSE_0_WAS_NOT_GRANTED_BECAUSE_THE_CURRENT_MACHINE_HAS_1_CPUS_AND_THE_LICENSE_ALLOWS_AT_MOST_2_CPUS = new StringIdImpl(1761, "license \"{0}\" was not granted because the current machine has {1} cpus and the license allows at most {2} cpus.");
+  public static final StringId LicenseHelper_LICENSE_0_WAS_NOT_GRANTED_TO_NATIVE_NODE_1_BECAUSE_IT_IS_LIMITED_BY_2 = new StringIdImpl(1762, "license \"{0}\" was not granted to native node \"{1}\" because it is limited by \"{2}\".");
+  public static final StringId LicenseHelper_USING_LICENSE_0_FROM_1_2 = new StringIdImpl(1763, "Using license \"{0}\" from \"{1}\":{2}");
   public static final StringId LiveServerMonitorThread_0_DID_NOT_PASS_VALIDATION_1 = new StringIdImpl(1764, "{0}: Did not pass validation. {1}");
   public static final StringId LiveServerMonitorThread_0__UNEXPECTEDLY_INTERRUPTED_AND_WILL_EXIT = new StringIdImpl(1765, "{0}  unexpectedly interrupted and will exit");
   public static final StringId LocalRegion_0_EVENT_NOT_DISPATCHED_DUE_TO_REJECTED_EXECUTION = new StringIdImpl(1766, "{0} Event not dispatched due to rejected execution");
@@ -780,7 +791,7 @@ class ParentLocalizedStrings {
   public static final StringId LocalRegion_EXCEPTION_OCCURRED_WHILE_CLOSING_CQS_ON_REGION_DESTORY = new StringIdImpl(1770, "Exception occurred while closing CQs on region destroy.");
   public static final StringId LocalRegion_REGIONENTRY_SHOULD_NOT_BE_NULL = new StringIdImpl(1771, "regionEntry should not be null");
   public static final StringId LocalRegion_REGIONENTRY_WAS_CREATED_WITH_TRANSACTION_THAT_IS_NO_LONGER_ACTIVE = new StringIdImpl(1772, "Region.Entry was created with transaction that is no longer active.");
-  public static final StringId TRANSACTION_0_IS_NO_LONGER_ACTIVE = new StringIdImpl(1773, "Transaction {0} is no longer active.");
+  public static final StringId LocalRegion_REGION_COLLECTION_WAS_CREATED_WITH_TRANSACTION_0_THAT_IS_NO_LONGER_ACTIVE = new StringIdImpl(1773, "Region collection was created with transaction {0} that is no longer active.");
   public static final StringId LocalRegion_STATISTICS_DISABLED_FOR_REGION_0 = new StringIdImpl(1774, "Statistics disabled for region ''{0}''");
   public static final StringId LocalRegion_THIS_ITERATOR_DOES_NOT_SUPPORT_MODIFICATION = new StringIdImpl(1775, "This iterator does not support modification");
   public static final StringId LocalRegion_TROUBLE_REFRESHING_ENTRY_OF_INTEREST_REGION_0_KEY_1 = new StringIdImpl(1776, "Trouble refreshing entry of interest; region={0} key={1}");
@@ -791,7 +802,7 @@ class ParentLocalizedStrings {
   public static final StringId MX4JModelMBean_CANNOT_FIND_OPERATIONS_PARAMETER_CLASSES = new StringIdImpl(1781, "Cannot find operation''s parameter classes");
   public static final StringId MX4JModelMBean_CANNOT_STORE_MODELMBEAN_AFTER_OPERATION_INVOCATION = new StringIdImpl(1782, "Cannot store ModelMBean after operation invocation");
   public static final StringId MX4JModelMBean_CANNOT_STORE_MODELMBEAN_AFTER_SETATTRIBUTE = new StringIdImpl(1783, "Cannot store ModelMBean after setAttribute");
-  public static final StringId ManageBucketMessage_0__PROCESSED__1 = new StringIdImpl(1784, "{0}  processed  {1}");
+  // ok to reused 1784
   public static final StringId CqService_TIMEOUT_WHILE_TRYING_TO_GET_CQ_FROM_META_REGION_CQNAME_0 = new StringIdImpl(1785, "Timeout while trying to get CQ from meta region, CqName: {0}");
   public static final StringId ManagedEntityController_A_REMOTE_COMMAND_MUST_BE_SPECIFIED_TO_OPERATE_ON_A_MANAGED_ENTITY_ON_HOST_0 = new StringIdImpl(1786, "A remote command must be specified to operate on a managed entity on host \"{0}\"");
   public static final StringId ManagedEntityController_COULD_NOT_DETERMINE_IF_MANAGED_ENTITY_WAS_RUNNING_0 = new StringIdImpl(1787, "Could not determine if managed entity was running: {0}");
@@ -806,6 +817,7 @@ class ParentLocalizedStrings {
   public static final StringId SimpleStatSampler_COULD_NOT_OPEN_STATISTIC_ARCHIVE_0_BECAUSE_1 = new StringIdImpl(1796, "Could not open statistic archive \"{0}\" because: {1}");
   public static final StringId ManagerLogWriter_DELETED_INACTIVE__0___1_ = new StringIdImpl(1797, "Deleted inactive  {0}  \"{1}\".");
   public static final StringId ManagerLogWriter_SWITCHING_TO_LOG__0 = new StringIdImpl(1798, "Switching to log {0}");
+
 
   public static final StringId ManagerLogWriter_UNABLE_TO_REMOVE_CONSOLE_WITH_ID_0_FROM_ALERT_LISTENERS = new StringIdImpl(1799, "Unable to remove console with id {0} from alert listeners.");
 
@@ -846,7 +858,7 @@ class ParentLocalizedStrings {
   public static final StringId PRCapacityManagement_INTERRUPTED_WHILE_WAITFORPROCESSING_FOR_PRCAPACITYMANAGEMENTSERVICE_RUN = new StringIdImpl(1833, "Interrupted while waitForProcessing() for  PRCapacityManagementService run().");
   public static final StringId PRHAFailureAndRecoveryProvider_FAILED_TO_STOP_CLEAN_UP_THREAD_IN_0_SECONDS = new StringIdImpl(1834, "Failed to stop clean up thread in {0} seconds");
   public static final StringId PRHAFailureAndRecoveryProvider_INTERRUPTED_WHILE_WAITING_ON_THE_LINKEDBLOCKINGQUEUE_AT_PRMEMBERSHIPLISTENER_RUN = new StringIdImpl(1835, "Interrupted while waiting on the LinkedBlockingQueue at PRMembershipListener run().");
-  public static final StringId JGroupMembershipManager_THIS_DISTRIBUTED_SYSTEM_IS_SHUTTING_DOWN = new StringIdImpl(1836, "This distributed system is shutting down.");
+  public static final StringId GroupMembershipService_THIS_DISTRIBUTED_SYSTEM_IS_SHUTTING_DOWN = new StringIdImpl(1836, "This distributed system is shutting down.");
   public static final StringId PRHARedundancyProvider_EXCEPTION_CREATING_PARTITION_ON__0 = new StringIdImpl(1837, "Exception creating partition on  {0}");
   public static final StringId AbstractDistributionConfig_ACK_SEVERE_ALERT_THRESHOLD_NAME = new StringIdImpl(1838, "The number of seconds a distributed message can wait for acknowledgment past {0} before it ejects unresponsive members from the distributed system.  Defaults to \"{1}\".  Legal values are in the range [{2}..{3}].");
   public static final StringId AbstractDistributionConfig_CLIENT_CONFLATION_PROP_NAME = new StringIdImpl(1839, "Client override for server queue conflation setting");
@@ -869,7 +881,7 @@ class ParentLocalizedStrings {
   public static final StringId PartitionedRegionDataStore_PARTITIONEDREGIONDATASTOREGETVALUESSIZELOCALLY_GOT_NULL_BUCKET_REGION_FOR_PARTITIONEDREGION__0 = new StringIdImpl(1856, "PartitionedRegionDataStore#getValuesSizeLocally: Got null bucket region for PartitionedRegion  {0}");
   public static final StringId PartitionedRegionDataStore_PARTITIONED_REGION_0_HAS_EXCEEDED_LOCAL_MAXIMUM_MEMORY_CONFIGURATION_2_MB_CURRENT_SIZE_IS_3_MB = new StringIdImpl(1857, "Partitioned Region {0} has exceeded local maximum memory configuration {2} Mb, current size is {3} Mb");
   public static final StringId PartitionedRegionDataStore_PARTITIONED_REGION_0_IS_AT_OR_BELOW_LOCAL_MAXIMUM_MEMORY_CONFIGURATION_2_MB_CURRENT_SIZE_IS_3_MB = new StringIdImpl(1858, "Partitioned Region {0} is at or below local maximum memory configuration {2} Mb, current size is {3} Mb");
-  public static final StringId PartitionedRegionDataStore_SETTING_NEW_CACHE_LOADER_IN_BUCKET_REGION_0 = new StringIdImpl(1859, "setting new cache loader in bucket region: {0}");
+  // ok to reuse 1859
   public static final StringId FunctionService_BUCKET_MIGRATED_TO_ANOTHER_NODE = new StringIdImpl(1860, "Bucket migrated to another node. Please retry.");
   public static final StringId PartitionedRegionDataStore_VERIFIED_NODELIST_FOR_BUCKETID_0_IS_1 = new StringIdImpl(1861, "Verified nodelist for bucketId={0} is {1}");
   public static final StringId PartitionedRegionHelper_DATALOSS___0____CURRENT_MEMBERSHIP_LIST___1 = new StringIdImpl(1862, "DATALOSS (  {0}  ) :: Current Membership List =  {1}");
@@ -912,7 +924,7 @@ class ParentLocalizedStrings {
   public static final StringId PartitionedRegion_REMOVING_ALL_THE_INDEXES_ON_THIS_PARITITION_REGION__0 = new StringIdImpl(1899, "Removing all the indexes on this paritition region  {0}");
   public static final StringId PartitionedRegion_SENDING_REMOVEINDEX_MESSAGE_TO_ALL_THE_PARTICIPATING_PRS = new StringIdImpl(1900, "Sending removeIndex message to all the participating prs.");
   public static final StringId PartitionedRegion_STACK_TRACE = new StringIdImpl(1901, "stack trace");
-  //used below
+  //1902 is used in LocalizedString.java
   public static final StringId PartitionedRegion_THIS_INDEX__0_IS_NOT_ON_THIS_PARTITONED_REGION___1 = new StringIdImpl(1903, "This index  {0} is not on this partitoned region :  {1}");
   public static final StringId PartitionedRegion_THIS_IS_AN_ACCESSOR_VM_AND_DOESNT_CONTAIN_DATA = new StringIdImpl(1904, "This is an accessor vm and doesnt contain data");
   public static final StringId PartitionedRegion_THIS_PARTITIONED_REGIONS_DOES_NOT_HAVE_ANY_INDEX___0 = new StringIdImpl(1905, "This partitioned regions does not have any index :  {0}");
@@ -922,7 +934,7 @@ class ParentLocalizedStrings {
   public static final StringId PartitionedRegion_WILL_BE_CREATING_INDEX_ON_THIS_VM_BECAUSE_OF_CREATEINDEX_MESSAGE_COMING_FROM_REMOTE_VM_WITH_THESE_SETTINGS_0 = new StringIdImpl(1909, "Will be creating index on this vm because of createIndex message coming from remote vm with these settings {0} ");
   public static final StringId PartitionedRegion_WILL_BE_REMOVING_ALL_THE_BUCKET_INDEXES = new StringIdImpl(1910, "Will be removing all the bucket indexes");
   public static final StringId PartitionedRegion_WILL_BE_REMOVING_INDEXES_ON___0__BUCKETS = new StringIdImpl(1911, "Will be removing indexes on :  {0}  buckets");
-  public static final StringId PartitionedRegion_WILL_SEND_UPDATED_PROFILE_NOW_FOR_REQUIRING_OLD_VALUE_ON_THIS_BRIDGE_SERVER = new StringIdImpl(1912, "Will send updated profile now for requiring old value on this bridge server.");
+  // ok to reuse 1912
   public static final StringId ProcessBatch_0_CAUGHT_EXCEPTION_PROCESSING_BATCH_CREATE_REQUEST_1_FOR_2_EVENTS = new StringIdImpl(1913, "{0}: Caught exception processing batch create request {1} for {2} events");
   public static final StringId ProcessBatch_0_CAUGHT_EXCEPTION_PROCESSING_BATCH_DESTROY_REQUEST_1_CONTAINING_2_EVENTS = new StringIdImpl(1914, "{0}: Caught exception processing batch destroy request {1} containing {2} events");
   public static final StringId ProcessBatch_0_CAUGHT_EXCEPTION_PROCESSING_BATCH_REQUEST_1_CONTAINING_2_EVENTS = new StringIdImpl(1915, "{0}: Caught exception processing batch request {1} containing {2} events");
@@ -930,7 +942,7 @@ class ParentLocalizedStrings {
   public static final StringId ProcessBatch_0_DURING_BATCH_DESTROY_NO_ENTRY_WAS_FOUND_FOR_KEY_1 = new StringIdImpl(1917, "{0}: during batch destroy no entry was found for key {1}");
   public static final StringId ProcessBatch_0_FAILED_TO_CREATE_OR_UPDATE_ENTRY_FOR_REGION_1_KEY_2_VALUE_3_CALLBACKARG_4 = new StringIdImpl(1918, "{0}: Failed to create or update entry for region {1} key {2} value {3} callbackArg {4}");
   public static final StringId ProcessBatch_0_FAILED_TO_UPDATE_ENTRY_FOR_REGION_1_KEY_2_VALUE_3_AND_CALLBACKARG_4 = new StringIdImpl(1919, "{0}: Failed to update entry for region {1}, key {2}, value {3}, and callbackArg {4}");
-  public static final StringId JGroupMembershipManager_Invalid_Surprise_Member = new StringIdImpl(1920, "attempt to add old member: {0} as surprise member to {1}");
+  public static final StringId GroupMembershipService_Invalid_Surprise_Member = new StringIdImpl(1920, "attempt to add old member: {0} as surprise member to {1}");
   public static final StringId ProcessBatch_0_THE_INPUT_KEY_FOR_THE_BATCH_DESTROY_REQUEST_1_IS_NULL = new StringIdImpl(1921, "{0}: The input key for the batch destroy request {1} is null");
   public static final StringId ProcessBatch_0_THE_INPUT_KEY_FOR_THE_BATCH_UPDATE_REQUEST_1_IS_NULL = new StringIdImpl(1922, "{0}: The input key for the batch update request {1} is null");
   public static final StringId ProcessBatch_0_THE_INPUT_REGION_NAME_FOR_THE_BATCH_CREATE_REQUEST_1_IS_NULL = new StringIdImpl(1923, "{0}: The input region name for the batch create request {1} is null");
@@ -949,7 +961,7 @@ class ParentLocalizedStrings {
   public static final StringId SimpleStatSampler_DISABLING_STATISTIC_ARCHIVAL = new StringIdImpl(1936, "Disabling statistic archival.");
   public static final StringId SimpleStatSampler_STATISTIC_ARCHIVE_CLOSE_FAILED_BECAUSE__0 = new StringIdImpl(1937, "Statistic archive close failed because:  {0}");
   public static final StringId SimpleStatSampler_STATSSAMPLERATE_0 = new StringIdImpl(1938, "stats.sample-rate= {0}");
-  public static final StringId PutMessage_0__PROCESSED__1 = new StringIdImpl(1939, "{0}  processed  {1}");
+  // ok to reuse 1939
   public static final StringId Put_0_ATTEMPTED_TO_PUT_A_NULL_VALUE_FOR_EXISTING_KEY_1 = new StringIdImpl(1940, "{0}: Attempted to put a null value for existing key {1}");
   public static final StringId Put_0_THE_INPUT_KEY_FOR_THE_PUT_REQUEST_IS_NULL = new StringIdImpl(1941, "{0} The input key for the put request is null");
   public static final StringId Put_0_THE_INPUT_REGION_NAME_FOR_THE_PUT_REQUEST_IS_NULL = new StringIdImpl(1942, "{0} The input region name for the put request is null");
@@ -962,10 +974,10 @@ class ParentLocalizedStrings {
   public static final StringId QueueRemovalMessage_QUEUEREMOVALMESSAGEPROCESSINTERRUPTEDEXCEPTION_IN_PROCESSING_THE_LAST_DISPTACHED_SEQUENCE_ID_FOR_A_HAREGIONQUEUES_DACE_THE_PROBLEM_IS_WITH_EVENT_ID__0_FOR_HAREGION_WITH_NAME_1 = new StringIdImpl(1949, "QueueRemovalMessage::process:InterruptedException in processing the last disptached sequence ID for a HARegionQueue''s DACE. The problem is with event ID ={0} for HARegion with name={1}");
   public static final StringId QueueRemovalMessage_QUEUE_FOUND_DESTROYED_WHILE_PROCESSING_THE_LAST_DISPTACHED_SEQUENCE_ID_FOR_A_HAREGIONQUEUES_DACE_THE_EVENT_ID_IS_0_FOR_HAREGION_WITH_NAME_1 = new StringIdImpl(1950, "Queue found destroyed while processing the last disptached sequence ID for a HARegionQueue''s DACE. The event ID is {0} for HARegion with name={1}");
   public static final StringId RegionAdvisor_FAILED_TO_PROCESS_ALL_QUEUED_BUCKETPROFILES_FOR_0 = new StringIdImpl(1951, "Failed to process all queued BucketProfiles for {0}");
-  public static final StringId RegionAdvisor_REGIONADVISOR_REMOVEIDANDBUCKETS_REMOVING_BUCKETS_FOR_MEMBER0_1 = new StringIdImpl(1952, "RegionAdvisor#removeIdAndBuckets: removing buckets for member{0};{1}");
+  // ok to reuse 1952
   public static final StringId TXManager_NO_WRITER_ON_CLIENT = new StringIdImpl(1953, "A TransactionWriter cannot be registered on a client");
-  public static final StringId Version_REMOTE_VERSION_NOT_SUPPORTED = new StringIdImpl(1954, "Peer or client version with ordinal {0} not supported. Last known version is {1}");
-  public static final StringId RegionAdvisor_REGIONADVISOR_REMOVEIDANDBUCKETS_REMOVING_MEMBER_FROM_REGION_0_1 = new StringIdImpl(1955, "RegionAdvisor#removeIdAndBuckets: removing member from region {0}: {1}");
+  public static final StringId Version_REMOTE_VERSION_NOT_SUPPORTED = new StringIdImpl(1954, "Peer or client version with ordinal {0} not supported. Highest known version is {1}");
+  // ok to reuse 1955
   public static final StringId RegionAdvisor_REGIONADVISOR_REMOVEID_REMOVING_MEMBER_FROM_REGION_0_1 = new StringIdImpl(1956, "RegionAdvisor#removeId: removing member from region {0} : {1}");
   public static final StringId RegionCreation_CREATION_OF_INDEX__0__ON_REGION__1__IS_UNSUCCESSFUL_AS_INDEX_CREATION_IS_NOT_ALLOWED_ON_REGIONS_OVERFLOWING_TO_DISK = new StringIdImpl(1957, "Creation of Index  {0}  on region  {1}  is unsuccessful as index creation is not allowed on regions overflowing to disk");
   public static final StringId RegionCreation_REGIONCREATIONFILLIN_QUERYEXCEPTION_WHILE_CREATING_INDEX__0__ON_REGION_1 = new StringIdImpl(1958, "RegionCreation::fillIn: QueryException while creating Index  {0}  on region {1}");
@@ -1075,8 +1087,8 @@ class ParentLocalizedStrings {
   public static final StringId SingleWriteSingleReadRegionQueue_0_THE_QUEUE_IS_NOT_EMPTY__BUT_THE_TAIL_KEY_1_POINTS_TO_A_NONEMPTY_SLOT_ATTEMPTING_TO_FIX = new StringIdImpl(2054, "{0}: The queue is not empty, but the TAIL_KEY ({1}) points to a non-empty slot. Attempting to fix.");
   public static final StringId SingleWriteSingleReadRegionQueue_0_THE_QUEUE_REGION_NAMED_1_COULD_NOT_BE_CREATED = new StringIdImpl(2055, "{0}: The queue region named {1} could not be created");
   public static final StringId SingleWriteSingleReadRegionQueue_UNEXPECTED_EXCEPTION_DURING_INIT_OF_0 = new StringIdImpl(2056, "Unexpected Exception during init of {0}");
-  public static final StringId SizeMessage_0_PROCESSOR_NOT_FOUND = new StringIdImpl(2057, "{0} processor not found");
-  public static final StringId SizeMessage_0__PROCESSED__1 = new StringIdImpl(2058, "{0}  processed  {1}");
+  // ok to reuse 2057
+  // ok to reuse 2058
   public static final StringId SizeMessage_SIZEMESSAGE_DATA_STORE_NOT_CONFIGURED_FOR_THIS_MEMBER = new StringIdImpl(2059, "SizeMessage: data store not configured for this member");
   public static final StringId SocketCreator_SSL_CONNECTION_FROM_PEER_0 = new StringIdImpl(2060, "SSL Connection from peer {0}");
   public static final StringId SocketCreator_SSL_ERROR_IN_AUTHENTICATING_PEER_0_1 = new StringIdImpl(2061, "SSL Error in authenticating peer {0}[{1}].");
@@ -1093,40 +1105,40 @@ class ParentLocalizedStrings {
   public static final StringId StartupMessage_STARTUPMESSAGE_DM_0_HAS_STARTED_PROCESSOR_1_WITH_DISTRIBUTED_SYSTEM_ID_2 = new StringIdImpl(2070, "StartupMessage DM {0} has started. processor = {1}. with distributed system id : {2}");
   public static final StringId StartupOperation_MEMBERSHIP_RECEIVED_CONNECTION_FROM_0_BUT_RECEIVED_NO_STARTUP_RESPONSE_AFTER_1_MS = new StringIdImpl(2071, "Membership: received connection from <{0}> but received no startup response after {1} ms.");
   public static final StringId StartupOperation_MEMBERSHIP_STARTUP_TIMED_OUT_AFTER_WAITING_0_MILLISECONDS_FOR_RESPONSES_FROM_1 = new StringIdImpl(2072, "Membership: startup timed out after waiting {0} milliseconds for responses from {1}");
-  public static final StringId StartupResponseMessage_0__PROCESSED__1 = new StringIdImpl(2073, "{0}  processed  {1}");
+  // ok to reuse 2073
   public static final StringId StateFlushOperation_0__EXCEPTION_CAUGHT_WHILE_DETERMINING_CHANNEL_STATE = new StringIdImpl(2074, "{0}  Exception caught while determining channel state");
   public static final StringId StateFlushOperation_0__THROWABLE_CAUGHT_WHILE_DETERMINING_CHANNEL_STATE = new StringIdImpl(2075, "{0}  Throwable caught while determining channel state");
-  public static final StringId StateFlushOperation_CHANNEL_STATES_0 = new StringIdImpl(2076, "channel states: {0}");
+  // ok to reuse 2076
   public static final StringId StateFlushOperation_EXCEPTION_CAUGHT_WHILE_WAITING_FOR_CHANNEL_STATE = new StringIdImpl(2077, "Exception caught while waiting for channel state");
-  public static final StringId StateFlushOperation_PROCESSING__0 = new StringIdImpl(2078, "Processing  {0}");
-  public static final StringId StateFlushOperation_REGION_NOT_FOUND__SKIPPING_CHANNEL_STATE_ASSESSMENT = new StringIdImpl(2079, "Region not found - skipping channel state assessment");
-  public static final StringId StateFlushOperation_SENDING__0 = new StringIdImpl(2080, "Sending  {0}");
+  // ok to reuse 2078
+  // ok to reuse 2079
+  // ok to reuse 2080
   public static final StringId StateFlushOperation_STATE_FLUSH_TERMINATED_WITH_EXCEPTION = new StringIdImpl(2081, "state flush terminated with exception");
-  public static final StringId StateFlushOperation_WAITING_FOR_CHANNEL_STATES__0 = new StringIdImpl(2082, "Waiting for channel states:  {0}");
+  // ok to reuse 2082
   public static final StringId TCPConduit_0_IS_1_INSTEAD_OF_THE_REQUESTED_2 = new StringIdImpl(2083, "{0} is {1} instead of the requested {2}");
   public static final StringId TCPConduit_ABANDONED_BECAUSE_SHUTDOWN_IS_IN_PROGRESS = new StringIdImpl(2084, "Abandoned because shutdown is in progress");
   public static final StringId TCPConduit_ATTEMPTING_TCPIP_RECONNECT_TO__0 = new StringIdImpl(2085, "Attempting TCP/IP reconnect to  {0}");
   public static final StringId TCPConduit_ENDING_RECONNECT_ATTEMPT_BECAUSE_0_HAS_DISAPPEARED = new StringIdImpl(2086, "Ending reconnect attempt because {0} has disappeared.");
   public static final StringId TCPConduit_ENDING_RECONNECT_ATTEMPT_TO_0_BECAUSE_SHUTDOWN_HAS_STARTED = new StringIdImpl(2087, "Ending reconnect attempt to {0} because shutdown has started.");
   public static final StringId TCPConduit_ERROR_SENDING_MESSAGE_TO_0_WILL_REATTEMPT_1 = new StringIdImpl(2088, "Error sending message to {0} (will reattempt): {1}");
-  public static final StringId TCPConduit_EXCEPTION_CREATING_SERVERSOCKET = new StringIdImpl(2089, "While creating ServerSocket and Stub on port {0} with address {1}");
+  public static final StringId TCPConduit_EXCEPTION_CREATING_SERVERSOCKET = new StringIdImpl(2089, "While creating ServerSocket on port {0} with address {1}");
   public static final StringId TCPConduit_EXCEPTION_PARSING_P2PIDLECONNECTIONTIMEOUT = new StringIdImpl(2090, "exception parsing p2p.idleConnectionTimeout");
   public static final StringId TCPConduit_EXCEPTION_PARSING_P2PTCPBUFFERSIZE = new StringIdImpl(2091, "exception parsing p2p.tcpBufferSize");
   public static final StringId TCPConduit_FAILED_TO_ACCEPT_CONNECTION_FROM_0_BECAUSE_1 = new StringIdImpl(2092, "Failed to accept connection from {0} because {1}");
   public static final StringId TCPConduit_FAILED_TO_SET_LISTENER_RECEIVERBUFFERSIZE_TO__0 = new StringIdImpl(2093, "Failed to set listener receiverBufferSize to  {0}");
   public static final StringId TCPConduit_INHIBITACCEPTOR = new StringIdImpl(2094, "p2p.test.inhibitAcceptor was found to be set, inhibiting incoming tcp/ip connections");
   public static final StringId TCPConduit_PEER_HAS_DISAPPEARED_FROM_VIEW = new StringIdImpl(2095, "Peer has disappeared from view: {0}");
-  public static final StringId TCPConduit_SHUTTING_DOWN_CONDUIT = new StringIdImpl(2096, "Shutting down conduit");
-  public static final StringId TCPConduit_STARTING_P2P_LISTENER_ON__0 = new StringIdImpl(2097, "Starting P2P Listener on  {0}");
-  public static final StringId TCPConduit_STOPPED_P2P_LISTENER_ON__0 = new StringIdImpl(2098, "Stopped P2P Listener on  {0}");
+  // ok to reuse 2096
+  // ok to reuse 2097
+  // ok to reuse 2098
   public static final StringId TCPConduit_SUCCESSFULLY_RECONNECTED_TO_MEMBER_0 = new StringIdImpl(2099, "Successfully reconnected to member {0}");
   public static final StringId TCPConduit_UNABLE_TO_SET_LISTENER_PRIORITY__0 = new StringIdImpl(2100, "unable to set listener priority:  {0}");
   public static final StringId TCPConduit_UNABLE_TO_SHUT_DOWN_LISTENER_WITHIN_0_MS_UNABLE_TO_INTERRUPT_SOCKET_ACCEPT_DUE_TO_JDK_BUG_GIVING_UP = new StringIdImpl(2101, "Unable to shut down listener within {0}ms.  Unable to interrupt socket.accept() due to JDK bug. Giving up.");
   public static final StringId TIMED_OUT_WAITING_FOR_ACKS = new StringIdImpl(2102, "Timed out waiting for ACKS.");
   public static final StringId TXCommitMessage_EXCEPTION_OCCURRED_IN_TRANSACTIONLISTENER = new StringIdImpl(2103, "Exception occurred in TransactionListener");
   public static final StringId TXCommitMessage_NEW_MEMBERS_FOR_REGION_0_ORIG_LIST_1_NEW_LIST_2 = new StringIdImpl(2104, "New members for Region: {0} orig list: {1} new list: {2}");
-  public static final StringId TIMED_OUT_WAITING_FOR_TXID_Chunk = new StringIdImpl(2105, "Timed out waiting for TXId chunk for GII of {0}.");
-  public static final StringId TXRemoteCommitMessage_UNEXPECTED_EXCEPTION = new StringIdImpl(2106, "{0} received unexpected exception {1}");
+  public static final StringId PartitionedRegion_INDEX_CREATION_FAILED_ROLLING_UPGRADE = new StringIdImpl(2105, "Indexes should not be created when there are older versions of gemfire in the cluster.");
+  // ok to reuse 2106
   public static final StringId TXManagerImpl_EXCEPTION_OCCURRED_IN_TRANSACTIONLISTENER = new StringIdImpl(2107, "Exception occurred in TransactionListener");
   public static final StringId TXOriginatorRecoveryProcessor_MORE_THAN_ONE_EXCEPTION_THROWN_IN__0 = new StringIdImpl(2108, "More than one exception thrown in  {0}");
   public static final StringId TXOriginatorRecoveryProcessor_PROCESSTXORIGINATORRECOVERYMESSAGE = new StringIdImpl(2109, "[processTXOriginatorRecoveryMessage]");
@@ -1292,19 +1304,9 @@ class ParentLocalizedStrings {
   public static final StringId BaseCommand_UNKNOWN_RESULT_TYPE_0 = new StringIdImpl(2269, "Unknown result type:  {0}");
   public static final StringId BaseRecordManager_NAME_DIRECTORY_MUST_EXIST = new StringIdImpl(2270, "Name directory must exist");
   public static final StringId BaseRecordManager_RECORDMANAGER_HAS_BEEN_CLOSED = new StringIdImpl(2271, "RecordManager has been closed");
-  public static final StringId BridgeLoader_ALREADY_INITIALIZED = new StringIdImpl(2272, "Already initialized");
-  public static final StringId BridgeLoader_INVALID_LOAD_PARAMS_CHECK_HELPER_OBJECT = new StringIdImpl(2273, "Invalid load params, check helper object");
-  public static final StringId BridgeLoader_THE_BRIDGELOADER_HAS_BEEN_CLOSED = new StringIdImpl(2274, "The BridgeLoader has been closed.");
-  public static final StringId BridgeServerImpl_A_BRIDGE_SERVERS_CONFIGURATION_CANNOT_BE_CHANGED_ONCE_IT_IS_RUNNING = new StringIdImpl(2275, "A bridge server''s configuration cannot be changed once it is running.");
-  public static final StringId BridgeWriter_ALREADY_INITIALIZED = new StringIdImpl(2276, "Already initialized");
-  public static final StringId BridgeWriter_INTEREST_REGISTRATION_REQUIRES_ESTABLISHCALLBACKCONNECTION_PARAMETER_TO_BE_SET_TO_TRUE = new StringIdImpl(2277, "Interest registration requires establishCallbackConnection parameter to be set to true.");
-  public static final StringId BridgeWriter_INVALID_CREATE_PARAMETERS_CHECK_ENTRY_EVENT_OBJECT = new StringIdImpl(2278, "Invalid create parameters. Check entry event object");
-  public static final StringId BridgeWriter_INVALID_KEYSET_PARAMETERS_THE_REGION_CANNOT_BE_NULL = new StringIdImpl(2279, "Invalid keySet parameters. The region cannot be null.");
-  public static final StringId BridgeWriter_INVALID_REGION_PARAMS = new StringIdImpl(2280, "Invalid region params");
-  public static final StringId BridgeWriter_THE_BRIDGEWRITER_HAS_BEEN_CLOSED = new StringIdImpl(2281, "The BridgeWriter has been closed.");
-  public static final StringId BridgeWriter_THE_INPUT_KEY_CANNOT_BE_NULL = new StringIdImpl(2282, "The input key cannot be null");
-  public static final StringId BridgeWriter_THE_INPUT_PARENT_REGION_NAME_0_IS_INVALID = new StringIdImpl(2283, "The input parent region name ( {0} ) is invalid");
-  public static final StringId BridgeWriter_THE_INPUT_REGION_NAME_0_IS_INVALID = new StringIdImpl(2284, "The input region name ( {0} ) is invalid");
+  // ok to reuse 2272..2274
+  public static final StringId CacheServerImpl_A_CACHE_SERVERS_CONFIGURATION_CANNOT_BE_CHANGED_ONCE_IT_IS_RUNNING = new StringIdImpl(2275, "A cache server''s configuration cannot be changed once it is running.");
+  // ok to reuse 2276..2284
   public static final StringId BucketAdvisor_CANNOT_CHANGE_FROM_0_TO_1 = new StringIdImpl(2285, "Cannot change from  {0}  to  {1}");
   public static final StringId BucketRegion_THIS_SHOULD_NEVER_BE_CALLED_ON_0 = new StringIdImpl(2286, "This should never be called on  {0}");
   public static final StringId BucketSizeMessage_FAILED_SENDING_0 = new StringIdImpl(2287, "Failed sending < {0} >");
@@ -1377,7 +1379,7 @@ class ParentLocalizedStrings {
   public static final StringId CacheXmlParser_CLASS_0_IS_NOT_AN_INSTANCE_OF_DECLARABLE = new StringIdImpl(2354, "Class \"{0}\" is not an instance of Declarable.");
   public static final StringId CacheXmlParser_NO_CACHE_ELEMENT_SPECIFIED = new StringIdImpl(2355, "No cache element specified.");
   public static final StringId CacheXmlParser_ONLY_A_PARAMETER_IS_ALLOWED_IN_THE_CONTEXT_OF_0 = new StringIdImpl(2356, "Only a parameter is allowed in the context of  {0}");
-  public static final StringId CacheXmlParser_THE_DYNAMICREGIONFACTORY_CACHEWRITER_MUST_BE_AN_INSTANCE_OF_BRIDGEWRITER = new StringIdImpl(2357, "The dynamic-region-factory cache-writer must be an instance of BridgeWriter.");
+  // ok to reuse 2357
   public static final StringId CacheXmlParser_UNKNOWN_DATA_POLICY_0 = new StringIdImpl(2358, "Unknown data policy:  {0}");
   public static final StringId CacheXmlParser_UNKNOWN_EXPIRATION_ACTION_0 = new StringIdImpl(2359, "Unknown expiration action:  {0}");
   public static final StringId CacheXmlParser_UNKNOWN_GATEWAY_HUB_POLICY_0 = new StringIdImpl(2360, "Unknown gateway hub policy:  {0}");
@@ -1689,7 +1691,7 @@ class ParentLocalizedStrings {
   public static final StringId GatewayHubCreation_NOT_SUPPORTED = new StringIdImpl(2669, "Not supported");
   public static final StringId GatewayHubCreation_REMOVEGATEWAY_IS_NOT_SUPPORTED = new StringIdImpl(2670, "removeGateway is not supported");
   public static final StringId GatewayHubImpl_AN_UNKNOWN_GATEWAY_HUB_POLICY_0_WAS_SPECIFIED_IT_MUST_BE_ONE_OF_1_2_3 = new StringIdImpl(2671, "An unknown gateway hub policy ( {0} ) was specified. It must be one of < {1}   {2}   {3} >.");
-  public static final StringId GatewayHubImpl_A_BRIDGE_SERVERS_CONFIGURATION_CANNOT_BE_CHANGED_ONCE_IT_IS_RUNNING = new StringIdImpl(2672, "A bridge server''s configuration cannot be changed once it is running.");
+  // ok to reuse 2672
   public static final StringId GatewayHubImpl_GATEWAYHUB_0_ALREADY_DEFINES_A_GATEWAY_WITH_ID_1 = new StringIdImpl(2673, "GatewayHub  {0}  already defines a Gateway with id= {1}");
   public static final StringId GatewayHubImpl_GATEWAYHUB_0_DOES_NOT_CONTAIN_A_GATEWAY_WITH_ID_1 = new StringIdImpl(2674, "GatewayHub  {0}  does not contain a Gateway with id= {1}");
   public static final StringId GatewayImpl_A_GATEWAYS_CONFIGURATION_CANNOT_BE_CHANGED_ONCE_IT_IS_RUNNING = new StringIdImpl(2675, "A Gateway''s configuration cannot be changed once it is running.");
@@ -1818,19 +1820,19 @@ class ParentLocalizedStrings {
   public static final StringId InvalidateMessage_FAILED_SENDING_0 = new StringIdImpl(2798, "Failed sending < {0} >");
   public static final StringId InvalidateMessage_NO_RESPONSE_CODE_RECEIVED = new StringIdImpl(2799, "no response code received");
   public static final StringId JCAConnectionManagerImpl_JCACONNECTIONMANAGERIMPLALLOCATECONNECTIONNO_VALID_CONNECTION_AVAILABLE = new StringIdImpl(2800, "JCAConnectionManagerImpl::allocateConnection::No valid Connection available");
-  public static final StringId JGroupMemberFactory_UNABLE_TO_CREATE_MEMBERSHIP_MANAGER = new StringIdImpl(2801, "Unable to create membership manager");
-  public static final StringId JGroupMember_JGROUPMEMBERCOMPARETO_COMPARISON_BETWEEN_DIFFERENT_CLASSES = new StringIdImpl(2802, "JGroupMember.compareTo(): comparison between different classes");
-  public static final StringId JGroupMembershipManager_CANNOT_FIND_0 = new StringIdImpl(2803, "Cannot find  {0}");
-  public static final StringId JGroupMembershipManager_CHANNEL_CLOSED = new StringIdImpl(2804, "Channel closed");
-  public static final StringId JGroupMembershipManager_CHANNEL_FAILURE = new StringIdImpl(2805, "Channel failure");
-  public static final StringId JGroupMembershipManager_JGROUPS_CONFIGURATION_FILE_0_DOES_NOT_EXIST = new StringIdImpl(2806, "Jgroups configuration file \"{0}\" does not exist.");
+  public static final StringId MemberFactory_UNABLE_TO_CREATE_MEMBERSHIP_MANAGER = new StringIdImpl(2801, "Unable to create membership manager");
+  public static final StringId Member_MEMBERCOMPARETO_COMPARISON_BETWEEN_DIFFERENT_CLASSES = new StringIdImpl(2802, "NetMember.compareTo(): comparison between different classes");
+  public static final StringId GroupMembershipService_CANNOT_FIND_0 = new StringIdImpl(2803, "Cannot find  {0}");
+  public static final StringId GroupMembershipService_CHANNEL_CLOSED = new StringIdImpl(2804, "Channel closed");
+  public static final StringId GroupMembershipService_CHANNEL_FAILURE = new StringIdImpl(2805, "Channel failure");
+  public static final StringId GroupMembershipService_JGROUPS_CONFIGURATION_FILE_0_DOES_NOT_EXIST = new StringIdImpl(2806, "Jgroups configuration file \"{0}\" does not exist.");
   //ok to reuse 2807
-  public static final StringId JGroupMembershipManager_DISTRIBUTEDSYSTEM_IS_SHUTTING_DOWN = new StringIdImpl(2807, "DistributedSystem is shutting down");
-  public static final StringId JGroupMembershipManager_NO_VIEW = new StringIdImpl(2808, "no view");
-  public static final StringId JGroupMembershipManager_NULL_SENDER = new StringIdImpl(2809, "Null Sender");
-  public static final StringId JGroupMembershipManager_NULL_VIEW_FROM_JGROUPS = new StringIdImpl(2810, "Null view from JGroups");
-  public static final StringId JGroupMembershipManager_STACK_TRACE = new StringIdImpl(2811, "stack trace");
-  public static final StringId JGroupMembershipManager_UNABLE_TO_RESTART_CONDUIT = new StringIdImpl(2812, "Unable to restart conduit");
+  public static final StringId GroupMembershipService_DISTRIBUTEDSYSTEM_IS_SHUTTING_DOWN = new StringIdImpl(2807, "DistributedSystem is shutting down");
+  public static final StringId GroupMembershipService_NO_VIEW = new StringIdImpl(2808, "no view");
+  public static final StringId GroupMembershipService_NULL_SENDER = new StringIdImpl(2809, "Null Sender");
+  public static final StringId GroupMembershipService_NULL_VIEW_FROM_JGROUPS = new StringIdImpl(2810, "Null view from JGroups");
+  public static final StringId GroupMembershipService_STACK_TRACE = new StringIdImpl(2811, "stack trace");
+  public static final StringId GroupMembershipService_UNABLE_TO_RESTART_CONDUIT = new StringIdImpl(2812, "Unable to restart conduit");
   //ok to reuse 2813
   public static final StringId LBDefaultSerializer_EXPECTED_AN_INSTANCE_OF_LBHASHNODE_INSTEAD_OF_0 = new StringIdImpl(2814, "Expected an instance of LBHashNode instead of  {0}");
   public static final StringId LBHashBucket_OUT_OF_ROOM_IN_HASHBUCKET = new StringIdImpl(2815, "out of room in HashBucket");
@@ -1838,7 +1840,24 @@ class ParentLocalizedStrings {
   public static final StringId LRUAlgorithm_LRU_EVICTION_CONTROLLER_0_ALREADY_CONTROLS_THE_CAPACITY_OF_1_IT_CANNOT_ALSO_CONTROL_THE_CAPACITY_OF_REGION_2 = new StringIdImpl(2817, "LRU eviction controller  {0}  already controls the capacity of  {1} .  It cannot also control the capacity of region  {2} .");
   public static final StringId LRUAlgorithm_LRU_STATS_IN_EVICTION_CONTROLLER_INSTANCE_SHOULD_NOT_BE_NULL = new StringIdImpl(2818, "lru stats in eviction controller instance should not be null");
   public static final StringId LRUCapacityController_MAXIMUM_ENTRIES_MUST_BE_POSITIVE = new StringIdImpl(2819, "Maximum entries must be positive");
-  /* 2820-2837 unused */
+  public static final StringId LicenseHelper_COULD_NOT_CONNECT_BECAUSE_THE_LICENSE_HAS_LIMITED_THE_NUMBER_OF_DISTRIBUTED_SYSTEM_MEMBERS_TO_0 = new StringIdImpl(2820, "Could not connect because the license has limited the number of distributed system members to \"{0}\".");
+  public static final StringId LicenseHelper_COULD_NOT_CONNECT_THE_NUMBER_OF_CLIENT_CONNECTIONS_EXCEEDS_THE_LICENSED_LIMIT_0_CONNECTIONS = new StringIdImpl(2821, "Could not connect, the number of client connections exceeds the licensed limit ( {0}  connections).");
+  public static final StringId LicenseHelper_COULD_NOT_CONNECT_USING_A_0_LICENSE_BECAUSE_THE_EXISTING_DISTRIBUTED_SYSTEM_NODE_1_IS_USING_A_2_LICENSE = new StringIdImpl(2822, "Could not connect using a \"{0}\" license because the existing distributed system node {1} is using a \"{2}\" license.");
+  public static final StringId LicenseHelper_COULD_NOT_CONNECT_USING_A_LICENSE_FOR_CUSTOMER_0_BECAUSE_THE_EXISTING_DISTRIBUTED_SYSTEM_NODE_1_IS_USING_A_LICENSE_FOR_CUSTOMER_2 = new StringIdImpl(2823, "Could not connect using a license for customer \"{0}\" because the existing distributed system node {1} is using a license for customer \"{2}\".");
+  public static final StringId LicenseHelper_COULD_NOT_CONNECT_USING_A_LICENSE_WITH_GROUP_ID_0_BECAUSE_THE_EXISTING_DISTRIBUTED_SYSTEM_NODE_1_IS_USING_A_LICENSE_WITH_GROUP_ID_2_MAKE_SURE_ALL_LICENSE_FILES_HAVE_BEEN_UPDATED = new StringIdImpl(2824, "Could not connect using a license with group id \"{0}\" because the existing distributed system node {1} is using a license with group id \"{2}\". Make sure all license files have been updated.");
+  public static final StringId LicenseHelper_FAILED_READING_PUBLICKEYSER_WITH_0 = new StringIdImpl(2825, "Failed reading publickey.ser with:  {0}");
+  public static final StringId LicenseHelper_LICENSE_FILE_0_COULD_NOT_BE_CONVERTED_TO_AN_URL_BECAUSE_1 = new StringIdImpl(2826, "License file \"{0}\" could not be converted to an URL because:  {1}");
+  public static final StringId LicenseHelper_LICENSE_FILE_0_COULD_NOT_BE_COPIED_TO_TEMP_FILE_BECAUSE_1 = new StringIdImpl(2827, "License file \"{0}\" could not be copied to temp file because: {1}");
+  public static final StringId LicenseHelper_LICENSE_FILE_0_COULD_NOT_BE_READ_OR_1_COULD_NOT_BE_WRITTEN_BECAUSE_2 = new StringIdImpl(2828, "License file \"{0}\" could not be read or \"{1}\" could not be written because: {2}");
+  public static final StringId LicenseHelper_LICENSE_FILE_0_DOES_NOT_EXIST_IN_THE_CURRENT_DIRECTORY_NOR_IN_THE_PRODUCT_DIRECTORY_1_A_LICENSE_FILE_MUST_BE_OBTAINED_FROM_GEMSTONE_AND_PLACED_IN_PRODUCT_DIRECTORY_WITH_THE_NAME_GEMFIRELICENSEZIP_OTHER_DIRECTORIES_AND_FILE_NAMES_CAN_BE_USED_IF_THE_LICENSEFILE_CONFIGURATION_PROPERTY_IS_SET_2 = new StringIdImpl(2829, "License file \"{0}\" does not exist in the current directory nor in the product directory \"{1}\".  A license file must be obtained from GemStone and placed in product directory with the name \"gemfireLicense.zip\".  Other directories and file names can be used if the \"license-file\" configuration property is set. {2}");
+  public static final StringId LicenseHelper_LICENSE_FILE_0_DOES_NOT_EXIST_MAKE_SURE_YOUR_LICENSEFILE_CONFIGURATION_PROPERTY_IS_SET_CORRECTLY = new StringIdImpl(2830, "License file \"{0}\" does not exist.  Make sure your \"license-file\" configuration property is set correctly.");
+  public static final StringId LicenseHelper_LICENSE_FILE_0_IS_NOT_READABLE = new StringIdImpl(2831, "License file \"{0}\" is not readable.");
+  public static final StringId LicenseHelper_THE_FILE_PUBLICKEYSER_MUST_BE_CORRUPT_REPORT_THIS_UNEXPECTED_ERROR_TO_TECHNICAL_SUPPORT_0 = new StringIdImpl(2832, "The file publickey.ser must be corrupt! Report this unexpected error to technical support. {0}");
+  public static final StringId LicenseHelper_THE_PRODUCT_REQUIRES_THE_JRE_TO_HAVE_A_SHA_ALGORITHM_0 = new StringIdImpl(2833, "The product requires the JRE to have a SHA algorithm.  {0}");
+  public static final StringId LicenseInfo_COULD_NOT_GET_LOCAL_HOST_BECAUSE_0 = new StringIdImpl(2834, "Could not get local host because:  {0}");
+  public static final StringId LicenseInfo_MISSING_0_PROPERTY = new StringIdImpl(2835, "Missing \"{0}\" property");
+  public static final StringId LicenseInfo_THE_PROPERTY_NAME_0_IS_NOT_A_VALID_LICENSE_PROPERTY_VALID_LICENSE_PROPERTIES_ARE_1 = new StringIdImpl(2836, "The property name \"{0}\" is not a valid license property. Valid license properties are: {1}");
+  //2837 can be reused
   public static final StringId ListenerIdMap_ILLEGAL_INITIAL_CAPACITY_0 = new StringIdImpl(2838, "Illegal Initial Capacity: {0}");
   public static final StringId ListenerIdMap_ILLEGAL_LOAD_FACTOR_0 = new StringIdImpl(2839, "Illegal Load factor:  {0}");
   public static final StringId LiveServerMonitorThread_COULD_NOT_CONNECT_TO_SERVER = new StringIdImpl(2840, "Could not connect to server");
@@ -1921,7 +1940,7 @@ class ParentLocalizedStrings {
   public static final StringId MX4JModelMBean_RETURNED_TYPE_AND_DECLARED_TYPE_ARE_NOT_ASSIGNABLE = new StringIdImpl(2917, "Returned type and declared type are not assignable.");
   public static final StringId ManageBucketMessage_FAILED_SENDING_0 = new StringIdImpl(2918, "Failed sending < {0} >");
   public static final StringId ManagedEntityConfigImpl_COULD_NOT_DETERMINE_LOCALHOST = new StringIdImpl(2919, "Could not determine localhost?!");
-  public static final StringId ManagedEntityConfigImpl_COULD_NOT_FIND_GEMFIREJAR = new StringIdImpl(2920, "Could not find gemfire.jar/gemfirexd.jar.");
+  public static final StringId ManagedEntityConfigImpl_COULD_NOT_FIND_GEMFIREJAR = new StringIdImpl(2920, "Could not find gemfire.jar.");
   public static final StringId ManagedEntityConfigImpl_INVALID_HOST_0 = new StringIdImpl(2921, "Invalid host \"{0}\"");
   public static final StringId ManagedEntityConfigImpl_THIS_CONFIGURATION_CANNOT_BE_MODIFIED_WHILE_ITS_MANAGED_ENTITY_IS_RUNNING = new StringIdImpl(2922, "This configuration cannot be modified while its managed entity is running.");
   public static final StringId ManagedEntityConfigXmlGenerator_EXCEPTION_THROWN_WHILE_GENERATING_XML = new StringIdImpl(2923, "Exception thrown while generating XML.");
@@ -1966,8 +1985,8 @@ class ParentLocalizedStrings {
   public static final StringId MsgOutputStream_STRING_TOO_LONG_FOR_JAVA_SERIALIZATION = new StringIdImpl(2962, "String too long for java serialization");
   public static final StringId MsgStreamer_AN_EXCEPTION_WAS_THROWN_WHILE_SERIALIZING = new StringIdImpl(2963, "An Exception was thrown while serializing.");
   public static final StringId MsgStreamer_RECURSIVE_WRITEASSERIALIZEDBYTEARRAY_IS_NOT_ALLOWED = new StringIdImpl(2964, "recursive writeAsSerializedByteArray is not allowed");
-  public static final StringId JCA_TRANSACTION_FAILURE = new StringIdImpl(2965, "Resource Adapter initiated transaction, managed by container should have ignore-jta flag  as true on region ''{0}'' participating in transaction.");
-  public static final StringId LonerDistributionManager_Cache_Time = new StringIdImpl(2966, "The negotiated cache time is {0}.  Delta from the system clock is {1} milliseconds."); 
+  // ok to reuse 2965
+  public static final StringId LonerDistributionManager_Cache_Time = new StringIdImpl(2966, "The current cache time is {0}.  Delta from the system clock is {1} milliseconds."); 
   // ok to reuse 2967..2985
   public static final StringId OSProcess_BGEXEC_NOT_ALLOWED_IN_PURE_JAVA_MODE = new StringIdImpl(2986, "bgexec not allowed in pure java mode");
   public static final StringId OSProcess_COULD_NOT_CREATE_LOG_FILE_0_BECAUSE_1 = new StringIdImpl(2987, "Could not create log file \"{0}\" because: {1}.");
@@ -2013,11 +2032,11 @@ class ParentLocalizedStrings {
   public static final StringId PRQueryProcessor_GOT_UNEXPECTED_EXCEPTION_WHILE_EXECUTING_QUERY_ON_PARTITIONED_REGION_BUCKET = new StringIdImpl(3027, "Got unexpected exception while executing query on partitioned region bucket");
   public static final StringId PRQueryProcessor_TIMED_OUT_WHILE_EXECUTING_QUERY_TIME_EXCEEDED_0 = new StringIdImpl(3028, "Timed out while executing query, time exceeded  {0}");
   public static final StringId PartitionAttributesFactory_IDLETIMEOUT_MUST_NOT_BE_NULL = new StringIdImpl(3029, "idleTimeout must not be null");
-  public static final StringId Oplog_FAILED_WRITING_INDEX_FILES = new StringIdImpl(3030, "Failed writing index file from \"{0}\" to \"{1}\"");
+  public static final StringId DiskInitFile_UNKNOWN_COMPRESSOR_0_FOUND = new StringIdImpl(3030, "Unknown Compressor  {0}  found in disk initialization file.");
   public static final StringId PartitionAttributesFactory_TIMETOLIVE_MUST_NOT_BE_NULL = new StringIdImpl(3031, "timeToLive must not be null");
   public static final StringId DistributionMessage_DISTRIBUTIONRESPONSE_GOT_MEMBERDEPARTED_EVENT_FOR_0_CRASHED_1 = new StringIdImpl(3032, "DistributionResponse got memberDeparted event for < {0} > crashed =  {1}");
   public static final StringId MemberMessage_MEMBERRESPONSE_GOT_MEMBERDEPARTED_EVENT_FOR_0_CRASHED_1 = new StringIdImpl(3033, "MemberResponse got memberDeparted event for < {0} > crashed =  {1}");
-  public static final StringId PartitionMessage_0_COULD_NOT_FIND_PARTITIONED_REGION_WITH_ID_1 = new StringIdImpl(3034, "{0} : could not find region with Id {1}");
+  public static final StringId PartitionMessage_0_COULD_NOT_FIND_PARTITIONED_REGION_WITH_ID_1 = new StringIdImpl(3034, "{0} : could not find partitioned region with Id  {1}");
   public static final StringId PartitionMessage_ATTEMPT_FAILED = new StringIdImpl(3035, "Attempt failed");
   public static final StringId PartitionMessage_DISTRIBUTED_SYSTEM_IS_DISCONNECTING = new StringIdImpl(3036, "Distributed system is disconnecting");
   public static final StringId PartitionMessage_MEMBERDEPARTED_GOT_NULL_MEMBERID = new StringIdImpl(3037, "memberDeparted got null memberId");
@@ -2047,7 +2066,7 @@ class ParentLocalizedStrings {
   public static final StringId PartitionedRegionHelper_NEW_PARTITIONEDREGIONCONFIG_0_DOES_NOT_HAVE_NEWER_VERSION_THAN_PREVIOUS_1 = new StringIdImpl(3060, "New PartitionedRegionConfig  {0}  does not have newer version than previous  {1}");
   public static final StringId PartitionedRegionQueryEvaluator_QUERY_FAILED_UNABLE_TO_GET_RESULTS_FROM_THE_FOLLOWING_NODEBUCKETS_0 = new StringIdImpl(3061, "Query failed; unable to get results from the following node/buckets: {0}.");
   public static final StringId PartitionedRegionQueryEvaluator_THE_FOLLOWING_MEMBERS_DID_NOT_RECEIVE_QUERY_REQUEST_0 = new StringIdImpl(3062, "The following members did not receive query request:  {0}");
-  public static final StringId DiskInitFile_UNKNOWN_COMPRESSOR_0_FOUND = new StringIdImpl(3063, "Unknown Compressor  {0}  found in disk initialization file.");
+  // ok to reuse 3063
   public static final StringId ClientTXStateStub_COMMIT_FAILED_ON_SERVER = new StringIdImpl(3064, "Commit failed on cache server");
   public static final StringId PartitionedRegion_CAN_NOT_CREATE_PARTITIONEDREGION_FAILED_TO_ACQUIRE_REGIONLOCK = new StringIdImpl(3065, "Can not create PartitionedRegion (failed to acquire RegionLock).");
   public static final StringId PartitionedRegion_CAN_NOT_REUSE_OLD_PARTITIONED_REGION_ID_0 = new StringIdImpl(3066, "Can NOT reuse old Partitioned Region Id= {0}");
@@ -2272,7 +2291,7 @@ class ParentLocalizedStrings {
   public static final StringId StringComparator_ARGUMENT_OBJ2_IS_NULL = new StringIdImpl(3283, "Argument ''obj2'' is null");
   public static final StringId StructBag_ELEMENT_TYPE_MUST_BE_STRUCT = new StringIdImpl(3284, "element type must be struct");
   public static final StringId StructBag_EXPECTED_AN_OBJECT_BUT_ACTUAL_IS_0 = new StringIdImpl(3285, "Expected an Object[], but actual is  {0}");
-  public static final StringId StructBag_OBJ_DOES_NOT_HAVE_THE_SAME_STRUCTTYPE = new StringIdImpl(3286, "obj does not have the same StructType");
+  public static final StringId StructBag_OBJ_DOES_NOT_HAVE_THE_SAME_STRUCTTYPE = new StringIdImpl(3286, "obj does not have the same StructType.; collection structype ={0}; added obj type={1}");
   public static final StringId StructBag_STRUCTTYPE_MUST_NOT_BE_NULL = new StringIdImpl(3287, "structType must not be null");
   public static final StringId StructBag_THIS_SET_ONLY_ACCEPTS_STRUCTIMPL = new StringIdImpl(3288, "This set only accepts StructImpl");
   public static final StringId StructBag_TYPES_DONT_MATCH = new StringIdImpl(3289, "types do not match");
@@ -2379,7 +2398,7 @@ class ParentLocalizedStrings {
   public static final StringId UniqueIdGenerator_RAN_OUT_OF_MESSAGE_IDS = new StringIdImpl(3385, "Ran out of message ids");
   public static final StringId UniversalMembershipListenerAdapter_ARGUMENT_HISTORYSIZE_MUST_BE_BETWEEN_10_AND_INTEGERMAX_INT_0 = new StringIdImpl(3386, "Argument historySize must be between 10 and Integer.MAX_INT:  {0} .");
   public static final StringId VMCachedDeserializable_VALUE_MUST_NOT_BE_NULL = new StringIdImpl(3387, "value must not be null");
-  public static final StringId VerboseLogWriter_VERBOSELOGWRITER_REQUIRES_DELEGATE_LOGWRITERI18N = new StringIdImpl(3388, "VerboseLogWriter requires delegate LogWriterI18n");
+  //okay to reuse 3388
   public static final StringId AdminDistributedSystem_UNEXPECTED_ADMINEXCEPTION = new StringIdImpl(3389, "Unexpected AdminException");
   public static final StringId InternalDistributedSystem_A_CONNECTION_TO_A_DISTRIBUTED_SYSTEM_ALREADY_EXISTS_IN_THIS_VM_IT_HAS_THE_FOLLOWING_CONFIGURATION_0 = new StringIdImpl( 3390, "A connection to a distributed system already exists in this VM.  It has the following configuration:\n{0}");
   public static final StringId AbstractConfig_THE_0_CONFIGURATION_ATTRIBUTE_CAN_NOT_BE_MODIFIED = new StringIdImpl( 3391, "The \"{0}\" configuration attribute can not be modified.");
@@ -2390,19 +2409,7 @@ class ParentLocalizedStrings {
   public static final StringId DistributedRegion_OPERATION_DISTRIBUTION_MAY_HAVE_FAILED_TO_NOTIFY_THESE_REQUIRED_ROLES_0 = new StringIdImpl( 3396, "Operation distribution may have failed to notify these required roles: {0}");
   public static final StringId DistributedRegion_OPERATION_DISTRIBUTION_WAS_NOT_DONE_TO_THESE_REQUIRED_ROLES_0 = new StringIdImpl( 3397, "Operation distribution was not done to these required roles: {0}");
   public static final StringId DistributedCacheOperation_THE_CACHE_HAS_BEEN_CLOSED = new StringIdImpl(3398, "The cache has been closed");
-  public static final StringId BridgeLoader_SOCKET_CLOSED_ON_SERVER = new StringIdImpl( 3399, "socket closed on server");
-  public static final StringId BridgeLoader_SOCKET_TIMED_OUT_ON_CLIENT = new StringIdImpl( 3400, "socket timed out on client");
-  public static final StringId BridgeLoader_SERVER_DEATH = new StringIdImpl( 3401, "server death");
-  public static final StringId BridgeLoader_BRIDGELOADER_CONNECTED_TO_0 = new StringIdImpl( 3402, "BridgeLoader connected to {0}");
-  public static final StringId BridgeLoader_NO_ACTIVE_SERVERS_WERE_FOUND = new StringIdImpl( 3403, "No active servers were found.");
-  public static final StringId BridgeLoader_NO_AVAILABLE_CONNECTION_WAS_FOUND_BUT_THE_FOLLOWING_ACTIVE_SERVERS_EXIST_0 = new StringIdImpl( 3404, "No available connection was found, but the following active server(s) exist: {0}");
-  public static final StringId BridgeWriter_THE_BRIDGEWRITER_HAS_BEEN_CLOSED_WHILE_ATTEMPTING_TO_LOAD_REGION_0_KEY_1 = new StringIdImpl( 3405, "The BridgeWriter has been closed while attempting to load: region={0} key={1}");
-  public static final StringId BridgeWriter_NO_ACTIVE_SERVERS_WERE_FOUND_WHILE_ATTEMPTING_TO_LOAD_REGION_0_KEY_1 = new StringIdImpl( 3406, "No active servers were found while attempting to load: region={0} key={1}");
-  public static final StringId BridgeWriter_NO_AVAILABLE_CONNECTION_WAS_FOUND_WHILE_ATTEMPTING_TO_LOAD_REGION_0_KEY_1_BUT_THE_FOLLOWING_ACTIVE_SERVERS_EXIST_2 = new StringIdImpl( 3407, "No available Connection was found while attempting to load: region={0} key={1}, but the following active servers exist: {2}");
-  public static final StringId BridgeWriter_SOCKET_TIMED_OUT_ON_CLIENT = new StringIdImpl( 3408, "socket timed out on client");
-  public static final StringId BridgeWriter_SOCKET_CLOSED_ON_SERVER = new StringIdImpl( 3409, "socket closed on server");
-  public static final StringId BridgeWriter_SERVER_DEATH = new StringIdImpl( 3410, "server death");
-  public static final StringId BridgeWriter_SERVER_UNREACHABLE_COULD_NOT_CONNECT_AFTER_0_ATTEMPTS = new StringIdImpl( 3411, "Server unreachable: could not connect after {0} attempts");
-  public static final StringId BridgeWriter_BRIDGEWRITER_CONNECTED_TO_0 = new StringIdImpl( 3412, "BridgeWriter connected to {0}");
-
+  // okay to reuse 3399..3412
+  
+  
 }

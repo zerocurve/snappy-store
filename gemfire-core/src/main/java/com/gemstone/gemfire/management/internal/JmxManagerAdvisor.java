@@ -149,6 +149,11 @@ public class JmxManagerAdvisor extends DistributionAdvisor {
      * Default constructor used for de-serialization (used during receipt)
      */
     public JmxManagerProfileMessage() {}
+    
+    @Override
+    public boolean sendViaUDP() {
+      return true;
+    }
 
     /**
      * Constructor used to send

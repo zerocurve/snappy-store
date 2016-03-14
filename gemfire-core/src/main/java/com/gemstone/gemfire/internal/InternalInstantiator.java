@@ -47,7 +47,7 @@ import com.gemstone.gemfire.internal.cache.tier.sockets.Part;
 import com.gemstone.gemfire.internal.concurrent.CFactory;
 import com.gemstone.gemfire.internal.concurrent.CM;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * Contains the implementation of {@link com.gemstone.gemfire.Instantiator}
@@ -62,10 +62,10 @@ public class InternalInstantiator {
   /**
    * Maps Class names to their Instantiator instance.
    */
-  private static final CM/*<String,Instantiator>*/ dsMap = CFactory.createCM();
+  private static final ConcurrentMap/*<String,Instantiator>*/ dsMap = new ConcurrentHashMap();
 
   /** Maps the id of an instantiator to its Instantiator instance */
-  private static final CM/*<Integer,Instantiator|Marker>*/ idsToInstantiators = CFactory.createCM();
+  private static final ConcurrentMap/*<Integer,Instantiator|Marker>*/ idsToInstantiators = new ConcurrentHashMap();
 
   /**
    * Maps the name of the instantiated-class to an instance of

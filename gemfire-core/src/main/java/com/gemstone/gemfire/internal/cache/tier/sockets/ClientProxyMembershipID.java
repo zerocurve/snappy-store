@@ -82,8 +82,6 @@ public final class ClientProxyMembershipID
 
   protected int uniqueId;
   
-  private transient Version clientVersion;
-
   // private final String proxyIDStr;
   // private final String clientIdStr ;
 
@@ -324,10 +322,13 @@ public final class ClientProxyMembershipID
 
   public void fromData(DataInput in) throws IOException, ClassNotFoundException
   {
-    this.clientVersion = InternalDataSerializer.getVersionForDataStream(in);
     this.identity = DataSerializer.readByteArray(in);
     this.uniqueId = in.readInt();
 //    {toString(); this.transientPort = ((InternalDistributedMember)this.memberId).getPort();}
+  }
+  
+  public Version getClientVersion() {
+    return ((InternalDistributedMember)getDistributedMember()).getVersionObject();
   }
 
   public String getDSMembership()
@@ -372,7 +373,7 @@ public final class ClientProxyMembershipID
   public DistributedMember getDistributedMember()  {
     if (memberId == null) {      
       ByteArrayInputStream bais = new ByteArrayInputStream(identity);
-      DataInputStream dis = new VersionedDataInputStream(bais, clientVersion);
+      DataInputStream dis = new VersionedDataInputStream(bais, Version.CURRENT);
       try {
         memberId = (DistributedMember)DataSerializer.readObject(dis);
       }

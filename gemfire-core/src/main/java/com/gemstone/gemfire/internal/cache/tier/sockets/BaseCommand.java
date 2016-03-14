@@ -401,9 +401,13 @@ public abstract class BaseCommand implements Command {
           }
         }
         else {
+          if(logger.fineEnabled()) {
+            logger.fine("EOF exception", eof);
+          }
+
           if (logger.infoEnabled()) {
             logger.info(
-              LocalizedStrings.BaseCommand_0_CONNECTION_DISCONNECT_DETECTED_BY_EOF,
+                LocalizedStrings.BaseCommand_0_CONNECTION_DISCONNECT_DETECTED_BY_EOF,
               servConn.getName());
           }
         }

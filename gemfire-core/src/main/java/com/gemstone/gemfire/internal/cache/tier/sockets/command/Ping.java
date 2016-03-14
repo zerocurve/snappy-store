@@ -21,8 +21,10 @@ package com.gemstone.gemfire.internal.cache.tier.sockets.command;
 
 import com.gemstone.gemfire.internal.cache.tier.CachedRegionHelper;
 import com.gemstone.gemfire.internal.cache.tier.Command;
+import com.gemstone.gemfire.internal.cache.tier.MessageType;
 import com.gemstone.gemfire.internal.cache.tier.sockets.*;
 import com.gemstone.gemfire.distributed.internal.DistributionStats;
+import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
 
 import java.io.IOException;
 
@@ -74,4 +76,18 @@ public class Ping extends BaseCommand {
     }
   }
 
+  @Override
+  protected void writeReply(Message origMsg, ServerConnection servConn)
+      throws IOException {
+    Message replyMsg = servConn.getReplyMessage();
+    servConn.getCache().getCancelCriterion().checkCancelInProgress(null);
+    replyMsg.setMessageType(MessageType.REPLY);
+    replyMsg.setNumberOfParts(1);
+    replyMsg.setTransactionId(origMsg.getTransactionId());
+    replyMsg.addBytesPart(OK_BYTES);
+    replyMsg.send(servConn);
+    if (logger.fineEnabled()) {
+      logger.fine(servConn.getName() + ": rpl tx: " + origMsg.getTransactionId());
+    }
+  }
 }

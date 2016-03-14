@@ -19,8 +19,7 @@ package com.gemstone.gemfire.i18n;
 
 import com.gemstone.gemfire.LogWriter;
 import com.gemstone.gemfire.distributed.DistributedSystem;
-import com.gemstone.org.jgroups.util.GFLogWriter;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.internal.i18n.GFLogWriter;
 
 import java.util.logging.Handler;
 /**

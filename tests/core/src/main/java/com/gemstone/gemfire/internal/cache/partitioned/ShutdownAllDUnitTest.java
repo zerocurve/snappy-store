@@ -540,7 +540,7 @@ public class ShutdownAllDUnitTest extends CacheTestCase {
     AsyncInvocation a0 = createRegionAsync(vm0, "region", "disk", true, 1);
     
     //Wait a bit for the initialization to get stuck
-    pause(5000);
+    pause(20000);
     assertTrue(a0.isAlive());
     
     //Do another shutdown all, with a member offline and another stuck

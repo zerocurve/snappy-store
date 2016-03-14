@@ -23,8 +23,6 @@ import java.net.UnknownHostException;
 import com.gemstone.gemfire.internal.admin.remote.DistributionLocatorId;
 import com.gemstone.gemfire.internal.admin.remote.RemoteTransportConfig;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
-import com.gemstone.gemfire.distributed.internal.membership.*;
-import com.gemstone.org.jgroups.*;
 
 public class StartupOperation {
   DistributionManager dm;
@@ -46,7 +44,6 @@ public class StartupOperation {
   boolean sendStartupMessage(Set recipients, long timeout, Set interfaces, 
       String redundancyZone, boolean enforceUniqueZone)
             throws InterruptedException, ReplyException,
-              ChannelNotConnectedException, ChannelClosedException,
               java.net.UnknownHostException, IOException
   {
     if (Thread.interrupted()) throw new InterruptedException();
@@ -60,7 +57,6 @@ public class StartupOperation {
     msg.setEnforceUniqueZone(enforceUniqueZone);
     msg.setDirectChannel(dm.getDirectChannel());
     msg.setMcastEnabled(transport.isMcastEnabled());
-    msg.setMcastDiscovery(transport.isMcastDiscovery());
     msg.setMcastPort(dm.getSystem().getOriginalConfig().getMcastPort());
     msg.setMcastHostAddress(dm.getSystem().getOriginalConfig().getMcastAddress());
     msg.setTcpDisabled(transport.isTcpDisabled());

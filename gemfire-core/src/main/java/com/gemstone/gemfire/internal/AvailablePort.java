@@ -35,8 +35,8 @@ public class AvailablePort {
   /** Is the port available for a Socket (TCP) connection? */
   public static final int SOCKET = 0;
 
-  /** Is the port available for a JGroups (UDP) connection */
-  public static final int JGROUPS = 1;
+  /** Is the port available for a JGroups (UDP) multicast connection */
+  public static final int MULTICAST = 1;
 
   ///////////////////////  Static Methods  ///////////////////////
   
@@ -50,7 +50,7 @@ public class AvailablePort {
       if (protocol == SOCKET) {
         name = System.getProperty("gemfire.bind-address");
       }
-      else if (protocol == JGROUPS) {
+      else if (protocol == MULTICAST) {
         name = System.getProperty("gemfire.mcast-address");
       }
       if (name != null) {
@@ -72,7 +72,7 @@ public class AvailablePort {
    *        The port to check
    * @param protocol
    *        The protocol to check (either {@link #SOCKET} or {@link
-   *        #JGROUPS}). 
+   *        #MULTICAST}). 
    *
    * @throws IllegalArgumentException
    *         <code>protocol</code> is unknown
@@ -90,7 +90,7 @@ public class AvailablePort {
    *        The port to check
    * @param protocol
    *        The protocol to check (either {@link #SOCKET} or {@link
-   *        #JGROUPS}). 
+   *        #MULTICAST}). 
    * @param addr the bind address (or mcast address) to use
    *
    * @throws IllegalArgumentException
@@ -106,18 +106,22 @@ public class AvailablePort {
       }
     }
     
-    else if (protocol == JGROUPS) {
-      DatagramSocket socket = null;
+    else if (protocol == MULTICAST) {
+      MulticastSocket socket = null;
       try {
         socket = new MulticastSocket();
+        InetAddress localHost = SocketCreator.getLocalHost();
+        socket.setInterface(localHost);
         socket.setSoTimeout(Integer.getInteger("AvailablePort.timeout", 2000).intValue());
         byte[] buffer = new byte[4];
         buffer[0] = (byte)'p';
         buffer[1] = (byte)'i';
         buffer[2] = (byte)'n';
         buffer[3] = (byte)'g';
+        InetAddress mcid = addr==null? DistributionConfig.DEFAULT_MCAST_ADDRESS : addr;
         SocketAddress mcaddr = new InetSocketAddress(
-          addr==null? DistributionConfig.DEFAULT_MCAST_ADDRESS : addr, port);
+          mcid, port);
+        socket.joinGroup(mcid);
         DatagramPacket packet = new DatagramPacket(buffer, 0, buffer.length, mcaddr);
         socket.send(packet);
         try {
@@ -170,7 +174,7 @@ public class AvailablePort {
       } else {
         return keepOneInterface(addr, port);
       }
-    } else if (protocol == JGROUPS) {
+    } else if (protocol == MULTICAST) {
       throw new IllegalArgumentException("You can not keep the JGROUPS protocol");
     } else {
       throw new IllegalArgumentException(LocalizedStrings.AvailablePort_UNKNOWN_PROTOCOL_0.toLocalizedString(Integer.valueOf(protocol)));
@@ -294,7 +298,7 @@ public class AvailablePort {
    *
    * @param protocol
    *        The protocol to check (either {@link #SOCKET} or {@link
-   *        #JGROUPS}). 
+   *        #MULTICAST}). 
    *
    * @throws IllegalArgumentException
    *         <code>protocol</code> is unknown
@@ -302,17 +306,16 @@ public class AvailablePort {
   public static int getRandomAvailablePort(int protocol) {
     return getRandomAvailablePort(protocol, getAddress(protocol));
   }
-
   public static Keeper getRandomAvailablePortKeeper(int protocol) {
     return getRandomAvailablePortKeeper(protocol, getAddress(protocol));
   }
-
+  
   /**
    * Returns a randomly selected available port in the provided range.
    *
    * @param protocol
    *        The protocol to check (either {@link #SOCKET} or {@link
-   *        #JGROUPS}). 
+   *        #MULTICAST}). 
    *
    * @throws IllegalArgumentException
    *         <code>protocol</code> is unknown
@@ -320,14 +323,14 @@ public class AvailablePort {
   public static int getAvailablePortInRange(int rangeBase, int rangeTop, int protocol) {
     return getAvailablePortInRange(protocol, getAddress(protocol), rangeBase, rangeTop);
   }  
-
+  
   /**
    * Returns a randomly selected available port in the range 5001 to
    * 32767 that satisfies a modulus
    *
    * @param protocol
    *        The protocol to check (either {@link #SOCKET} or {@link
-   *        #JGROUPS}). 
+   *        #MULTICAST}). 
    *
    * @throws IllegalArgumentException
    *         <code>protocol</code> is unknown
@@ -343,7 +346,7 @@ public class AvailablePort {
    *
    * @param protocol
    *        The protocol to check (either {@link #SOCKET} or {@link
-   *        #JGROUPS}). 
+   *        #MULTICAST}). 
    * @param addr the bind-address or mcast address to use
    *
    * @throws IllegalArgumentException
@@ -353,7 +356,10 @@ public class AvailablePort {
     while (true) {
       int port = getRandomWildcardBindPortNumber();
       if (isPortAvailable(port, protocol, addr)) {
-        return port;
+        // don't return the products default multicast port
+        if ( !(protocol == MULTICAST && port == DistributionConfig.DEFAULT_MCAST_PORT) ){
+          return port;
+        }
       }
     }
   }
@@ -372,7 +378,7 @@ public class AvailablePort {
    *
    * @param protocol
    *        The protocol to check (either {@link #SOCKET} or {@link
-   *        #JGROUPS}). 
+   *        #MULTICAST}). 
    * @param addr the bind-address or mcast address to use
    *
    * @throws IllegalArgumentException
@@ -394,7 +400,7 @@ public class AvailablePort {
    *
    * @param protocol
    *        The protocol to check (either {@link #SOCKET} or {@link
-   *        #JGROUPS}). 
+   *        #MULTICAST}). 
    * @param addr the bind-address or mcast address to use
    *
    * @throws IllegalArgumentException
@@ -441,12 +447,12 @@ public class AvailablePort {
   private static int getRandomPortNumberInRange(int rangeBase, int rangeTop) {
     return rand.nextInt(rangeTop-rangeBase) + rangeBase;
   }
-
+  
   public static int getRandomAvailablePortInRange(int rangeBase, int rangeTop, int protocol) {
     int numberOfPorts = rangeTop - rangeBase;
-    //do "10 times the numberOfPorts" iterations to select a port number. This will ensure that 
+    //do "5 times the numberOfPorts" iterations to select a port number. This will ensure that 
     //each of the ports from given port range get a chance at least once
-    int numberOfRetrys = numberOfPorts * 10;
+    int numberOfRetrys = numberOfPorts * 5;
     for (int i = 0; i < numberOfRetrys; i++) {
       int port = rand.nextInt(numberOfPorts + 1) + rangeBase;//add 1 to numberOfPorts so that rangeTop also gets included
       if (isPortAvailable(port, protocol, getAddress(protocol))) {
@@ -538,7 +544,7 @@ public class AvailablePort {
 
     } else if (protocolString.equalsIgnoreCase("javagroups") ||
       protocolString.equalsIgnoreCase("jgroups")) {
-      protocol = JGROUPS;
+      protocol = MULTICAST;
 
     } else {
       usage("Unknown protocol: " + protocolString);

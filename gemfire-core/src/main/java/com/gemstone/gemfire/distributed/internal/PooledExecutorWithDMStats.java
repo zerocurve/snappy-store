@@ -67,7 +67,7 @@ public class PooledExecutorWithDMStats extends ThreadPoolExecutor {
     if (q instanceof SynchronousQueue || q instanceof SynchronousQueueNoSpin) {
       return q;
     } else {
-      return new SynchronousQueueNoSpin<Runnable>();
+      return new SynchronousQueue/*NoSpin*/<Runnable>();
     }
   }
 

@@ -17,6 +17,8 @@
 package com.gemstone.gemfire.distributed.internal.deadlock;
 
 import java.io.Serializable;
+import java.lang.management.LockInfo;
+import java.lang.management.MonitorInfo;
 
 import com.gemstone.gemfire.internal.concurrent.LI;
 
@@ -34,10 +36,17 @@ class LocalLockInfo implements Serializable {
   private final Serializable locatility;
   private final LI info;
   
-  public LocalLockInfo(Serializable locatility, LI sync) {
+  public LocalLockInfo(Serializable locatility, LockInfo sync) {
     super();
     this.locatility = locatility;
-    this.info = sync;
+    //LockInfo and Monitor info aren't serializable, so copy the information from
+    //them. For backwards compatibility, use the LI class which is used
+    //in older versions of gemfire.
+    if(sync instanceof MonitorInfo) {
+      this.info = new LI(sync.getClassName(), sync.getIdentityHashCode(), ((MonitorInfo) sync).getLockedStackFrame());
+    } else {
+      this.info = new LI(sync.getClassName(), sync.getIdentityHashCode());
+    }
   }
 
   public Serializable getLocality() {

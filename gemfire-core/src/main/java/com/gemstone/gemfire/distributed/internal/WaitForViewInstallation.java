@@ -33,7 +33,7 @@ public class WaitForViewInstallation extends HighPriorityDistributionMessage
     implements MessageWithReply {
   
   public static void send(DistributionManager dm) throws InterruptedException {
-    long viewId = dm.getMembershipManager().getView().getViewNumber();
+    long viewId = dm.getMembershipManager().getView().getViewId();
     ReplyProcessor21 rp = new ReplyProcessor21(dm, dm.getOtherDistributionManagerIds());
     rp.enableSevereAlertProcessing();
     dm.putOutgoing(new WaitForViewInstallation(viewId, rp.getProcessorId()));
@@ -59,7 +59,7 @@ public class WaitForViewInstallation extends HighPriorityDistributionMessage
   }
 
   @Override
-  public boolean sendViaJGroups() {
+  public boolean sendViaUDP() {
     return true;
   }
 

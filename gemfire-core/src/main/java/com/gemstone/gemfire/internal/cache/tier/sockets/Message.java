@@ -135,13 +135,13 @@ public class Message  {
   // Tentative workaround to avoid OOM stated in #46754.
   public static final ThreadLocal<Integer> messageType = new ThreadLocal<Integer>();
   
-  Version destVersion;
+  Version version;
   
   /**
    * Creates a new message with the given number of parts
    */
   public Message(int numberOfParts, Version destVersion) {
-    this.destVersion = destVersion;
+    this.version = destVersion;
     Assert.assertTrue(destVersion != null, "Attempt to create an unversioned message");
     partsList = new Part[numberOfParts];
     this.numberOfParts = numberOfParts;
@@ -181,7 +181,7 @@ public class Message  {
   }
   
   public void setVersion(Version clientVersion) {
-    this.destVersion = clientVersion;
+    this.version = clientVersion;
   }
 
   /**
@@ -324,8 +324,8 @@ public class Message  {
 //       addRawPart(b, true);
     } else {
       HeapDataOutputStream hdos;
-      Version v = destVersion;
-      if (destVersion.equals(Version.CURRENT)){
+      Version v = version;
+      if (version.equals(Version.CURRENT)){
         v = null;
       }
       hdos = new HeapDataOutputStream(chunkSize, v);
@@ -391,11 +391,15 @@ public class Message  {
   public int getTransactionId() {
     return this.transactionId;
   }
-  
+
   public Part getPart(int index) {
-    if (index < this.numberOfParts)
-      return partsList[index];
-    return null;
+    if (index < this.numberOfParts) {
+      Part p = partsList[index];
+      if (this.version != null) {
+        p.setVersion(this.version);
+      }
+      return p;
+    }
   }
 
   public boolean getEarlyAck() {

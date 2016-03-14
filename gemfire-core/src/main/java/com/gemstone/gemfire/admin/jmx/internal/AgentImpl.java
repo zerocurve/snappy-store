@@ -65,7 +65,7 @@ import com.gemstone.gemfire.internal.admin.remote.TailLogResponse;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.util.IOUtils;
 
-import com.gemstone.org.jgroups.util.StringId;
+import  com.gemstone.gemfire.i18n.StringId;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import mx4j.tools.adaptor.http.HttpAdaptor;

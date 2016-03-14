@@ -21,18 +21,18 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.gemstone.gemfire.DataSerializer;
+import com.gemstone.gemfire.cache.UnsupportedVersionException;
 import com.gemstone.gemfire.internal.SocketCreator;
 import com.gemstone.gemfire.internal.VersionedDataInputStream;
 import com.gemstone.gemfire.internal.VersionedDataOutputStream;
 import com.gemstone.gemfire.internal.shared.UnsupportedGFXDVersionException;
 import com.gemstone.gemfire.internal.shared.Version;
-import com.gemstone.org.jgroups.stack.IpAddress;
-import com.gemstone.org.jgroups.util.GemFireTracer;
 
 /**
  * Client for the TcpServer. These methods were refactored out of GossipClient,
@@ -49,7 +49,7 @@ public class TcpClient {
   private static final GemFireTracer LOG=GemFireTracer.getLog(TcpClient.class);
   private static final int REQUEST_TIMEOUT = 60 * 2 * 1000;
 
-  private static Map<IpAddress, Short> serverVersions = new HashMap<IpAddress, Short>();
+  private static Map<InetSocketAddress, Short> serverVersions = new HashMap<InetSocketAddress, Short>();
   
 
   /**
@@ -95,15 +95,17 @@ public class TcpClient {
   }
   
   public static Object requestToServer(InetAddress addr, int port, Object request, int timeout, boolean replyExpected) throws IOException, ClassNotFoundException {
-    IpAddress ipAddr;
+    InetSocketAddress ipAddr;
     if (addr == null) {
-      ipAddr = new IpAddress(port);
+      ipAddr = new InetSocketAddress(port);
     } else {
-      ipAddr = new IpAddress(addr, port); // fix for bug 30810
+      ipAddr = new InetSocketAddress(addr, port); // fix for bug 30810
     }
 
+    long giveupTime = System.currentTimeMillis() + timeout;
+    
     // Get the GemFire version of the TcpServer first, before sending any other request.
-    short serverVersion = getServerVersion(ipAddr, REQUEST_TIMEOUT).shortValue();
+    short serverVersion = getServerVersion(ipAddr, timeout).shortValue();
 
     if (serverVersion > Version.CURRENT_ORDINAL) {
       serverVersion = Version.CURRENT_ORDINAL;
@@ -116,15 +118,21 @@ public class TcpClient {
       gossipVersion = TcpServer.getOldGossipVersion();
     }
 
-    Socket sock=SocketCreator.getDefaultInstance().connect(ipAddr.getIpAddress(),
-        ipAddr.getPort(), LOG.getLogWriter(), timeout, null, false);
-    sock.setSoTimeout(timeout);
+    long newTimeout = giveupTime - System.currentTimeMillis();
+    if (newTimeout <= 0) {
+      return null;
+    }
+    
+    Socket sock=SocketCreator.getDefaultInstance().connect(ipAddr.getAddress(), ipAddr.getPort(), (int)newTimeout, null, false);
+    sock.setSoTimeout((int)newTimeout);
+    DataOutputStream out = null;
     try {
-      DataOutputStream out=new DataOutputStream(sock.getOutputStream());
+      out=new DataOutputStream(sock.getOutputStream());
+      
       if (serverVersion < Version.CURRENT_ORDINAL) {
-        out = new VersionedDataOutputStream(out,
-            Version.fromOrdinalCheck(serverVersion, false));
+        out = new VersionedDataOutputStream(out, Version.fromOrdinalNoThrow(serverVersion, false));
       }
+      
       out.writeInt(gossipVersion);
       if (gossipVersion > TcpServer.getOldGossipVersion()) {
         out.writeShort(serverVersion);
@@ -154,19 +162,29 @@ public class TcpClient {
       return null;
     } finally {
       try {
+        if (replyExpected) {
+          // Since we've read a response we know that the Locator is finished
+          // with the socket and is closing it.  Aborting the connection by
+          // setting SO_LINGER to zero will clean up the TIME_WAIT socket on
+          // the locator's machine.
+          sock.setSoLinger(true, 0);
+        }
         sock.close();
       } catch(Exception e) {
         LOG.error("Error closing socket ", e);
       }
+      if (out != null) {
+        out.close();
+      }
     }
   }
 
-  public static Short getServerVersion(IpAddress ipAddr, int timeout) throws IOException, ClassNotFoundException {
+  public static Short getServerVersion(InetSocketAddress ipAddr, int timeout) throws IOException, ClassNotFoundException {
 
-    Short serverVersion;
+    int gossipVersion = TcpServer.getCurrentGossipVersion();
+    Short serverVersion = null;
 
     // Get GemFire version of TcpServer first, before sending any other request.
-    VersionResponse verRes = null;
     synchronized(serverVersions) {
       serverVersion = serverVersions.get(ipAddr);
     }
@@ -174,9 +192,9 @@ public class TcpClient {
       return serverVersion;
     }
 
-    int gossipVersion = TcpServer.getOldGossipVersion();
+     gossipVersion = TcpServer.getOldGossipVersion();
     
-    Socket sock=SocketCreator.getDefaultInstance().connect(ipAddr.getIpAddress(),
+    Socket sock=SocketCreator.getDefaultInstance().connect(ipAddr.getAddress(),
         ipAddr.getPort(), LOG.getLogWriter(), timeout, null, false);
     sock.setSoTimeout(timeout);
     
@@ -206,6 +224,7 @@ public class TcpClient {
       }
     } finally {
       try {
+        sock.setSoLinger(true, 0); // initiate an abort on close to shut down the server's socket
         sock.close();
       } catch(Exception e) {
         LOG.error("Error closing socket ", e);

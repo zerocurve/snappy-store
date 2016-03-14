@@ -50,7 +50,6 @@ public final class StartupMessage extends HighPriorityDistributionMessage implem
   // is that of underlying GemFire product for GemFireXD
   private String version = GemFireVersion.getGemFireVersion();
   private int replyProcessorId;
-  private boolean isMcastDiscovery;
   private boolean isMcastEnabled;
   private boolean isTcpDisabled;
   private Set interfaces;
@@ -140,17 +139,10 @@ public final class StartupMessage extends HighPriorityDistributionMessage implem
   }
   
   @Override
-  public boolean sendViaJGroups() {
+  public boolean sendViaUDP() {
     return true;
   }
   
-  /**
-   * Sets the mcastDiscovery flag for this message
-   * @since 5.0
-   */
-  void setMcastDiscovery(boolean flag) {
-    isMcastDiscovery = flag;
-  }
   
   /**
    * Sets the tcpDisabled flag for this message
@@ -262,7 +254,7 @@ public final class StartupMessage extends HighPriorityDistributionMessage implem
 
     if (rejectionMessage == null) { // change state only if there's no rejectionMessage yet
       if (this.interfaces == null || this.interfaces.size() == 0) {
-        final com.gemstone.org.jgroups.util.StringId msg =
+        final com.gemstone.gemfire.i18n.StringId msg = 
           LocalizedStrings.StartupMessage_REJECTED_NEW_SYSTEM_NODE_0_BECAUSE_PEER_HAS_NO_NETWORK_INTERFACES;
         rejectionMessage = msg.toLocalizedString(getSender());
       }
@@ -329,7 +321,6 @@ public final class StartupMessage extends HighPriorityDistributionMessage implem
     DataSerializer.writeString(this.version, out);
     out.writeInt(this.replyProcessorId);
     out.writeBoolean(this.isMcastEnabled);
-    out.writeBoolean(this.isMcastDiscovery);
     out.writeBoolean(this.isTcpDisabled);
 
     // Send a description of all of the DataSerializers and
@@ -399,7 +390,6 @@ public final class StartupMessage extends HighPriorityDistributionMessage implem
     this.version = DataSerializer.readString(in);
     this.replyProcessorId = in.readInt();
     this.isMcastEnabled = in.readBoolean();
-    this.isMcastDiscovery = in.readBoolean();
     this.isTcpDisabled = in.readBoolean();
 
     int serializerCount = in.readInt();

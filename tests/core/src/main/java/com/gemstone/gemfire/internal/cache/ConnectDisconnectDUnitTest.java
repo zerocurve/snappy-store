@@ -17,15 +17,24 @@
 package com.gemstone.gemfire.internal.cache;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Properties;
 
-import hydra.Log;
+import org.jgroups.protocols.UDP;
 
 import com.gemstone.gemfire.cache.TimeoutException;
 import com.gemstone.gemfire.cache30.CacheSerializableRunnable;
 import com.gemstone.gemfire.cache30.CacheTestCase;
-import com.gemstone.gemfire.distributed.internal.membership.jgroup.JGroupMembershipManager;
+import com.gemstone.gemfire.distributed.DistributedSystem;
+import com.gemstone.gemfire.distributed.Locator;
+import com.gemstone.gemfire.distributed.internal.DistributionConfig;
+import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
+import com.gemstone.gemfire.distributed.internal.membership.MembershipManager;
+import com.gemstone.gemfire.distributed.internal.membership.gms.MembershipManagerHelper;
+import com.gemstone.gemfire.distributed.internal.membership.gms.messenger.JGroupsMessenger;
+import com.gemstone.gemfire.distributed.internal.membership.gms.mgr.GMSMembershipManager;
 import com.gemstone.gemfire.internal.AvailablePort;
 import com.gemstone.gemfire.internal.AvailablePortHelper;
 
@@ -49,29 +58,6 @@ public class ConnectDisconnectDUnitTest extends CacheTestCase {
   }
   
   
-  
-//  @Override
-//  public void setUp() throws Exception {
-//    invokeInEveryVM(new SerializableRunnable() {
-//      
-//      @Override
-//      public void run() {
-//        JGroupMembershipManager.setDebugJGroups(true);
-//        System.setProperty("p2p.simulateDiscard", "true");
-//        System.setProperty("p2p.simulateDiscard.received", "0.10");
-//        System.setProperty("p2p.simulateDiscard.sent", "0.10");
-//        System.setProperty("gemfire.membership-port-range", "17000-17200");
-//      }
-//    });
-//  }
-  
-  
-//  @Override
-//  public void tearDown2() throws Exception {
-//    ex.remove();
-//  }
-
-
   // see bugs #50785 and #46438 
   public void testManyConnectsAndDisconnects() throws Throwable {
 //    invokeInEveryVM(new SerializableRunnable() {
@@ -86,7 +72,7 @@ public class ConnectDisconnectDUnitTest extends CacheTestCase {
 //     int[] ports = AvailablePortHelper.getRandomAvailableTCPPorts(4);
 //     setLocatorPorts(ports);
 
-    for(int i = 0; i < 50; i++) {
+    for(int i = 0; i < 20; i++) {
       getLogWriter().info("Test run: " + i);
       runOnce();
       tearDown();

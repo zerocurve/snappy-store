@@ -26,6 +26,7 @@ import junit.framework.Assert;
 
 import com.gemstone.gemfire.cache.Cache;
 import com.gemstone.gemfire.cache.Region;
+import com.gemstone.gemfire.cache.client.NoAvailableLocatorsException;
 import com.gemstone.gemfire.cache.client.NoAvailableServersException;
 import com.gemstone.gemfire.cache.client.PoolManager;
 import com.gemstone.gemfire.cache.server.CacheServer;
@@ -33,6 +34,7 @@ import com.gemstone.gemfire.cache.util.BridgeMembership;
 import com.gemstone.gemfire.cache.util.BridgeMembershipEvent;
 import com.gemstone.gemfire.cache.util.BridgeMembershipListenerAdapter;
 import com.gemstone.gemfire.distributed.internal.ServerLocation;
+import com.gemstone.gemfire.internal.AvailablePort;
 import com.gemstone.gemfire.internal.AvailablePortHelper;
 
 import dunit.Host;
@@ -54,6 +56,7 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
   
   public void setUp() throws Exception {
     super.setUp();
+    addExpectedException("NoAvailableLocatorsException");
   }
 
   public AutoConnectionSourceDUnitTest(String name) {
@@ -66,8 +69,7 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
     VM vm1 = host.getVM(1);
     VM vm2 = host.getVM(2);
     
-    int locatorPort =
-      AvailablePortHelper.getRandomAvailableTCPPortOnVM(vm0);
+    int locatorPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     startLocatorInVM(vm0, locatorPort, "");
     
     String locators = getServerHostName(vm0.getHost())+ "[" + locatorPort + "]";
@@ -87,7 +89,7 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
     VM vm0 = host.getVM(0);
     
     try {
-      startBridgeClientInVM(vm0, null, getServerHostName(vm0.getHost()), AvailablePortHelper.getRandomAvailableTCPPortOnVM(vm0));
+      startBridgeClientInVM(vm0, null, getServerHostName(vm0.getHost()), AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET));
       putInVM(vm0, "key", "value");
       fail("Client cache should not have been able to start");
     } catch(Exception e) {
@@ -100,8 +102,7 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
     VM vm0 = host.getVM(0);
     VM vm1 = host.getVM(1);
     
-    int locatorPort =
-      AvailablePortHelper.getRandomAvailableTCPPortOnVM(vm0);
+    int locatorPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     startLocatorInVM(vm0, locatorPort, "");
     try { 
       startBridgeClientInVM(vm1, null, getServerHostName(vm0.getHost()), locatorPort);
@@ -119,8 +120,7 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
     VM vm2 = host.getVM(2);
     VM vm3 = host.getVM(3);
     
-    int locatorPort =
-      AvailablePortHelper.getRandomAvailableTCPPortOnVM(vm0);
+    int locatorPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     startLocatorInVM(vm0, locatorPort, "");
     
     String locators = getServerHostName(vm0.getHost()) + "[" + locatorPort + "]";
@@ -148,12 +148,11 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
     VM vm2 = host.getVM(2);
     VM vm3 = host.getVM(3);
     
-    final int locatorPort0 =
-      AvailablePortHelper.getRandomAvailableTCPPortOnVM(vm0);
-    final int locatorPort1 =
-      AvailablePortHelper.getRandomAvailableTCPPortOnVM(vm1);
-    final int locatorPort3 =
-      AvailablePortHelper.getRandomAvailableTCPPortOnVM(vm3);
+    int[] ports = AvailablePortHelper.getRandomAvailableTCPPorts(3);
+    
+    final int locatorPort0 = ports[0];
+    final int locatorPort1 = ports[1];
+    final int locatorPort3 = ports[2];
     String locators = getLocatorString(host, new int[] { locatorPort0, locatorPort1, locatorPort3});
     startLocatorInVM(vm0, locatorPort0, locators);
     
@@ -187,8 +186,7 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
     VM vm2 = host.getVM(2);
     VM vm3 = host.getVM(3);
     
-    int locatorPort =
-      AvailablePortHelper.getRandomAvailableTCPPortOnVM(vm0);
+    int locatorPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     
     String locators = getServerHostName(vm0.getHost()) + "[" + locatorPort + "]";
     
@@ -223,8 +221,7 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
     VM vm2 = host.getVM(2);
     VM vm3 = host.getVM(3);
     
-    int locatorPort =
-      AvailablePortHelper.getRandomAvailableTCPPortOnVM(vm0);
+    int locatorPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     startLocatorInVM(vm0, locatorPort, "");
     
     String locators = getServerHostName(vm0.getHost()) + "[" + locatorPort + "]";
@@ -275,8 +272,7 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
     VM vm2 = host.getVM(2);
 //    VM vm3 = host.getVM(3);
     
-    int locatorPort =
-      AvailablePortHelper.getRandomAvailableTCPPortOnVM(vm0);
+    int locatorPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     
     startLocatorInVM(vm0, locatorPort, "");
     
@@ -296,14 +292,13 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
     checkEndpoints(vm2, new int[] {serverPort1});
   }
   
-  public void testBridgeMembershipListener() throws Exception {
+  public void testClientMembershipListener() throws Exception {
     final Host host = Host.getHost(0);
     VM locatorVM = host.getVM(0);
     VM bridge1VM = host.getVM(1);
     VM bridge2VM = host.getVM(2);
     VM clientVM = host.getVM(3);
-    int locatorPort =
-      AvailablePortHelper.getRandomAvailableTCPPortOnVM(locatorVM);
+    int locatorPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     startLocatorInVM(locatorVM, locatorPort, "");
     String locators = getServerHostName(locatorVM.getHost()) + "[" + locatorPort + "]";
 
@@ -399,8 +394,9 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
         System.err.println("Attempt: " + (i++));
         putInVM(vm, regionName, key, value);
         break;
-      } catch(dunit.RMIException e) {
-        if(!(e.getCause() instanceof NoAvailableServersException)) {
+      } catch (NoAvailableLocatorsException | dunit.RMIException e) {
+        if( !(e instanceof NoAvailableLocatorsException)
+            && !(e.getCause() instanceof NoAvailableServersException)) {
           throw e;
         }
         if(remaining <= 0) {
@@ -432,7 +428,7 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
    * Assert that there is one endpoint with the given host in port
    * on the client vm.
    * @param vm - the vm the client is running in
-   * @param expectedPort - The server port we expect the client to be connected to.
+   * @param expectedPorts - The server ports we expect the client to be connected to.
    */
   protected void checkEndpoints(VM vm, final int[] expectedPorts) {
     vm.invoke(new SerializableRunnable("Check endpoint") {
@@ -521,7 +517,7 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
           while (listener.crashes== 0) {
             try {
               long remaining = end - System.currentTimeMillis();
-              if(remaining <= 0) {
+              if(remaining < 0) {
                 break;
               }
               getLogWriter().info("waiting for crash for " + remaining + "ms");
@@ -544,7 +540,7 @@ public class AutoConnectionSourceDUnitTest extends LocatorTestBase {
           while (listener.departures == 0) {
             try {
               long remaining = end - System.currentTimeMillis();
-              if(remaining <= 0) {
+              if(remaining < 0) {
                 break;
               }
               getLogWriter().info(

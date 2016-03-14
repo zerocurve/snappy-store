@@ -83,8 +83,30 @@ public interface DataSerializableFixedID extends SerializationVersions {
     case FOO:
       return new FOO(in);
   */
-  public static final short TX_ROLLBACK_TO_SAVEPOINT_MESSAGE = -142;
-  public static final short HDFS_GATEWAY_EVENT_IMPL = -141;
+  public static final short NETWORK_PARTITION_MESSAGE = -157;
+  public static final short SUSPECT_MEMBERS_MESSAGE = -156;
+  
+  public static final short HEARTBEAT_RESPONSE = -155;
+  public static final short HEARTBEAT_REQUEST = -154;
+  public static final short REMOVE_MEMBER_REQUEST = -153;
+  
+  public static final short LEAVE_REQUEST_MESSAGE = -152;
+  
+  public static final short VIEW_ACK_MESSAGE = -151;
+  public static final short INSTALL_VIEW_MESSAGE = -150;
+  public static final short GMSMEMBER = -149;
+  public static final short NETVIEW = -148;
+  public static final short GET_VIEW_REQ = -147;
+  public static final short GET_VIEW_RESP = -146;
+
+  public static final short FIND_COORDINATOR_REQ = -145;
+  public static final short FIND_COORDINATOR_RESP = -144;
+
+  public static final short JOIN_RESPONSE = -143;
+  public static final short JOIN_REQUEST = -142;
+
+  public static final short TX_ROLLBACK_TO_SAVEPOINT_MESSAGE = -141;
+  public static final short HDFS_GATEWAY_EVENT_IMPL = -140;
 
   public static final short SNAPPY_COMPRESSED_CACHED_DESERIALIZABLE = -140;
   /* below were used in 7.0.1 temporarily, but now can be reused from >= v7.1
@@ -297,11 +319,11 @@ public interface DataSerializableFixedID extends SerializationVersions {
 
   public static final byte ILLEGAL = 0;
 
-  // 1..2 unused
-
-  public static final byte JGROUPS_VIEW = 1;
+  // 1 available for reuse.  Retired in Geode v1.0
+  //public static final byte JGROUPS_VIEW = 1;
   
-  public static final byte JGROUPS_JOIN_RESP = 2;
+  // 2 available for reuse.  Retired in Geode v1.0
+//  public static final byte JGROUPS_JOIN_RESP = 2;
   
   public static final byte PUTALL_VERSIONS_LIST = 3;
 
@@ -419,10 +441,9 @@ public interface DataSerializableFixedID extends SerializationVersions {
   public static final byte PR_IDENTITY_REPLY_MESSAGE = 67;
   public static final byte PR_INDEX_CREATION_REPLY_MSG = 68;
   public static final byte PR_MANAGE_BUCKET_REPLY_MESSAGE = 69;
-
-  /** A header byte meaning that the next element in the stream is a
-   * <code>IpAddress</code>. */
-  public static final byte IP_ADDRESS = 70;
+  
+  // 70 available for reuse - retired in Geode v1.0
+  //public static final byte IP_ADDRESS = 70;
 
   /** A header byte meaning that the next element in the stream is a
    * <code>UpdateOperation.UpdateMessage</code>. */

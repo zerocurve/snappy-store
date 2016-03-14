@@ -60,6 +60,7 @@ import com.gemstone.gemfire.internal.cache.GemFireCacheImpl;
 import com.gemstone.gemfire.internal.cache.PartitionedRegion;
 import com.gemstone.gemfire.internal.cache.control.HeapMemoryMonitor;
 import com.gemstone.gemfire.internal.cache.control.InternalResourceManager;
+import com.gemstone.gemfire.internal.cache.control.InternalResourceManager.ResourceType;
 import com.gemstone.gemfire.internal.cache.control.MemoryEvent;
 import com.gemstone.gemfire.internal.cache.control.ResourceListener;
 import com.gemstone.gemfire.internal.cache.control.TestMemoryThresholdListener;
@@ -86,10 +87,13 @@ public class ResourceManagerWithQueryMonitorDUnitTest extends BridgeTestCase {
   public void setUp() throws Exception {
     super.setUp();
     invokeInEveryVM(this.setHeapMemoryMonitorTestMode);
+    addExpectedException("above heap critical threshold");
+    addExpectedException("below heap critical threshold");
   }
   
   @Override
   public void tearDown2() throws Exception {
+    invokeInEveryVM(resetQueryMonitor);
     invokeInEveryVM(resetResourceManager);
     super.tearDown2();
     invokeInEveryVM(resetQueryMonitor);
@@ -234,8 +238,7 @@ public class ResourceManagerWithQueryMonitorDUnitTest extends BridgeTestCase {
     final int numObjects = 200;
     try {
       final int port = AvailablePortHelper.getRandomAvailableTCPPort();
-      final int mcastPort = AvailablePortHelper.getRandomAvailableUDPPort();
-      startCacheServer(server, port, mcastPort, 
+      startCacheServer(server, port, 
           criticalThreshold, disabledQueryMonitorForLowMem, queryTimeout,
           regionName, createPR, 0);
       
@@ -304,11 +307,10 @@ public class ResourceManagerWithQueryMonitorDUnitTest extends BridgeTestCase {
     final int numObjects = 200;
     try  {
       final int[] port = AvailablePortHelper.getRandomAvailableTCPPorts(2);
-      final int mcastPort = AvailablePortHelper.getRandomAvailableUDPPort();
-      startCacheServer(server1, port[0], mcastPort, 
+      startCacheServer(server1, port[0],  
           criticalThreshold, disabledQueryMonitorForLowMem, queryTimeout,
           regionName, createPR, 0);
-      startCacheServer(server2, port[1], mcastPort, 
+      startCacheServer(server2, port[1],  
           criticalThreshold, true, -1,
           regionName, createPR, 0);
       
@@ -366,11 +368,10 @@ public class ResourceManagerWithQueryMonitorDUnitTest extends BridgeTestCase {
     final int numObjects = 200;
     try {
       final int[] port = AvailablePortHelper.getRandomAvailableTCPPorts(2);
-      final int mcastPort = AvailablePortHelper.getRandomAvailableUDPPort();
-      startCacheServer(server1, port[0], mcastPort, 
+      startCacheServer(server1, port[0],  
           criticalThreshold, disabledQueryMonitorForLowMem, queryTimeout,
           regionName, createPR, 0);
-      startCacheServer(server2, port[1], mcastPort, 
+      startCacheServer(server2, port[1],  
           criticalThreshold, true, -1,
           regionName, createPR, 0);
       
@@ -456,11 +457,10 @@ public class ResourceManagerWithQueryMonitorDUnitTest extends BridgeTestCase {
     final int numObjects = 200;
     try {
       final int[] port = AvailablePortHelper.getRandomAvailableTCPPorts(2);
-      final int mcastPort = AvailablePortHelper.getRandomAvailableUDPPort();
-      startCacheServer(server1, port[0], mcastPort, 
+      startCacheServer(server1, port[0],  
           criticalThreshold, disabledQueryMonitorForLowMem, queryTimeout,
           regionName, createPR, 0);
-      startCacheServer(server2, port[1], mcastPort, 
+      startCacheServer(server2, port[1],  
           criticalThreshold, true, -1,
           regionName, createPR, 0);
       
@@ -556,11 +556,10 @@ public class ResourceManagerWithQueryMonitorDUnitTest extends BridgeTestCase {
 
     try {
       final int[] port = AvailablePortHelper.getRandomAvailableTCPPorts(2);
-      final int mcastPort = AvailablePortHelper.getRandomAvailableUDPPort();
-      startCacheServer(server1, port[0], mcastPort, 
+      startCacheServer(server1, port[0],  
           criticalThreshold, disabledQueryMonitorForLowMem, queryTimeout,
           regionName, createPR, 0);
-      startCacheServer(server2, port[1], mcastPort, 
+      startCacheServer(server2, port[1],  
           criticalThreshold, true, -1,
           regionName, createPR, 0);
       
@@ -630,8 +629,7 @@ public class ResourceManagerWithQueryMonitorDUnitTest extends BridgeTestCase {
     final int numObjects = 200;
       try {
       final int port = AvailablePortHelper.getRandomAvailableTCPPort();
-      final int mcastPort = AvailablePortHelper.getRandomAvailableUDPPort();
-      startCacheServer(server, port, mcastPort, 
+      startCacheServer(server, port,  
           criticalThreshold, disabledQueryMonitorForLowMem, queryTimeout,
           regionName, createPR, 0);
       
@@ -955,14 +953,14 @@ public class ResourceManagerWithQueryMonitorDUnitTest extends BridgeTestCase {
     });
   }
 
-  private void startCacheServer(VM server, final int port, final int mcastPort,
+  private void startCacheServer(VM server, final int port,
       final int criticalThreshold, final boolean disableQueryMonitorForLowMemory,
       final int queryTimeout, final String regionName,
       final boolean createPR, final int prRedundancy) throws Exception {
 
     server.invoke(new SerializableCallable() {
       public Object call() throws Exception {
-        getSystem(getServerProperties(mcastPort, disableQueryMonitorForLowMemory, queryTimeout));
+        getSystem(getServerProperties(disableQueryMonitorForLowMemory, queryTimeout));
         if (disableQueryMonitorForLowMemory == true) {
           System.setProperty("gemfire.Cache.DISABLE_QUERY_MONITOR_FOR_LOW_MEMORY", "true");
         }
@@ -1058,10 +1056,9 @@ public class ResourceManagerWithQueryMonitorDUnitTest extends BridgeTestCase {
     return p;
   }
 
-  protected Properties getServerProperties(int mcastPort, boolean disableQueryMonitorForMemory, int queryTimeout) {
+  protected Properties getServerProperties(boolean disableQueryMonitorForMemory, int queryTimeout) {
     Properties p = new Properties();
-    p.setProperty(DistributionConfig.MCAST_PORT_NAME, mcastPort+"");
-    p.setProperty(DistributionConfig.LOCATORS_NAME, "");
+    p.setProperty(DistributionConfig.LOCATORS_NAME, "localhost["+getDUnitLocatorPort()+"]");
     return p;
   }
   

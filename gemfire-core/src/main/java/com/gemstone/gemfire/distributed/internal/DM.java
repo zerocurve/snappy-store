@@ -1,29 +1,28 @@
 /*
- * Copyright (c) 2010-2015 Pivotal Software, Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you
- * may not use this file except in compliance with the License. You
- * may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * permissions and limitations under the License. See accompanying
- * LICENSE file.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.gemstone.gemfire.distributed.internal;
 
 import java.io.NotSerializableException;
 import java.net.InetAddress;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.Vector;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 import com.gemstone.gemfire.CancelCriterion;
@@ -44,8 +43,6 @@ import com.gemstone.gemfire.internal.shared.Version;
  *
  */
 public interface DM extends ReplySender {
-
-  public void restartCommunications();
   
   public boolean shutdownInProgress();
   
@@ -289,11 +286,11 @@ public interface DM extends ReplySender {
    * Return the waiting message-processing executor 
    */
   public ExecutorService getWaitingThreadPool();
-
+  
   /**
-   * Return the function message-processing executor 
+   * Return the special waiting message-processing executor 
    */
-  public Executor getFunctionExcecutor();
+  public ExecutorService getPrMetaDataCleanupThreadPool();
 
   /**
    * gets this distribution manager's message-processing executor
@@ -307,7 +304,7 @@ public interface DM extends ReplySender {
    * Returns the ordered list of current DistributionManagers in
    * oldest-to-youngest order.  Added for DLockGrantor
    */
-  public Vector getViewMembers();
+  public List<InternalDistributedMember> getViewMembers();
   /**
    * Returns the oldest member in the given set of distribution managers.  The
    * current implementation may use n*n/2 comparisons, so use this judiciously

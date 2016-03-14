@@ -520,6 +520,8 @@ public class CliStrings {
   public static final String CREATE_REGION__COLOCATEDWITH__HELP = "Central Region with which this region should be colocated.";
   public static final String CREATE_REGION__LOCALMAXMEMORY = "local-max-memory";
   public static final String CREATE_REGION__LOCALMAXMEMORY__HELP = "Sets the maximum amount of memory, in megabytes, to be used by the region in this process. (Default: 90% of available heap)";
+  public static final String CREATE_REGION__MULTICASTENABLED = "enable-multicast";
+  public static final String CREATE_REGION__MULTICASTENABLED__HELP = "Enables multicast messaging on the region.  Multicast must also be enabled in the cache distributed system properties.  This is primarily useful for replicated regions that are in all servers.";
   public static final String CREATE_REGION__RECOVERYDELAY = "recovery-delay";
   public static final String CREATE_REGION__RECOVERYDELAY__HELP = "Sets the delay in milliseconds that existing members will wait before satisfying redundancy after another member crashes. -1 (the default) indicates that redundancy will not be recovered after a failure.";
   public static final String CREATE_REGION__REDUNDANTCOPIES = "redundant-copies";
@@ -1516,15 +1518,19 @@ public class CliStrings {
   public static final String START_SERVER__MAXHEAP = "max-heap";
   public static final String START_SERVER__MAXHEAP__HELP = "Maximum size of the heap in the same format as the JVM -Xmx parameter.";
   public static final String START_SERVER__MCAST_ADDRESS = "mcast-address";
-  public static final String START_SERVER__MCAST_ADDRESS__HELP = "The IP address or hostname used to bind the UPD socket for multi-cast networking so the Cache Server can locate other members in the GemFire cluster.  If mcast-port is zero, then mcast-address is ignored.";
+  public static final String START_SERVER__MCAST_ADDRESS__HELP = "The IP address or hostname used to bind the UPD socket for multi-cast networking so the Cache Server can communicate with other members in the GemFire cluster.  If mcast-port is zero, then mcast-address is ignored.";
   public static final String START_SERVER__MCAST_PORT = "mcast-port";
-  public static final String START_SERVER__MCAST_PORT__HELP = "Sets the port used for multi-cast networking so the Cache Server can locate other members of the GemFire cluster.  A zero value disables mcast.";
-  public static final String START_SERVER__MEMBER_NAME = "name";
-  public static final String START_SERVER__MEMBER_NAME__HELP = "The member name to give this Cache Server in the GemFire cluster.";
+  public static final String START_SERVER__MCAST_PORT__HELP = "Sets the port used for multi-cast networking so the Cache Server can communicate with other members of the GemFire cluster.  A zero value disables mcast.";
+  public static final String START_SERVER__NAME = "name";
+  public static final String START_SERVER__NAME__HELP = "The member name to give this Cache Server in the GemFire cluster.";
   public static final String START_SERVER__MEMCACHED_PORT = "memcached-port";
   public static final String START_SERVER__MEMCACHED_PORT__HELP = "Sets the port that the GemFire memcached service listens on for memcached clients.";
   public static final String START_SERVER__MEMCACHED_PROTOCOL = "memcached-protocol";
   public static final String START_SERVER__MEMCACHED_PROTOCOL__HELP = "Sets the protocol that the GemFire memcached service uses (ASCII or BINARY).";
+  public static final String START_SERVER__MEMCACHED_BIND_ADDRESS = "memcached-bind-address";
+  public static final String START_SERVER__MEMCACHED_BIND_ADDRESS__HELP = "Sets the IP address the GemFire memcached service listens on for memcached clients. The default is to bind to the first non-loopback address for this machine.";
+  public static final String START_SERVER__OFF_HEAP_MEMORY_SIZE = "off-heap-memory-size";
+  public static final String START_SERVER__OFF_HEAP_MEMORY_SIZE__HELP = "The total size of off-heap memory specified as off-heap-memory-size=<n>[g|m]. <n> is the size. [g|m] indicates whether the size should be interpreted as gigabytes or megabytes. A non-zero size causes that much memory to be allocated from the operating system and reserved for off-heap use.";
   public static final String START_SERVER__PROPERTIES = "properties-file";
   public static final String START_SERVER__PROPERTIES__HELP = "The gemfire.properties file for configuring the Cache Server's distributed system. The file's path can be absolute or relative to the gfsh working directory.";
   public static final String START_SERVER__SECURITY_PROPERTIES = "security-properties-file";
@@ -1692,6 +1698,8 @@ public class CliStrings {
   public static final String VALIDATE_DISK_STORE__NAME__HELP = "Name of the disk store to be validated.";
   public static final String VALIDATE_DISK_STORE__DISKDIRS = "disk-dirs";
   public static final String VALIDATE_DISK_STORE__DISKDIRS__HELP = "Directories where data for the disk store was previously written.";
+  public static final String VALIDATE_DISK_STORE__J = "J";
+  public static final String VALIDATE_DISK_STORE__J__HELP = "Arguments passed to the Java Virtual Machine performing the compact operation on the disk store.";
   public static final String VALIDATE_DISK_STORE__MSG__NO_DIRS = VALIDATE_DISK_STORE__DISKDIRS + " is mandatory";
   public static final String VALIDATE_DISK_STORE__MSG__IO_ERROR = "Input/Output error in validating disk store {0} is : {1}";
   public static final String VALIDATE_DISK_STORE__MSG__ERROR = "Error in validating disk store {0} is : {1}";
@@ -1757,9 +1765,13 @@ public class CliStrings {
   public static final String GATEWAY_SENDER_0_IS_RESUMED_ON_MEMBER_1 = "GatewaySender {0} is resumed on member {1}";
   public static final String GATEWAY_SENDER_0_IS_NOT_PAUSED_ON_MEMBER_1 = "GatewaySender {0} is not paused on member {1}";
   public static final String GATEWAY_SENDER_0_IS_STOPPED_ON_MEMBER_1 = "GatewaySender {0} is stopped on member {1}";
+  public static final String GATEWAY_SENDER_0_IS_REBALANCED_ON_MEMBER_1 = "GatewaySender {0} is rebalanced on member {1}";
+  public static final String GATEWAY_SENDER_0_IS_NOT_FOUND_ON_ANY_MEMBER = "GatewaySender {0} is not found on any member";
   public static final String GATEWAY_RECEIVER_IS_STOPPED_ON_MEMBER_0 = "GatewayReceiver is stopped on member {0}";
   public static final String GATEWAY_RECEIVER_IS_NOT_RUNNING_ON_MEMBER_0 = "GatewayReceiver is not running on member {0}";
   public static final String GATEWAYS_ARE_NOT_AVAILABLE_IN_CLUSTER = "GatewaySenders or GatewayRecievers are not available in cluster";
+  public static final String GATEWAY_SENDER_0_COULD_NOT_BE_INVOKED_DUE_TO_1 = "Could not invoke start gateway sender {0} operation on members due to {1}";
+  public static final String GATEWAY_SENDER_0_COULD_NOT_BE_STARTED_ON_MEMBER_DUE_TO_1= "Could not start gateway sender {0} on member due to {1}";
   /* end gateway command messages */
 
   /***

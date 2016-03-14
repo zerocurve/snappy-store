@@ -164,7 +164,9 @@ public class ClientMessagesRegionCreationAndDestroyJUnitTest extends TestCase {
    */
   private Cache createCache() throws CacheException
   {
-    return CacheFactory.create(DistributedSystem.connect(new Properties()));
+    Properties p = new Properties();
+    p.put("mcast-port", "0");
+    return CacheFactory.create(DistributedSystem.connect(p));
   }
   
 }

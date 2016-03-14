@@ -95,6 +95,7 @@ import com.gemstone.gemfire.internal.concurrent.CM;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.sequencelog.MembershipLogger;
 import com.gemstone.gemfire.internal.shared.Version;
+import com.gemstone.gemfire.internal.tcp.Connection;
 import com.gemstone.gemfire.internal.tcp.ConnectionTable;
 import com.gemstone.gemfire.internal.tcp.ReenteredConnectException;
 import com.gemstone.gemfire.internal.tcp.Stub;
@@ -178,6 +179,9 @@ public final class DistributionManager
   
   public static final int MAX_WAITING_THREADS = 
     Integer.getInteger("DistributionManager.MAX_WAITING_THREADS", Integer.MAX_VALUE).intValue();
+  
+  public static final int MAX_PR_META_DATA_CLEANUP_THREADS = 
+      Integer.getInteger("DistributionManager.MAX_PR_META_DATA_CLEANUP_THREADS", 1).intValue();
 
   public static final int MAX_THREADS = Integer.getInteger("DistributionManager.MAX_THREADS", Math.max(Runtime.getRuntime().availableProcessors()*4, 100)).intValue();
   public static final int MAX_PR_THREADS = Integer.getInteger("DistributionManager.MAX_PR_THREADS", Math.max(Runtime.getRuntime().availableProcessors()*4, 16)).intValue();
@@ -280,7 +284,6 @@ public final class DistributionManager
   /**
    * Executor for view related messages
    * 
-   * @see com.gemstone.gemfire.distributed.internal.membership.jgroup.ViewMessage
    * @see #STANDARD_EXECUTOR
    */
   public static final int VIEW_EXECUTOR = 79;
@@ -378,8 +381,6 @@ public final class DistributionManager
   protected boolean exceptionInThreads;
 
   static ThreadLocal isStartupThread = new ThreadLocal();
-  private static InheritableThreadLocal distributionManagerType =
-    new InheritableThreadLocal();
     
   protected volatile boolean shutdownMsgSent = false;
 
@@ -465,6 +466,8 @@ public final class DistributionManager
    */
   private ThreadPoolExecutor waitingPool;
   
+  private ThreadPoolExecutor prMetaDataCleanupThreadPool;
+  
   /**
    * Thread used to decouple {@link com.gemstone.gemfire.internal.cache.partitioned.PartitionMessage}s from 
    * {@link com.gemstone.gemfire.internal.cache.DistributedCacheOperation}s </b>
@@ -479,7 +482,7 @@ public final class DistributionManager
   private ThreadPoolExecutor serialThread;
   
   /** Message processing executor for view messages
-   * @see com.gemstone.gemfire.distributed.internal.membership.jgroup.ViewMessage 
+   * @see com.gemstone.gemfire.distributed.internal.membership.gms.messages.ViewAckMessage 
    */
   private ThreadPoolExecutor viewThread;
   
@@ -544,45 +547,6 @@ public final class DistributionManager
   //////////////////////  Static Methods  //////////////////////
 
   /**
-   * Sets the distribution manager's type (using an InheritableThreadLocal).
-   *
-   * @since 3.5
-   */
-  protected static void setDistributionManagerType(int vmType) {
-    switch (vmType) {
-    case NORMAL_DM_TYPE:
-    case LONER_DM_TYPE:
-    case ADMIN_ONLY_DM_TYPE:
-    case LOCATOR_DM_TYPE:
-       distributionManagerType.set(Integer.valueOf(vmType));
-        break;
-    default:
-      throw new IllegalArgumentException(LocalizedStrings.DistributionManager_UNKNOWN_DISTRIBUTIONMANAGERTYPE_0.toLocalizedString(Integer.valueOf(vmType)));
-    }
-  }
-
-  /**
-   * Returns the DistributionManager type which should match {@link
-   * #NORMAL_DM_TYPE}, {@link #ADMIN_ONLY_DM_TYPE}, {@link #LOCATOR_DM_TYPE}
-   * or {@link #LONER_DM_TYPE}.
-   *
-   * <p>
-   * If the value is null, an Assertion error will occur.
-   * <p>
-   * This method is called from {@link 
-   * InternalDistributedMember} and {@link 
-   * com.gemstone.org.jgroups.protocols.TCPGOSSIP}, and the value is stored
-   * in an InheritableThreadLocal.
-   *
-   * @since 3.5
-   */
-  public static int getDistributionManagerType() {
-    Integer vmType = (Integer) distributionManagerType.get();
-    if (vmType == null) return 0;
-    return vmType.intValue();
-  }
-
-  /**
    * Given two DistributionManager ids, check to see if they are
    * from the same host address.
    * @param id1 a DistributionManager id
@@ -590,7 +554,7 @@ public final class DistributionManager
    * @return true if id1 and id2 are from the same host, false otherwise
    */
   public static boolean isSameHost(InternalDistributedMember id1, InternalDistributedMember id2) {
-    return (id1.getIpAddress().equals(id2.getIpAddress()));
+    return (id1.getInetAddress().equals(id2.getInetAddress()));
   }
 
   // @todo davidw Modify JGroups so that we do not have to send out a
@@ -627,18 +591,20 @@ public final class DistributionManager
     
     try {
 
+      int vmKind;
+      
       if (Boolean.getBoolean(InternalLocator.FORCE_LOCATOR_DM_TYPE)) {
         // if this DM is starting for a locator, set it to be a locator DM
-        setDistributionManagerType(LOCATOR_DM_TYPE);
+        vmKind = LOCATOR_DM_TYPE;
 
       } else if (isDedicatedAdminVM) {
-        setDistributionManagerType(ADMIN_ONLY_DM_TYPE);
+        vmKind = ADMIN_ONLY_DM_TYPE;
 
       } else {
-        setDistributionManagerType(NORMAL_DM_TYPE);
+        vmKind = NORMAL_DM_TYPE;
       }
     
-      RemoteTransportConfig transport = new RemoteTransportConfig(system.getConfig());
+      RemoteTransportConfig transport = new RemoteTransportConfig(system.getConfig(), vmKind);
       transport.setIsReconnectingDS(system.isReconnectingDS());
       transport.setOldDSMembershipInfo(system.oldDSMembershipInfo());
       
@@ -650,7 +616,7 @@ public final class DistributionManager
       {
         InternalDistributedMember id = dm.getDistributionManagerId();
         if (!"".equals(id.getName())) {
-          for (InternalDistributedMember m: (Vector<InternalDistributedMember>)dm.getViewMembers()) {
+          for (InternalDistributedMember m: (List<InternalDistributedMember>)dm.getViewMembers()) {
             if (m.equals(id)) {
               // I'm counting on the members returned by getViewMembers being ordered such that
               // members that joined before us will precede us AND members that join after us
@@ -886,7 +852,7 @@ public final class DistributionManager
       throw new NullPointerException(LocalizedStrings.DistributionManager_THE_LOGGER_CAN_NOT_BE_NULL.toLocalizedString());
     }
 
-    this.dmType = getDistributionManagerType();
+    this.dmType = transport.getVmKind();
     this.system = system;
     this.elderLock = new StoppableReentrantLock(stopper);
     this.transport = transport;
@@ -1019,7 +985,7 @@ public final class DistributionManager
                   DistributionManager.this.stats.incNumProcessingThreads(1);
                   try {
                   ConnectionTable.threadWantsSharedResources();
-                  ConnectionTable.makeReaderThread();
+                  Connection.makeReaderThread();
                   runUntilShutdown(command);
                   } finally {
                     ConnectionTable.releaseThreadsSockets();
@@ -1085,7 +1051,7 @@ public final class DistributionManager
                   DistributionManager.this.stats.incWaitingThreads(1);
                   try {
                   ConnectionTable.threadWantsSharedResources();
-                  ConnectionTable.makeReaderThread();
+                  Connection.makeReaderThread();
                   runUntilShutdown(command);
                   } finally {
                    ConnectionTable.releaseThreadsSockets();
@@ -1111,6 +1077,39 @@ public final class DistributionManager
                                                        this.stats.getWaitingPoolHelper(),
                                                        tf);
     }
+    
+    {
+      ThreadFactory tf = new ThreadFactory() {
+          private int next = 0;
+
+          public Thread newThread(final Runnable command) {
+            DistributionManager.this.stats.incWaitingThreadStarts();//will it be ok?
+            final Runnable r = new Runnable() {
+                public void run() {
+                  DistributionManager.this.stats.incWaitingThreads(1);//will it be ok
+                  try {
+                  ConnectionTable.threadWantsSharedResources();
+                  Connection.makeReaderThread();
+                  runUntilShutdown(command);
+                  } finally {
+                   ConnectionTable.releaseThreadsSockets();
+                   DistributionManager.this.stats.incWaitingThreads(-1);
+                  }
+                }
+              };
+            Thread thread = new Thread(group, r, 
+                                       LocalizedStrings.DistributionManager_PR_META_DATA_CLEANUP_MESSAGE_PROCESSOR.toLocalizedString() + (next++));
+            thread.setDaemon(true);
+            return thread;
+          }
+        };
+      BlockingQueue poolQueue;
+      poolQueue = new OverflowQueueWithDMStats(this.stats.getWaitingQueueHelper());
+      this.prMetaDataCleanupThreadPool = new PooledExecutorWithDMStats(poolQueue,
+                                                        MAX_PR_META_DATA_CLEANUP_THREADS,
+                                                       this.stats.getWaitingPoolHelper(),
+                                                       tf);
+    }
 
     {
       BlockingQueue poolQueue;
@@ -1130,7 +1129,7 @@ public final class DistributionManager
                 try {
                   // don't force shared sockets for PR executor threads
                   //ConnectionTable.threadWantsSharedResources();
-                  ConnectionTable.makeReaderThread();
+                  Connection.makeReaderThread();
                   runUntilShutdown(command);
                 } finally {
                   ConnectionTable.releaseThreadsSockets();
@@ -1174,7 +1173,7 @@ public final class DistributionManager
                 try {
                   // don't force shared sockets for function executor threads
                   //ConnectionTable.threadWantsSharedResources();
-                  ConnectionTable.makeReaderThread();
+                  Connection.makeReaderThread();
                   runUntilShutdown(command);
                 } finally {
                   ConnectionTable.releaseThreadsSockets();
@@ -1209,16 +1208,6 @@ public final class DistributionManager
     StringBuffer sb = new StringBuffer(" (took ");
 
    long start = System.currentTimeMillis();
-    {
-      DistributionConfig config = system.getConfig();
-      String bindAddress = config.getBindAddress();
-      if (bindAddress != null && !bindAddress.equals(DistributionConfig.DEFAULT_BIND_ADDRESS)) {
-        System.setProperty("gemfire.jg-bind-address", bindAddress);
-      }
-      else {
-        System.getProperties().remove("gemfire.jg-bind-address");
-      }
-    }
     
     // Create direct channel first
 //    DirectChannel dc = new DirectChannel(new MyListener(this), system.getConfig(), this.logger, null);
@@ -1226,25 +1215,13 @@ public final class DistributionManager
 
     // connect to JGroups
     start = System.currentTimeMillis();
-    DistributionConfig config = system.getConfig();
-    DurableClientAttributes dac = null;
-    if (config.getDurableClientId() != null) {
-      dac = new DurableClientAttributes(config.getDurableClientId(), config
-          .getDurableClientTimeout());
-    }
-    MemberAttributes.setDefaults(-1, 
-        OSProcess.getId(), 
-        getDistributionManagerType(), -1, 
-        config.getName(),
-        MemberAttributes.parseGroups(config.getRoles(), config.getGroups()),
-        dac);
     
     MyListener l = new MyListener(this);
     membershipManager = MemberFactory.newMembershipManager(logger,
         securityLogger, l, system.getConfig(), transport, stats);
 
     sb.append(System.currentTimeMillis() - start);
-    sb.append("/");
+
     this.myid = membershipManager.getLocalMember();
 
 //    dc.patchUpAddress(this.myid);
@@ -1374,8 +1351,8 @@ public final class DistributionManager
    */
   public boolean areOnEquivalentHost(InternalDistributedMember member1,
                                      InternalDistributedMember member2) {
-    Set<InetAddress> equivalents1 = getEquivalents(member1.getIpAddress());
-    return equivalents1.contains(member2.getIpAddress());
+    Set<InetAddress> equivalents1 = getEquivalents(member1.getInetAddress());
+    return equivalents1.contains(member2.getInetAddress());
   }
   
   /**
@@ -1480,8 +1457,8 @@ public final class DistributionManager
     return this.dmType;
   }
   
-  public Vector getViewMembers() {
-    Vector result = null;
+  public List<InternalDistributedMember> getViewMembers() {
+    NetView result = null;
     DistributionChannel ch = this.channel;
     if (ch != null) {
       MembershipManager mgr = ch.getMembershipManager();
@@ -1490,13 +1467,13 @@ public final class DistributionManager
         }
     }
     if (result == null) {
-      result = new Vector();
+      result = new NetView();
     }
-    return result;
+    return result.getMembers();
   }
   /* implementation of DM.getOldestMember */
   public DistributedMember getOldestMember(Collection c) throws NoSuchElementException {
-    Vector view = getViewMembers();
+    List<InternalDistributedMember> view = getViewMembers();
     for (int i=0; i<view.size(); i++) {
       Object viewMbr = view.get(i);
       Iterator it = c.iterator();
@@ -1532,23 +1509,7 @@ public final class DistributionManager
     if (v == null)
       return "null";
     
-    StringBuffer sb = new StringBuffer();
-    Object leadObj = v.getLeadMember();
-    InternalDistributedMember lead = leadObj==null? null
-                            : new InternalDistributedMember(v.getLeadMember());
-    sb.append("[");
-    Iterator it = v.iterator();
-    while (it.hasNext()) {
-      InternalDistributedMember m = (InternalDistributedMember)it.next();
-      sb.append(m.toString());
-      if (lead != null && lead.equals(m)) {
-        sb.append("{lead}");
-      }
-      if (it.hasNext())
-        sb.append(", ");
-    }
-    sb.append("]");
-    return sb.toString();
+    return v.toString();
   }
 
   /**
@@ -1566,10 +1527,10 @@ public final class DistributionManager
       this.logger.info(LocalizedStrings.DistributionManager_INITIAL_MEMBERSHIPMANAGER_VIEW___0, printView(v));
       
       // Add them all to our view
-      Iterator it = v.iterator();
+      Iterator<InternalDistributedMember> it = v.getMembers().iterator();
       while (it.hasNext()) {
-        addNewMember((InternalDistributedMember)it.next(), null);
-	}
+        addNewMember(it.next());
+      }
       
       // Figure out who the elder is...
       selectElder(); // ShutdownException could be thrown here
@@ -1691,10 +1652,6 @@ public final class DistributionManager
     } // synchronized
   }
   
-  public void restartCommunications() {
-    membershipManager.reset();
-  }
-
   // DM method
   @Override
   public void forceUDPMessagingForCurrentThread() {
@@ -2202,6 +2159,10 @@ public final class DistributionManager
     if (es != null) {
       es.shutdown();
     }
+    es = this.prMetaDataCleanupThreadPool;
+    if (es != null) {
+      es.shutdown();
+    }
     es = this.threadPool;
     if (es != null) {
       es.shutdown();
@@ -2225,6 +2186,7 @@ public final class DistributionManager
         this.partitionedRegionPool,
         this.highPriorityPool,
         this.waitingPool,
+        this.prMetaDataCleanupThreadPool,
         this.threadPool};
     for(ExecutorService es : allExecutors) { 
       if (es != null) {
@@ -2360,6 +2322,10 @@ public final class DistributionManager
         stillAlive = true;
         culprits = culprits + " waiting pool;";
       }
+      if (executorAlive(this.prMetaDataCleanupThreadPool, "prMetaDataCleanupThreadPool")) {
+        stillAlive = true;
+        culprits = culprits + " special waiting pool;";
+      }
       if (executorAlive(this.threadPool, "thread pool")) {
         stillAlive = true;
         culprits = culprits + " thread pool;";
@@ -2413,6 +2379,9 @@ public final class DistributionManager
     }
     if (this.waitingPool != null) {
       this.waitingPool.shutdownNow();
+    }
+    if (this.prMetaDataCleanupThreadPool != null) {
+      this.prMetaDataCleanupThreadPool.shutdownNow();
     }
     if (this.threadPool != null) {
       this.threadPool.shutdownNow();
@@ -3073,17 +3042,17 @@ public final class DistributionManager
     if (ch != null) {
       MembershipManager mgr = ch.getMembershipManager();
       if (mgr != null) {
-        synchronized (mgr.getViewLock()) {
-          this.membersLock.readLock().lock();
-          try {
+        mgr.getViewLock().writeLock().lock();
+        try {
+          synchronized (this.membersLock) {
             // Don't let the members come and go while we are adding this
             // listener.  This ensures that the listener (probably a
             // ReplyProcessor) gets a consistent view of the members.
             addAllMembershipListener(l);
-            return this.membersAndAdmin;
-          } finally {
-            this.membersLock.readLock().unlock();
+            return getDistributionManagerIdsIncludingAdmin();
           }
+        } finally {
+          mgr.getViewLock().writeLock().unlock();
         }
       }
     }
@@ -3341,19 +3310,19 @@ public final class DistributionManager
    * @return the elder candidate, possibly this VM.
    */
   private InternalDistributedMember getElderCandidate() {
-    Vector theMembers = getViewMembers();
+    List<InternalDistributedMember> theMembers = getViewMembers();
     
 //    Assert.assertTrue(!closeInProgress 
 //        && theMembers.contains(this.myid)); // bug36202?
     
     int elderCandidates = 0;
-    Iterator it;
+    Iterator<InternalDistributedMember> it;
     
     // determine number of elder candidates (unless adam)
     if (!this.adam) {
       it = theMembers.iterator();
       while (it.hasNext()) {
-        InternalDistributedMember member = (InternalDistributedMember) it.next();
+        InternalDistributedMember member = it.next();
         int managerType = member.getVmKind();
         if (managerType == ADMIN_ONLY_DM_TYPE)
           continue;
@@ -3377,7 +3346,7 @@ public final class DistributionManager
     // Second pass over members...
     it = theMembers.iterator();
     while (it.hasNext()) {
-      InternalDistributedMember member = (InternalDistributedMember) it.next(); 
+      InternalDistributedMember member = it.next(); 
       int managerType = member.getVmKind();
       if (managerType == ADMIN_ONLY_DM_TYPE)
         continue;
@@ -4336,6 +4305,13 @@ public final class DistributionManager
   public ExecutorService getWaitingThreadPool() {
     return this.waitingPool;
   }
+  
+  /**
+   * Return the waiting message-processing executor 
+   */
+  public ExecutorService getPrMetaDataCleanupThreadPool() {
+    return this.prMetaDataCleanupThreadPool;
+  }
 
   /**
    * Return the waiting message-processing executor 
@@ -5059,7 +5035,7 @@ public final class DistributionManager
       this.view = view;
     }
     public long getViewId() {
-      return view.getViewNumber();
+      return view.getViewId();
     }
     @Override
     public int eventType() {
@@ -5248,10 +5224,10 @@ public final class DistributionManager
       }
     } else {
       buddyMembers.add(targetMember);
-      Set targetAddrs = getEquivalents(targetMember.getIpAddress());
+      Set targetAddrs = getEquivalents(targetMember.getInetAddress());
       for (Iterator i = getDistributionManagerIds().iterator(); i.hasNext();) {
         InternalDistributedMember o = (InternalDistributedMember)i.next();
-        if (SetUtils.intersectsWith(targetAddrs, getEquivalents(o.getIpAddress()))) {
+        if (SetUtils.intersectsWith(targetAddrs, getEquivalents(o.getInetAddress()))) {
           buddyMembers.add(o);
         }
       }
@@ -5316,7 +5292,7 @@ public final class DistributionManager
     } else {
       for (Iterator it=ids.iterator(); it.hasNext(); ) {
         InternalDistributedMember mbr = (InternalDistributedMember)it.next();
-        if (mbr.getProcessId() > 0 && mbr.getIpAddress().equals(this.myid.getIpAddress())) {
+        if (mbr.getProcessId() > 0 && mbr.getInetAddress().equals(this.myid.getInetAddress())) {
           if (!mbr.equals(myid)) {
             if (!OSProcess.printStacks(mbr.getProcessId(), this.logger.convertToLogWriter(), false)) {
               requiresMessage.add(mbr);

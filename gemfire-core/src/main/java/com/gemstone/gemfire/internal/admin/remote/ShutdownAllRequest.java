@@ -140,6 +140,8 @@ public class ShutdownAllRequest extends AdminRequest {
       if(!(e.getCause() instanceof CancelException)) {
         e.handleAsUnexpected();
       }
+    } catch (CancelException e) {
+      // expected
     } catch (InterruptedException e) {
       interrupted = true;
     }
@@ -187,8 +189,7 @@ public class ShutdownAllRequest extends AdminRequest {
     return InternalLocator.isDedicatedLocator();
   }
 
-  @Override
-  public boolean sendViaJGroups() {
+  public boolean sendViaUDP() {
     return true;
   }
 
@@ -335,6 +336,9 @@ public class ShutdownAllRequest extends AdminRequest {
       }
       if(msg instanceof ShutdownAllResponse) {
         if (((ShutdownAllResponse)msg).isToShutDown()) {
+          if(log.fineEnabled()) {
+            log.fine(this + " adding " +msg.getSender() + " to result set " + results);
+          }
           results.add(msg.getSender());
         }
         else {
@@ -361,6 +365,8 @@ public class ShutdownAllRequest extends AdminRequest {
     }
 
     public Set getResults() {
+      if(InternalDistributedSystem.getLoggerI18n().fineEnabled())
+        InternalDistributedSystem.getLoggerI18n().fine(this + " shutdownAll returning " + results, new Exception("stack trace"));
       return results;
     }
   }

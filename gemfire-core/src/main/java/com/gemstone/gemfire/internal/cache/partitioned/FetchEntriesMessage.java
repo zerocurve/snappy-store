@@ -587,16 +587,14 @@ public final class FetchEntriesMessage extends PartitionMessage
               deserializingKey = false;
               Object value = DataSerializer.readObject(in);
               VersionTag versionTag = DataSerializer.readObject(in);
-              if (versionTag != null) {
-                //Fix for 47260 - canonicalize the mebmer ids to avoid an OOME
-                if(canonicalMembers.containsKey(versionTag.getMemberID())) {
-                  versionTag.setMemberID(canonicalMembers.get(versionTag.getMemberID()));
+              
+              //Fix for 47260 - canonicalize the mebmer ids to avoid an OOME
+              VersionSource id = versionTag.getMemberID();
+              if (id != null) {
+                if(canonicalMembers.containsKey(id)) {
+                  versionTag.setMemberID(canonicalMembers.get(id));
                 } else {
-                  canonicalMembers.put(versionTag.getMemberID(), versionTag.getMemberID());
-                }
-              } else { // is this block even needed?
-                if (!canonicalMembers.containsKey(msg.getSender())) {
-                  canonicalMembers.put(msg.getSender(), msg.getSender());
+                  canonicalMembers.put(id, id);
                 }
               }
               

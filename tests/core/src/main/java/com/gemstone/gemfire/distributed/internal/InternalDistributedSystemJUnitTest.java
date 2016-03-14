@@ -178,6 +178,7 @@ public class InternalDistributedSystemJUnitTest extends TestCase
     Properties props = new Properties();
     int memberTimeout = 100;
     props.put("member-timeout", String.valueOf(memberTimeout));
+    props.put("mcast-port", "0");
 
     DistributionConfig config = createSystem(props).getOriginalConfig();
     assertEquals(memberTimeout, config.getMemberTimeout());
@@ -265,7 +266,7 @@ public class InternalDistributedSystemJUnitTest extends TestCase
     checkLocator(localhost + ":12345");
 
     String bindAddress = 
-      hydra.HostHelper.getHostAddress(java.net.InetAddress.getLocalHost());
+      getHostAddress(java.net.InetAddress.getLocalHost());
     if (bindAddress.indexOf(':') < 0) {
       checkLocator(localhost + ":" + bindAddress + "[12345]");
     }
@@ -565,8 +566,11 @@ public class InternalDistributedSystemJUnitTest extends TestCase
 
   public void test026PropertySources() throws Exception {
     // TODO: fix this test on Windows: the File renameTo and delete in finally fails on Windows
-    if (HostHelper.isWindows()) {
-      return;
+    String os = System.getProperty("os.name");
+    if (os != null) {
+      if (os.indexOf("Windows") != -1) {
+        return;
+      }
     }
     File propFile = new File("gemfire.properties");
     boolean propFileExisted = propFile.exists();
@@ -620,14 +624,10 @@ public class InternalDistributedSystemJUnitTest extends TestCase
   public void test027NonDefaultConnectionName() {
     String name = "BLAH";
     Properties props = new Properties();
-//     int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
-//     props.setProperty("mcast-port", String.valueOf(unusedPort));
     // a loner is all this test needs
-    //props.setProperty("mcast-port", "0");
+    props.setProperty("mcast-port", "0");
     props.setProperty("locators", "");
     props.setProperty(DistributionConfig.NAME_NAME, name);
-    int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
-    props.setProperty(DistributionConfig.MCAST_PORT_NAME, String.valueOf(unusedPort));
     createSystem(props);
   }
 
@@ -652,6 +652,7 @@ public class InternalDistributedSystemJUnitTest extends TestCase
     int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     props.setProperty("mcast-port", "0");
     props.setProperty("start-locator", "localhost[" + unusedPort + "],server=false,peer=true");
+    deleteStateFile(unusedPort);
     createSystem(props);
     Collection locators = Locator.getLocators();
     Assert.assertEquals(1, locators.size());

@@ -48,7 +48,7 @@ import com.gemstone.gemfire.internal.cache.wan.GatewayReceiverStats;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.security.AuthorizeRequest;
 import com.gemstone.gemfire.pdx.internal.PeerTypeRegistration;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 import java.io.IOException;
 import java.util.ArrayList;

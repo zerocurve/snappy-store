@@ -278,31 +278,20 @@ public
   }
   
   private void join() {
-    if (transport.isMcastDiscovery()) {
-      connectToDS();
-    } else {
-      daemon = new DSConnectionDaemon(logger);
-      if(!gfxdSystem) {
-        daemon.start();
+    daemon = new DSConnectionDaemon();
+    daemon.start();
+    // give the daemon some time to get us connected
+    // we don't want to wait forever since there may be no one to connect to
+    try {
+      long endTime = System.currentTimeMillis() + 2000; // wait 2 seconds
+      while (!connected && daemon.isAlive() && System.currentTimeMillis() < endTime) {
+        daemon.join(200);
       }
-      else {
-        // don't want to go async, otherwise AUTH module gets a self deadlock
-        // because GemFireXD boot expects a blocking call to .connect(..)
-        daemon.run();
-      }
-      // give the daemon some time to get us connected
-      // we don't want to wait forever since there may be no one to connect to
-      try {
-        long endTime = System.currentTimeMillis() + 2000; // wait 2 seconds
-        while (!connected && daemon.isAlive() && System.currentTimeMillis() < endTime) {
-          daemon.join(200);
-        }
-      } 
-      catch (InterruptedException ignore) {
-        Thread.currentThread().interrupt();
-        // Peremptory cancellation check, but keep going
-        this.system.getCancelCriterion().checkCancelInProgress(ignore);
-      }
+    } 
+    catch (InterruptedException ignore) {
+      Thread.currentThread().interrupt();
+      // Peremptory cancellation check, but keep going
+      this.system.getCancelCriterion().checkCancelInProgress(ignore);
     }
   }
 
@@ -402,9 +391,9 @@ public
         this.system = null;
         this.connected = false;
       }
-      if (!transport.isMcastDiscovery()) {
-        daemon.shutDown();
-      }
+
+      daemon.shutDown();
+      
       if (snapshotDispatcher != null) {
         snapshotDispatcher.shutDown();
       }

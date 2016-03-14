@@ -90,7 +90,7 @@ import com.gemstone.gemfire.internal.util.concurrent.StoppableReentrantReadWrite
 import com.gemstone.gemfire.internal.util.concurrent.StoppableReentrantReadWriteLock.StoppableWriteLock;
 import com.gemstone.gnu.trove.THashSet;
 import com.gemstone.gnu.trove.TIntArrayList;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * Implementation of DataStore (DS) for a PartitionedRegion (PR). This will be

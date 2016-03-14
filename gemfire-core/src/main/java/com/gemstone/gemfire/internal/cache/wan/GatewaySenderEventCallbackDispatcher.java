@@ -21,7 +21,7 @@ import com.gemstone.gemfire.CancelException;
 import com.gemstone.gemfire.cache.asyncqueue.AsyncEventListener;
 import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 import java.util.ArrayList;
 import java.util.Collections;

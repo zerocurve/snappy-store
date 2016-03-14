@@ -211,7 +211,7 @@ public abstract class DistributionMessage
    * If false then it can be unordered.
    * @since 5.5 
    */
-  public boolean orderedDelivery(boolean threadOwnsResources) {
+  public boolean orderedDelivery() {
     final int processorType = getProcessorType();
     switch (processorType) {
       case DistributionManager.SERIAL_EXECUTOR:
@@ -225,7 +225,9 @@ public abstract class DistributionMessage
         // TODO: this can later be adjusted to use a separate property
         return containsRegionContentChange();
       default:
-        return threadOwnsResources || containsRegionContentChange();
+        InternalDistributedSystem ids = InternalDistributedSystem
+            .getAnyInstance();
+        return (ids != null && ids.threadOwnsResources());
     }
   }
 
@@ -256,11 +258,11 @@ public abstract class DistributionMessage
     return this.multicast;
   }
   /**
-   * Return true of this message should be sent through JGroups instead of the
+   * Return true of this message should be sent via UDP instead of the
    * direct-channel.  This is typically only done for messages that are
    * broadcast to the full membership set.
    */
-  public boolean sendViaJGroups() {
+  public boolean sendViaUDP() {
     return false;
   }
   /**
@@ -332,15 +334,15 @@ public abstract class DistributionMessage
 
   public String getRecipientsDescription() {
     if (this.recipients == null) {
-      return "<recipients: ALL>";
+      return "recipients: ALL";
     }
     else if (this.multicast) {
-      return "<recipients: multcast>";
+      return "recipients: multicast";
     } else if (this.recipients.length > 0 && this.recipients[0] == ALL_RECIPIENTS) {
-      return "<recipients: ALL>";
+      return "recipients: ALL";
     } else {
-      StringBuilder sb = new StringBuilder(100);
-      sb.append("<recipients: ");
+      StringBuffer sb = new StringBuffer(100);
+      sb.append("recipients: <");
       for (int i=0; i < this.recipients.length; i++) {
         if (i != 0) {
           sb.append(", ");
@@ -478,7 +480,7 @@ public abstract class DistributionMessage
       && !isPreciousThread();
 
     inlineProcess |= this.getInlineProcess();
-    inlineProcess |= ConnectionTable.isDominoThread();
+    inlineProcess |= Connection.isDominoThread();
     inlineProcess |= this.acker != null;
 
     if (inlineProcess) {
@@ -548,7 +550,8 @@ public abstract class DistributionMessage
    */
   public static boolean isPreciousThread() {
     String thrname = Thread.currentThread().getName();
-    return thrname.startsWith("UDP");
+    //return thrname.startsWith("Geode UDP");
+    return thrname.startsWith("unicast receiver") || thrname.startsWith("multicast receiver");
   }
 
 
