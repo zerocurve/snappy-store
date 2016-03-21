@@ -890,6 +890,7 @@ public class LocalizedStrings extends ParentLocalizedStrings {
   public static final StringId AbstractDistributionConfig_STATUS_MONITORING_PORT_NAME_0_1_2 = new StringIdImpl(4273, "The status monitoring port used to listen for status requests. Defaults to \"{0}\". Legal values are in the range [{1}..{2}].");
   public static final StringId AbstractDistributionConfig_START_LOCATOR_NAME = new StringIdImpl(4274, "The host|bindAddress[port] of a Locator to start in this VM along with the DistributedSystem. The default is to not start a Locator.");
   public static final StringId InternalDistributedSystem_0_DISTRIBUTED_SYSTEM_HAS_DISCONNECTED = new StringIdImpl(4275, "{0}: Distributed system has disconnected.");
+
   public static final StringId InternalDistributedSystem_EXCEPTION_TRYING_TO_CLOSE_CACHE = new StringIdImpl(4276, "Exception trying to close cache");
   public static final StringId InternalDistributedSystem_PROBLEM_STARTING_A_LOCATOR_SERVICE = new StringIdImpl(4277, "Problem starting a locator service");
   public static final StringId AbstractGroupOrRangeJunction_INTERMEDIATERESULTS_CAN_NOT_BE_NULL = new StringIdImpl(4278, "intermediateResults can not be null");
@@ -2080,6 +2081,13 @@ public class LocalizedStrings extends ParentLocalizedStrings {
   public static final StringId InternalDistributedSystem_QUORUM_OF_MEMBERS_CONTACTED = new StringIdImpl(5874, "quorum check passed - now attempting multicast discovery");
   
   /** JGroups strings, messageId 15000-90000 **/
+  // GMSAuthenticator
+  public static final StringId AUTH_PEER_AUTHENTICATION_FAILED_WITH_EXCEPTION = new StringIdImpl(6608, "Authentication failed for [{0}] using Authenticator [{1}]. {2}");
+  public static final StringId AUTH_PEER_AUTHENTICATION_FAILED = new StringIdImpl(6609, "Authentication failed. See coordinator [{0}] logs for details.");
+  public static final StringId AUTH_PEER_AUTHENTICATION_MISSING_CREDENTIALS = new StringIdImpl(6610, "Failed to find credentials from [{0}] using Authenticator [{1}]");
+  public static final StringId AUTH_FAILED_TO_ACQUIRE_AUTHINITIALIZE_INSTANCE = new StringIdImpl(6611, "AuthInitialize instance could not be obtained");
+  public static final StringId AUTH_FAILED_TO_OBTAIN_CREDENTIALS_IN_0_USING_AUTHINITIALIZE_1_2 = new StringIdImpl(6612, "Failed to obtain credentials using AuthInitialize [{1}]. {2}");
+
   /** Testing strings, messageId 90000-99999 **/
   /** These are simple messages for testing, translated with Babelfish. **/
   public static final StringId TESTING_THIS_IS_A_TEST_MESSAGE = new StringIdImpl(90000, "This is a test message.");

@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.gemstone.gemfire.internal.i18n.GemFireTracer;
 import org.apache.logging.log4j.Logger;
 import org.jgroups.Address;
 import org.jgroups.Event;
@@ -85,20 +86,19 @@ import com.gemstone.gemfire.internal.ClassPathLoader;
 import com.gemstone.gemfire.internal.HeapDataOutputStream;
 import com.gemstone.gemfire.internal.OSProcess;
 import com.gemstone.gemfire.internal.SocketCreator;
-import com.gemstone.gemfire.internal.Version;
+import com.gemstone.gemfire.internal.shared.Version;
 import com.gemstone.gemfire.internal.VersionedDataInputStream;
 import com.gemstone.gemfire.internal.admin.remote.RemoteTransportConfig;
 import com.gemstone.gemfire.internal.cache.DirectReplyMessage;
 import com.gemstone.gemfire.internal.cache.DistributedCacheOperation;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
-import com.gemstone.gemfire.internal.logging.log4j.LocalizedMessage;
 import com.gemstone.gemfire.internal.tcp.MemberShunnedException;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 public class JGroupsMessenger implements Messenger {
 
-  private static final Logger logger = Services.getLogger();
+  private static final GemFireTracer logger = Services.getLogger();
 
   /**
    * The location (in the product) of the locator Jgroups config file.
@@ -754,7 +754,7 @@ public class JGroupsMessenger implements Messenger {
       for (int i = 0; i < destinations.length; i ++) {
         InternalDistributedMember d = destinations[i];
         if (!newView.contains(d)) {
-          logger.debug("messenger: member has left the view: {}  view is now {}", d, newView);
+          logger.debug("messenger: member has left the view: "+ d +"  view is now " + newView);
           result.add(d);
         }
       }

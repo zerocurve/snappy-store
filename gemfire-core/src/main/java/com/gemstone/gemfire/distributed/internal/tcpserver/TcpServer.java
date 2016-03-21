@@ -53,6 +53,7 @@ import com.gemstone.gemfire.internal.SocketCreator;
 import com.gemstone.gemfire.internal.VersionedDataInputStream;
 import com.gemstone.gemfire.internal.VersionedDataOutputStream;
 import com.gemstone.gemfire.internal.cache.GemFireCacheImpl;
+import com.gemstone.gemfire.internal.i18n.ExternalStrings;
 import com.gemstone.gemfire.internal.i18n.GemFireTracer;
 import com.gemstone.gemfire.internal.shared.Version;
 import com.gemstone.gemfire.distributed.internal.DistributionStats;

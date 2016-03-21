@@ -23,7 +23,7 @@ import java.io.IOException;
 import com.gemstone.gemfire.DataSerializer;
 import com.gemstone.gemfire.distributed.internal.membership.NetView;
 import com.gemstone.gemfire.internal.DataSerializableFixedID;
-import com.gemstone.gemfire.internal.Version;
+import com.gemstone.gemfire.internal.shared.Version;
 
 public class GetViewResponse implements DataSerializableFixedID {
 

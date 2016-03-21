@@ -19,7 +19,7 @@ package com.gemstone.gemfire;
 
 import com.gemstone.gemfire.distributed.DistributedSystem;
 import com.gemstone.gemfire.i18n.LogWriterI18n;
-import com.gemstone.org.jgroups.util.GFLogWriter;
+import com.gemstone.gemfire.internal.i18n.GFLogWriter;
 
 import java.util.logging.Handler;
 /**
@@ -204,6 +204,11 @@ public interface LogWriter extends GFLogWriter {
      * The message level is "fine".
      */
     public void fine(String msg);
+
+    /**
+     * Same as fine
+     */
+    public void debug(String msg);
     /**
      * Writes an exception to this writer.
      * The exception level is "fine".

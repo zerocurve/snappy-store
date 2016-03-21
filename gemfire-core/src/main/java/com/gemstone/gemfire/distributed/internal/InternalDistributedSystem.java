@@ -562,11 +562,13 @@ public final class InternalDistributedSystem
     }
 
     // initialize the JGroups loggers
-    com.gemstone.org.jgroups.util.GemFireTracer.getLog(
+    com.gemstone.gemfire.internal.i18n.GemFireTracer.getLog(
         InternalDistributedSystem.class).setLogWriter(this.logger);
-    com.gemstone.org.jgroups.util.GemFireTracer.getLog(
+      com.gemstone.gemfire.internal.i18n.GemFireTracer.getLog(
         InternalDistributedSystem.class).setSecurityLogWriter(this.securityLogger);
 
+    Services.setLogWriter(this.logger);
+    Services.setSecurityLogWriter(this.securityLogger);
       // initialize the ClientSharedUtils logger
     if (this.logger instanceof LogWriterImpl) {
       final LogWriterImpl logImpl = (LogWriterImpl)this.logger;
@@ -659,10 +661,9 @@ public final class InternalDistributedSystem
       // bug #48144 - The dm's channel threw an NPE.  It now throws this exception
       // but during startup we should instead throw a SystemConnectException
       throw new SystemConnectException(
-          LocalizedStrings.InternalDistributedSystem_DISTRIBUTED_SYSTEM_HAS_DISCONNECTED
+          LocalizedStrings.InternalDistributedSystem_0_DISTRIBUTED_SYSTEM_HAS_DISCONNECTED
             .toLocalizedString(), e);
     }
-
     synchronized (this.isConnectedMutex) {
       this.isConnected = true;
     }
@@ -731,7 +732,7 @@ public final class InternalDistributedSystem
           if (logger.infoEnabled()) {
             logger.info("performing a quorum check to see if location services can be started early");
           }
-          if (!quorumChecker.checkForQuorum(3*this.config.getMemberTimeout(), logger)) {
+          if (!quorumChecker.checkForQuorum(3*this.config.getMemberTimeout())) {
             if (this.logger.infoEnabled()) {
               this.logger.info("quorum check failed - not allowing location services to start early");
             }

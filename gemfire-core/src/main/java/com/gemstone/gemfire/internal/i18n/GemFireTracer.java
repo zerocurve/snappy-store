@@ -19,6 +19,7 @@ package com.gemstone.gemfire.internal.i18n;
 
 import java.io.StringWriter;
 
+import com.gemstone.gemfire.i18n.StringId;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;

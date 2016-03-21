@@ -130,4 +130,7 @@ public class LocatorMembershipListenerImpl implements LocatorMembershipListener 
     distributeLocator.start();
   }
 
+  public void clearLocatorInfo(){
+    // no-op
+  }
 }

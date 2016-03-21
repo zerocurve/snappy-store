@@ -49,6 +49,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.gemstone.gemfire.LogWriter;
 import org.apache.logging.log4j.Logger;
 
 import com.gemstone.gemfire.GemFireConfigException;
@@ -107,7 +108,7 @@ public class GMSJoinLeave implements JoinLeave, MessageHandler {
   private static final long VIEW_BROADCAST_INTERVAL = Long.getLong("gemfire.view-broadcast-interval", 60000);
 
   /** membership logger */
-  private static final Logger logger = Services.getLogger();
+  private static final LogWriter logger = Services.getLogger();
 
   /** the view ID where I entered into membership */
   private int birthViewId;

@@ -21,7 +21,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import com.gemstone.gemfire.internal.DataSerializableFixedID;
-import com.gemstone.gemfire.internal.Version;
+import com.gemstone.gemfire.internal.shared.Version;
 
 public class GetViewRequest implements DataSerializableFixedID, PeerLocatorRequest {
 

@@ -22,7 +22,7 @@ import java.io.IOException;
 
 import com.gemstone.gemfire.distributed.internal.DistributionManager;
 import com.gemstone.gemfire.distributed.internal.HighPriorityDistributionMessage;
-import com.gemstone.gemfire.internal.Version;
+import com.gemstone.gemfire.internal.shared.Version;
 
 public class HeartbeatMessage extends HighPriorityDistributionMessage {
   /**

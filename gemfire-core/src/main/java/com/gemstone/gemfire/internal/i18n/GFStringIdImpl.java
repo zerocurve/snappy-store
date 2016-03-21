@@ -20,6 +20,8 @@ package com.gemstone.gemfire.internal.i18n;
 import java.text.MessageFormat;
 import java.util.Locale;
 
+import com.gemstone.gemfire.i18n.StringId;
+
 public class GFStringIdImpl implements StringId {
 
   /** A unique identifier for this stringId

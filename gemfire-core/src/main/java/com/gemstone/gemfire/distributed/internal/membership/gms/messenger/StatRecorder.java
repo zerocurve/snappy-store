@@ -16,7 +16,6 @@
  */
 package com.gemstone.gemfire.distributed.internal.membership.gms.messenger;
 
-import org.apache.logging.log4j.Logger;
 import org.jgroups.Event;
 import org.jgroups.Header;
 import org.jgroups.Message;
@@ -41,7 +40,7 @@ import com.gemstone.gemfire.distributed.internal.membership.gms.Services;
  */
 public class StatRecorder extends Protocol {
   
-  private static final Logger logger = Services.getLogger();
+  //private static final Logger logger = Services.getLogger();
   
   private static final int OUTGOING = 0;
   private static final int INCOMING = 1;

@@ -20,7 +20,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 
-import org.apache.logging.log4j.Logger;
+import com.gemstone.gemfire.internal.i18n.GemFireTracer;
 import org.jgroups.Address;
 import org.jgroups.Event;
 import org.jgroups.protocols.PingData;
@@ -43,7 +43,7 @@ import com.gemstone.gemfire.distributed.internal.membership.gms.Services;
  */
 public class AddressManager extends Protocol {
 
-  private static final Logger logger = Services.getLogger();
+  private static final GemFireTracer logger = GemFireTracer.getLog(AddressManager.class);
   
   private TP transport;
   private Method setPingData;

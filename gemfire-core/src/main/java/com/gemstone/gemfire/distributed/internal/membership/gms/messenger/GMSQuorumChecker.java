@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.logging.log4j.Logger;
+import com.gemstone.gemfire.internal.i18n.GemFireTracer;
 import org.jgroups.Address;
 import org.jgroups.Event;
 import org.jgroups.JChannel;
@@ -41,7 +41,7 @@ import com.gemstone.gemfire.internal.concurrent.ConcurrentHashSet;
 import com.gemstone.gemfire.internal.util.LogService;
 
 public class GMSQuorumChecker implements QuorumChecker {
-  private static final Logger logger = LogService.getLogger();
+  private static final GemFireTracer logger = GemFireTracer.getLog(GMSQuorumChecker.class);
   private boolean isDebugEnabled = false;
   private Map<SocketAddress, InternalDistributedMember> addressConversionMap;
   private GMSPingPonger pingPonger;
@@ -90,7 +90,7 @@ public class GMSQuorumChecker implements QuorumChecker {
     }
 
     if (isDebugEnabled) {
-      logger.debug("beginning quorum check with {}", this);
+      logger.debug("beginning quorum check with " + this);
     }
     try {
       sendPingMessages();
@@ -139,7 +139,7 @@ public class GMSQuorumChecker implements QuorumChecker {
     int ackedWeight = getWeight(receivedAcks, this.lastView.getLeadMember());
     int lossThreshold = (int) Math.round((weight * this.partitionThreshold) / 100.0);
     if (isDebugEnabled) {
-      logger.debug("quorum check: contacted {} processes with {} member weight units.  Threshold for a quorum is {}", receivedAcks.size(), ackedWeight, lossThreshold);
+      logger.debug("quorum check: contacted "+receivedAcks.size()+" processes with "+ackedWeight+" member weight units.  Threshold for a quorum is " + lossThreshold);
     }
     return (ackedWeight >= lossThreshold);
   }
@@ -151,12 +151,12 @@ public class GMSQuorumChecker implements QuorumChecker {
       long remaining = (endTime - time);
       if (remaining <= 0) {
         if (isDebugEnabled) {
-          logger.debug("quorum check: timeout waiting for responses.  {} responses received", receivedAcks.size());
+          logger.debug("quorum check: timeout waiting for responses.  "+receivedAcks.size()+" responses received");
         }
         break;
       }
       if (isDebugEnabled) {
-        logger.debug("quorum check: waiting up to {}ms to receive a quorum of responses", remaining);
+        logger.debug("quorum check: waiting up to " + remaining + " ms to receive a quorum of responses");
       }
       Thread.sleep(500);
       if (receivedAcks.size() == numMembers) {
@@ -194,7 +194,7 @@ public class GMSQuorumChecker implements QuorumChecker {
       if (!receivedAcks.contains(addr)) {
         JGAddress dest = new JGAddress(addr);
         if (isDebugEnabled) {
-          logger.debug("quorum check: sending request to {}", addr);
+          logger.debug("quorum check: sending request to " + addr);
         }
         try {
           pingPonger.sendPingMessage(channel, myAddress, dest);
@@ -255,13 +255,13 @@ public class GMSQuorumChecker implements QuorumChecker {
     }
 
     public void pongReceived(Address sender) {
-      logger.debug("received ping-pong response from {}", sender);
+      logger.debug("received ping-pong response from "+ sender);
       JGAddress jgSender = (JGAddress) sender;
       SocketAddress sockaddr = new InetSocketAddress(jgSender.getInetAddress(), jgSender.getPort());
       InternalDistributedMember memberAddr = addressConversionMap.get(sockaddr);
 
       if (memberAddr != null) {
-        logger.debug("quorum check: mapped address to member ID {}", memberAddr);
+        logger.debug("quorum check: mapped address to member ID "+ memberAddr);
         receivedAcks.add(memberAddr);
       }
     }

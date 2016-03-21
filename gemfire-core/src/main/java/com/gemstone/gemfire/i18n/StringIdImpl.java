@@ -34,7 +34,7 @@ public class StringIdImpl implements StringId {
   
   /** A unique identifier that is written when this StringId is logged to 
    * allow for reverse translation.
-   * @see com.gemstone.gemfire.internal.logging.LogWriterImpl
+   * @see com.gemstone.gemfire.internal.LogWriterImpl
    */
   public final int id;
   /** the English translation of text */

@@ -35,7 +35,7 @@ import com.gemstone.gemfire.SystemFailure;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
 import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
   * Abstract implementation of {@link LogWriterI18n}.
@@ -886,6 +886,10 @@ implements LogWriterI18n, LogWriter {
      */
     public void fine(String msg) {
       this.fine(msg, null);
+    }
+
+    public void debug(String msg) {
+      this.fine(msg,null);
     }
     /**
      * Writes an exception to this writer.

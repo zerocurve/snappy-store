@@ -29,13 +29,13 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.logging.log4j.Logger;
+import org.apache.log4j.Logger;
 
 import com.gemstone.gemfire.DataSerializer;
 import com.gemstone.gemfire.distributed.internal.DistributionManager;
 import com.gemstone.gemfire.internal.DataSerializableFixedID;
 import com.gemstone.gemfire.internal.InternalDataSerializer;
-import com.gemstone.gemfire.internal.Version;
+import com.gemstone.gemfire.internal.shared.Version;
 
 /**
  * The NetView class represents a membership view. Note that

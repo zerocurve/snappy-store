@@ -18,7 +18,9 @@ package com.gemstone.gemfire.distributed.internal.membership.gms;
 
 import java.util.Timer;
 
-import org.apache.logging.log4j.Logger;
+import com.gemstone.gemfire.LogWriter;
+import com.gemstone.gemfire.i18n.LogWriterI18n;
+import com.gemstone.gemfire.internal.LogWriterImpl;
 
 import com.gemstone.gemfire.CancelCriterion;
 import com.gemstone.gemfire.ForcedDisconnectException;
@@ -42,19 +44,19 @@ import com.gemstone.gemfire.distributed.internal.membership.gms.membership.GMSJo
 import com.gemstone.gemfire.distributed.internal.membership.gms.messenger.JGroupsMessenger;
 import com.gemstone.gemfire.distributed.internal.membership.gms.mgr.GMSMembershipManager;
 import com.gemstone.gemfire.internal.admin.remote.RemoteTransportConfig;
-import com.gemstone.gemfire.internal.logging.InternalLogWriter;
-import com.gemstone.gemfire.internal.logging.LogService;
+import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
+import com.gemstone.gemfire.internal.util.LogService;
 import com.gemstone.gemfire.internal.logging.LoggingThreadGroup;
 import com.gemstone.gemfire.security.AuthenticationFailedException;
 
 public class Services {
 
-  private static final Logger logger = LogService.getLogger();
+  private static final LogWriterI18n logger = LogService.getLogger();
 
   private static final ThreadGroup threadGroup = LoggingThreadGroup.createThreadGroup("GemFire Membership", logger); 
   
-  private static InternalLogWriter staticLogWriter;
-  private static InternalLogWriter staticSecurityLogWriter;
+  private static LogWriter staticLogWriter;
+  private static LogWriter staticSecurityLogWriter;
 
   final private Manager manager;
   final private JoinLeave joinLeave;
@@ -69,8 +71,8 @@ public class Services {
   private volatile boolean stopped;
   private volatile Exception shutdownCause;
 
-  private InternalLogWriter logWriter;
-  private InternalLogWriter securityLogWriter;
+  private LogWriter logWriter;
+  private LogWriter securityLogWriter;
   
   private Timer timer = new Timer("Geode Membership Timer", true);
   
@@ -79,8 +81,8 @@ public class Services {
   /**
    * A common logger for membership classes
    */
-  public static Logger getLogger() {
-    return logger;
+  public static LogWriter getLogger() {
+    return logger.convertToLogWriter();
   }
 
   /**
@@ -139,20 +141,20 @@ public class Services {
   protected void start() {
     boolean started = false;
     try {
-      logger.info("Starting membership services");
-      logger.debug("starting Authenticator");
+      logger.info(LocalizedStrings.DEBUG, "Starting membership services");
+      logger.convertToLogWriter().debug("starting Authenticator");
       this.auth.start();
-      logger.debug("starting Messenger");
+      logger.convertToLogWriter().debug("starting Messenger");
       this.messenger.start();
-      logger.debug("starting JoinLeave");
+      logger.convertToLogWriter().debug("starting JoinLeave");
       this.joinLeave.start();
-      logger.debug("starting HealthMonitor");
+      logger.convertToLogWriter().debug("starting HealthMonitor");
       this.healthMon.start();
-      logger.debug("starting Manager");
+      logger.convertToLogWriter().debug("starting Manager");
       this.manager.start();
       started = true;
     } catch (RuntimeException e) {
-      logger.fatal("Unexpected exception while booting membership services", e);
+      logger.severe(LocalizedStrings.DEBUG, "Unexpected exception while booting membership services", e);
       throw e;
     } finally {
       if (!started) {
@@ -169,7 +171,7 @@ public class Services {
     this.joinLeave.started();
     this.healthMon.started();
     this.manager.started();
-    logger.debug("All membership services have been started");
+    logger.convertToLogWriter().debug("All membership services have been started");
     try {
       this.manager.joinDistributedSystem();
     } catch (Throwable e) {
@@ -183,7 +185,7 @@ public class Services {
       return;
     }
     stopping = true;
-    logger.info("Stopping membership services");
+    logger.info(LocalizedStrings.DEBUG,"Stopping membership services");
     timer.cancel();
     try {
       joinLeave.emergencyClose();
@@ -213,7 +215,7 @@ public class Services {
     if (stopping) {
       return;
     }
-    logger.info("Stopping membership services");
+    logger.info(LocalizedStrings.DEBUG,"Stopping membership services");
     stopping = true;
     try {
       timer.cancel();
@@ -243,19 +245,19 @@ public class Services {
     }
   }
 
-  public static void setLogWriter(InternalLogWriter writer) {
+  public static void setLogWriter(LogWriter writer) {
     staticLogWriter = writer;
   }
 
-  public static void setSecurityLogWriter(InternalLogWriter securityWriter) {
+  public static void setSecurityLogWriter(LogWriter securityWriter) {
     staticSecurityLogWriter = securityWriter;
   }
 
-  public InternalLogWriter getLogWriter() {
+  public LogWriter getLogWriter() {
     return this.logWriter;
   }
 
-  public InternalLogWriter getSecurityLogWriter() {
+  public LogWriter getSecurityLogWriter() {
     return this.securityLogWriter;
   }
   
