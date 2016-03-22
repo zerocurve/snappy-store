@@ -973,8 +973,7 @@ public class InternalLocator extends Locator implements ConnectListener {
    * @param waitForDisconnect - wait up to 60 seconds for the locator to completely stop
    */
   public void stop(boolean forcedDisconnect, boolean stopForReconnect, boolean waitForDisconnect) {
-    final boolean isDebugEnabled = logger.isDebugEnabled();
-    
+
     this.stoppedForReconnect = stopForReconnect;
     this.forcedDisconnect = forcedDisconnect;
     
@@ -1063,7 +1062,7 @@ public class InternalLocator extends Locator implements ConnectListener {
       ((InternalDistributedSystem)myDs).setDependentLocator(null);
     }
     if (this.myCache != null && !this.stoppedForReconnect && !this.forcedDisconnect) {
-      logger.info("Closing locator's cache");
+      logger.info(LocalizedStrings.DEBUG,"Closing locator's cache");
       try {
         this.myCache.close();
       } catch (RuntimeException ex) {
@@ -1103,23 +1102,23 @@ public class InternalLocator extends Locator implements ConnectListener {
       restarted = false;
       this.server.join();
       if (this.stoppedForReconnect) {
-        logger.info("waiting for distributed system to disconnect...");
+        logger.info(LocalizedStrings.DEBUG,"waiting for distributed system to disconnect...");
         while (ds.isConnected()) {
           Thread.sleep(5000);
         }
-        logger.info("waiting for distributed system to reconnect...");
+        logger.info(LocalizedStrings.DEBUG,"waiting for distributed system to reconnect...");
         restarted = ds.waitUntilReconnected(-1, TimeUnit.SECONDS);
         if (restarted) {
-          logger.info("system restarted");
+          logger.info(LocalizedStrings.DEBUG,"system restarted");
         } else {
-          logger.info("system was not restarted");
+          logger.info(LocalizedStrings.DEBUG,"system was not restarted");
         }
         Thread rs = this.restartThread;
         if (rs != null) {
-          logger.info("waiting for services to restart...");
+          logger.info(LocalizedStrings.DEBUG,"waiting for services to restart...");
           rs.join();
           this.restartThread = null;
-          logger.info("done waiting for services to restart");
+          logger.info(LocalizedStrings.DEBUG,"done waiting for services to restart");
         }
       }
     } while (restarted);
@@ -1182,7 +1181,7 @@ public class InternalLocator extends Locator implements ConnectListener {
           if (start) {
             // start up peer location.  server location is started after the DS finishes
             // reconnecting
-            logger.info("starting peer location");
+            logger.info(LocalizedStrings.DEBUG,"starting peer location");
             if(this.locatorListener != null){
               this.locatorListener.clearLocatorInfo();
             }
