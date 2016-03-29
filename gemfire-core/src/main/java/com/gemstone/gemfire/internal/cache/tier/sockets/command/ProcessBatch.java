@@ -39,7 +39,7 @@ import com.gemstone.gemfire.cache.EntryNotFoundException;
 import com.gemstone.gemfire.cache.RegionDestroyedException;
 import com.gemstone.gemfire.cache.operations.*;
 import com.gemstone.gemfire.distributed.internal.DistributionStats;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 import java.io.IOException;
 import java.util.HashSet;

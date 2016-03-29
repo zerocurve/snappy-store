@@ -131,7 +131,7 @@ public class GfxdShutdownAllRequest extends ShutdownAllRequest implements
             boolean foundMyId = false;
             boolean hasNonLocatorMembers = false;
             GemFireStore.VMKind vmKind;
-            for (Object m : view) {
+            for (Object m : view.getMembers()) {
               if (foundMyId && !hasNewerMembers && GemFireXDUtils.getVMKind(
                   (DistributedMember)m) == GemFireStore.VMKind.LOCATOR) {
                 hasNewerMembers = true;

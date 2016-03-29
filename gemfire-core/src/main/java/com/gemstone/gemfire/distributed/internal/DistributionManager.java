@@ -1767,15 +1767,6 @@ public final class DistributionManager
   }
 
   /**
-   * Returns a remote reference to the channel used for point-to-point
-   * communications, or null if the normal channel is being used for
-   * this.
-   */
-  protected Stub getDirectChannel() {
-    return membershipManager.getDirectChannel();
-  }
-
-  /**
    * Returns an unmodifiable set containing the identities of all of
    * the known (non-admin-only) distribution managers.
    */
@@ -2994,7 +2985,7 @@ public final class DistributionManager
     short ordinal = version.ordinal();
     for (Iterator<InternalDistributedMember> it = members.iterator(); it.hasNext(); ) {
       InternalDistributedMember id = it.next();
-      if (id.getVersionOrdinal() < ordinal) {
+      if (id.getVersionObject().compareTo(version) < 0) {
         it.remove();
       }
     }
@@ -3005,7 +2996,7 @@ public final class DistributionManager
     short ordinal = version.ordinal();
     for (Iterator<InternalDistributedMember> it = members.iterator(); it.hasNext(); ) {
       InternalDistributedMember id = it.next();
-      if (id.getVersionOrdinal() >= ordinal) {
+      if (id.getVersionObject().compareTo(version) >= 0) {
         it.remove();
       }
     }
@@ -3120,13 +3111,6 @@ public final class DistributionManager
 
     if (allOthers.isEmpty()) {
       return false; // no peers, we are alone.
-    }
-
-    // ensure we have stubs for everyone else
-    Iterator it = allOthers.iterator();
-    while (it.hasNext()) {
-      InternalDistributedMember member = (InternalDistributedMember)it.next();
-      membershipManager.getStubForMember(member);
     }
 
     try {
@@ -4326,7 +4310,6 @@ public final class DistributionManager
   /**
    * Return the function message-processing executor 
    */
-  @Override
   public Executor getFunctionExcecutor() {
     if (this.functionExecutionThread != null) {
       return this.functionExecutionThread;
@@ -4884,7 +4867,7 @@ public final class DistributionManager
       }
       dm.handleManagerDeparture(theId, crashed, reason);
     }
-    
+
     public void memberSuspect(InternalDistributedMember suspect, InternalDistributedMember whoSuspected) {
       dm.handleManagerSuspect(suspect, whoSuspected);
     }

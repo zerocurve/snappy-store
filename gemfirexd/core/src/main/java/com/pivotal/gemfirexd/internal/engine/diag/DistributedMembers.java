@@ -273,7 +273,7 @@ public final class DistributedMembers extends UpdateVTITemplate {
       res = Boolean.valueOf(this.currentMember.equals(this.dm.getElderId()));
     }
     else if (IPADDRESS.equals(columnName)) {
-      res = this.currentMember.getIpAddress().toString();
+      res = this.currentMember.getInetAddress().toString();
     }
     else if (HOST.equals(columnName)) {
       res = this.currentMember.getHost();

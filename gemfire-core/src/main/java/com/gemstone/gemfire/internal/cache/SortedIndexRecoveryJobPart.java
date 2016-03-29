@@ -43,7 +43,7 @@ final class SortedIndexRecoveryJobPart extends BatchJobControl {
       CancelCriterion cc, SortedIndexContainer indexContainer,
       SortedIndexRecoveryJob controller) {
     // use the function executor thread pool
-    super(cache.getDistributionManager().getFunctionExcecutor(), cache
+    super(cache.getDistributionManager().getPrMetaDataCleanupThreadPool(), cache
         .getLoggerI18n(), cc, controller.maxQueuedJobs);
     this.dsi = ds;
     this.indexContainer = indexContainer;

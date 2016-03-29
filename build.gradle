@@ -783,7 +783,7 @@ if (!rootProject.hasProperty('store')) {
 }
 
 task generateSources {
-  dependsOn subprojectBase + 'gemfire-jgroups:jgMagic'
+  //dependsOn subprojectBase + 'gemfire-jgroups:jgMagic'
   dependsOn subprojectBase + 'gemfire-core:createVersionPropertiesFile'
   dependsOn subprojectBase + 'gemfirexd-core:compileJavacc'
   dependsOn subprojectBase + 'gemfirexd-core:generatePropertiesFiles'

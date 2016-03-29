@@ -1227,6 +1227,7 @@ public class CliStrings {
   public static final String SHOW_DEADLOCK__DEPENDENCIES__FILE = "file";
   public static final String SHOW_DEADLOCK__DEPENDENCIES__FILE__HELP = "Name of the file to which dependencies between members will be written.";
   public static final String SHOW_DEADLOCK__NO__DEADLOCK = "No dead lock detected.";
+  public static final String SHOW_DEADLOCK__DEEPEST_FOUND = "No deadlock was detected.  Here is the deepest call chain that could be found";
   public static final String SHOW_DEADLOCK__DEADLOCK__DETECTED = "Dead lock detected.";
   public static final String SHOW_DEADLOCK__DEPENDENCIES__REVIEW = "Please view the dependencies between the members in file : {0}";
   public static final String SHOW_DEADLOCK__ERROR = "Error";
@@ -1521,6 +1522,8 @@ public class CliStrings {
   public static final String START_SERVER__MCAST_ADDRESS__HELP = "The IP address or hostname used to bind the UPD socket for multi-cast networking so the Cache Server can communicate with other members in the GemFire cluster.  If mcast-port is zero, then mcast-address is ignored.";
   public static final String START_SERVER__MCAST_PORT = "mcast-port";
   public static final String START_SERVER__MCAST_PORT__HELP = "Sets the port used for multi-cast networking so the Cache Server can communicate with other members of the GemFire cluster.  A zero value disables mcast.";
+  public static final String START_SERVER__MEMBER_NAME = "name";
+  public static final String START_SERVER__MEMBER_NAME__HELP = "The member name to give this Cache Server in the GemFire cluster.";
   public static final String START_SERVER__NAME = "name";
   public static final String START_SERVER__NAME__HELP = "The member name to give this Cache Server in the GemFire cluster.";
   public static final String START_SERVER__MEMCACHED_PORT = "memcached-port";

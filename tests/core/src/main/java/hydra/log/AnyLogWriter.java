@@ -26,7 +26,6 @@ import com.gemstone.gemfire.LogWriter;
 import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.LocalLogWriter;
 import com.gemstone.gemfire.internal.LogWriterImpl;
-import com.gemstone.org.jgroups.util.StringId;
 import hydra.HydraRuntimeException;
 
 /**

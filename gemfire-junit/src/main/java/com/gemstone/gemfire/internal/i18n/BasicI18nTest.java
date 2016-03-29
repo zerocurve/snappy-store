@@ -16,9 +16,6 @@
  */
 package com.gemstone.gemfire.internal.i18n;
 
-import com.gemstone.gemfire.i18n.StringIdImpl;
-import com.gemstone.org.jgroups.util.StringId;
-
 import junit.framework.TestCase;
 
 import java.lang.reflect.Field;

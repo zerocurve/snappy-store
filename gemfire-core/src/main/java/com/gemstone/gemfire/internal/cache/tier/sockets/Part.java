@@ -17,6 +17,8 @@
 package com.gemstone.gemfire.internal.cache.tier.sockets;
 
 import com.gemstone.gemfire.internal.*;
+import com.gemstone.gemfire.internal.shared.Version;
+
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;
@@ -35,6 +37,9 @@ import java.nio.channels.*;
 public class Part {
   private static final byte BYTE_CODE = 0;
   private static final byte OBJECT_CODE = 1;
+
+  private Version version;
+
   /**
    * Used to represent and empty byte array for bug 36279
    * @since 5.1
@@ -222,7 +227,13 @@ public class Part {
     if (isBytes()) {
       return this.part;
     } else {
-      return CacheServerHelper.deserialize((byte[])this.part, unzip);
+      if (this.version != null) {
+        return CacheServerHelper.deserialize((byte[])this.part, this.version,
+            unzip);
+      }
+      else {
+        return CacheServerHelper.deserialize((byte[])this.part, unzip);
+      }
     }
   }
   public Object getObject() throws IOException, ClassNotFoundException {
@@ -333,5 +344,9 @@ public class Part {
 //      sb.append(")");
 //    }
     return sb.toString();
+  }
+
+  public void setVersion(Version clientVersion) {
+    this.version = clientVersion;
   }
 }

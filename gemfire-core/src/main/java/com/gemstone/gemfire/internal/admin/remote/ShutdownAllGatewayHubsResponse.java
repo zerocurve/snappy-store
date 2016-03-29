@@ -27,17 +27,12 @@ public class ShutdownAllGatewayHubsResponse extends AdminResponse {
   }
   
   @Override
-  public boolean sendViaJGroups() {
+  public boolean sendViaUDP() {
     return true;
   }
 
   @Override
   public boolean getInlineProcess() {
-    return true;
-  }
-
-  @Override
-  public boolean orderedDelivery(boolean threadOwnsResources) {
     return true;
   }
 

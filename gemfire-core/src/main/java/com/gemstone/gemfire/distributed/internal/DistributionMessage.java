@@ -120,6 +120,9 @@ public abstract class DistributionMessage
   /** true if message should be multicast; ignores recipients */
   private transient boolean multicast = false;
 
+  /** true if messageBeingReceived stats need decrementing when done with msg */
+  private transient boolean doDecMessagesBeingReceived = false;
+
   /**
    * non-null if messageBeingReceived stats need decrementing when done with msg
    */
@@ -181,6 +184,9 @@ public abstract class DistributionMessage
   }
 
   //////////////////////  Instance Methods  //////////////////////
+  public void setDoDecMessagesBeingReceived(boolean v) {
+    this.doDecMessagesBeingReceived = v;
+  }
 
   public final void setHandleReceiverStats(Connection conn) {
     this.messageReceiver = conn;
@@ -458,7 +464,7 @@ public abstract class DistributionMessage
       dm.logger.severe(LocalizedStrings.DistributionMessage_UNCAUGHT_EXCEPTION_PROCESSING__0, this, t);
     }
     finally {
-      if (this.messageReceiver != null) {
+      if (doDecMessagesBeingReceived) {
         dm.getStats().decMessagesBeingReceived(this.bytesRead);
       }
       dm.getStats().incProcessedMessages(1L);
@@ -499,13 +505,7 @@ public abstract class DistributionMessage
 //        }
         getExecutor(dm).execute(new SizeableRunnable(this.getBytesRead()) {
           public void run() {
-            try {
-              scheduleAction(dm);
-            } finally {
-              if (receiver != null && containsRegionContentChange()) {
-                receiver.incMessagesReceived();
-              }
-            }
+            scheduleAction(dm);
           }
 
           @Override
@@ -515,9 +515,6 @@ public abstract class DistributionMessage
         });
       }
       catch (RejectedExecutionException ex) {
-        if (receiver != null && containsRegionContentChange()) {
-          receiver.incMessagesReceived();
-        }
         if (!dm.shutdownInProgress()) { // fix for bug 32395
           dm.logger.warning(LocalizedStrings.DistributionMessage_0__SCHEDULE_REJECTED, this.toString(), ex);
         }

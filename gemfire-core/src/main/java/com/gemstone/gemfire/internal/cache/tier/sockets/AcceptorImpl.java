@@ -295,7 +295,6 @@ public class AcceptorImpl extends Acceptor implements Runnable
    * @param maxThreads
    *          the maximum number of threads allowed in the server pool
    * 
-   * @see SocketCreator#createServerSocket(int, int, InetAddress, LogWriterI18n)
    * @see ClientHealthMonitor
    * @since 5.7
    */

@@ -143,10 +143,7 @@ import com.gemstone.gemfire.pdx.internal.CheckTypeRegistryState;
 import com.gemstone.gemfire.pdx.internal.EnumId;
 import com.gemstone.gemfire.pdx.internal.EnumInfo;
 import com.gemstone.gnu.trove.TIntObjectHashMap;
-import com.gemstone.org.jgroups.View;
-import com.gemstone.org.jgroups.protocols.pbcast.JoinRsp;
-import com.gemstone.org.jgroups.stack.IpAddress;
-import com.gemstone.org.jgroups.util.StreamableFixedID;
+
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -845,12 +842,8 @@ public final class DSFIDFactory implements DataSerializableFixedID {
         if (cons != null) {
           try {
             Object ds = cons.newInstance((Object[])null);
-            if (ds instanceof DataSerializableFixedID) {
               InternalDataSerializer.invokeFromData(
                   (DataSerializableFixedID)ds, in);
-            } else {
-              InternalDataSerializer.invokeFromData((StreamableFixedID)ds, in);
-            }
             return ds;
           } catch (InstantiationException ie) {
             throw new IOException(ie.getMessage(), ie);

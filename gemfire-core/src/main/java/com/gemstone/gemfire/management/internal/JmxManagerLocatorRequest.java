@@ -28,8 +28,8 @@ import com.gemstone.gemfire.internal.DataSerializableFixedID;
 import com.gemstone.gemfire.internal.LocalLogWriter;
 import com.gemstone.gemfire.internal.LogWriterImpl;
 import com.gemstone.gemfire.internal.SocketCreator;
+import com.gemstone.gemfire.internal.i18n.GemFireTracer;
 import com.gemstone.gemfire.internal.shared.Version;
-import com.gemstone.org.jgroups.util.GemFireTracer;
 
 /**
  * Sent to a locator to request it to find (and possibly start)

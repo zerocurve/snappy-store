@@ -325,6 +325,21 @@ public final class Version implements Comparable<Version> {
     return version;
   }
 
+  /**
+   * Return the <code>Version</code> represented by specified ordinal while not
+   * throwing exception if given ordinal is higher than any known ones or does not
+   * map to an actual Version instance due to gaps in the version ordinal sequence.
+   */
+  public static Version fromOrdinalNoThrow(short ordinal, boolean returnNullForCurrent) {
+    if (ordinal == TOKEN_ORDINAL) {
+      return TOKEN;
+    }
+    if (ordinal >= VALUES.length || VALUES[ordinal] == null) {
+      return returnNullForCurrent ? null : CURRENT;
+    }
+    return VALUES[ordinal];
+  }
+
   private static Map<?, ?> getClientCommands(Version version) {
     if (getGFEClientCommands == null) {
       return null;

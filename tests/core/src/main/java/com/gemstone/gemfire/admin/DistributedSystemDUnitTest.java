@@ -33,7 +33,7 @@ import com.gemstone.gemfire.internal.ManagerLogWriter;
 import com.gemstone.gemfire.internal.PureLogWriter;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.util.StopWatch;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 import dunit.*;
 import hydra.HostHelper;

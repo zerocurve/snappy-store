@@ -19,6 +19,7 @@ package com.gemstone.gemfire.internal.cache.tier.sockets;
 
 import com.gemstone.gemfire.internal.HeapDataOutputStream;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
+import com.gemstone.gemfire.internal.shared.Version;
 import com.gemstone.gemfire.internal.util.BlobHelper;
 
 import java.io.ByteArrayInputStream;
@@ -63,6 +64,12 @@ public class CacheServerHelper
     return unzipObject
       ? unzip(blob)
       : BlobHelper.deserializeBlob(blob);
+  }
+  public static Object deserialize(byte[] blob, Version version, boolean unzipObject) throws IOException, ClassNotFoundException
+  {
+    return unzipObject
+        ? unzip(blob)
+        : BlobHelper.deserializeBlob(blob, version, null);
   }
 
   public static byte[] zip(Object obj) throws IOException

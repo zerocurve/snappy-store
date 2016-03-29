@@ -320,7 +320,7 @@ public class PutAll75 extends BaseCommand {
       writeChunkedException(msg, ce, false, servConn);
       servConn.setAsTrue(RESPONDED);
       // if (logger.fineEnabled()) {
-      logger.warning(LocalizedStrings.PutAll_0_UNEXPECTED_EXCEPTION, servConn.getName(), ce);
+      logger.warning(LocalizedStrings.Generic_0_UNEXPECTED_EXCEPTION, servConn.getName(), ce);
       // }
       return;
     }

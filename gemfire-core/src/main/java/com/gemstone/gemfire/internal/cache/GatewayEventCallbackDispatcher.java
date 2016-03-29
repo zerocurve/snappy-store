@@ -28,7 +28,7 @@ import com.gemstone.gemfire.CancelException;
 import com.gemstone.gemfire.cache.GatewayException;
 import com.gemstone.gemfire.cache.util.GatewayEventListener;
 import com.gemstone.gemfire.internal.cache.GatewayImpl.GatewayEventProcessor;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * Class <code>GatewayEventCallbackDispatcher</code> dispatches batches of

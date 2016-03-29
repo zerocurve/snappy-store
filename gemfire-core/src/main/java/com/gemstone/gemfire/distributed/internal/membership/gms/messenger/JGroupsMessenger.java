@@ -42,8 +42,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.gemstone.gemfire.internal.i18n.GemFireTracer;
-import org.apache.logging.log4j.Logger;
+import com.gemstone.gemfire.LogWriter;
 import org.jgroups.Address;
 import org.jgroups.Event;
 import org.jgroups.JChannel;
@@ -98,7 +97,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 public class JGroupsMessenger implements Messenger {
 
-  private static final GemFireTracer logger = Services.getLogger();
+  private static final LogWriter logger = Services.getLogger();
 
   /**
    * The location (in the product) of the locator Jgroups config file.
@@ -258,7 +257,7 @@ public class JGroupsMessenger implements Messenger {
     try {
       Object oldChannel = services.getConfig().getTransport().getOldDSMembershipInfo();
       if (oldChannel != null) {
-        logger.debug("Reusing JGroups channel from previous system", properties);
+        logger.debug("Reusing JGroups channel from previous system" + properties);
         
         myChannel = (JChannel)oldChannel;
         // scrub the old channel
@@ -272,7 +271,7 @@ public class JGroupsMessenger implements Messenger {
         reconnecting = true;
       }
       else {
-        logger.debug("JGroups configuration: {}", properties);
+        logger.debug("JGroups configuration: " +  properties);
         
         checkForIPv6();
         InputStream is = new ByteArrayInputStream(properties.getBytes("UTF-8"));
@@ -309,7 +308,7 @@ public class JGroupsMessenger implements Messenger {
     
     establishLocalAddress();
     
-    logger.info("JGroups channel {} (took {}ms)", (reconnecting? "reinitialized" : "created"), System.currentTimeMillis()-start);
+    logger.info("JGroups channel "+(reconnecting? "reinitialized" : "created")+" (took "+(System.currentTimeMillis()-start)+"ms)");
     
   }
   
@@ -365,7 +364,7 @@ public class JGroupsMessenger implements Messenger {
     }
     ViewId vid = new ViewId(new JGAddress(v.getCoordinator()), v.getViewId());
     View jgv = new View(vid, new ArrayList<Address>(mbrs));
-    logger.trace("installing JGroups view: {}", jgv);
+    logger.info("installing JGroups view: " + jgv);
     this.myChannel.down(new Event(Event.VIEW_CHANGE, jgv));
 
     addressesWithioExceptionsProcessed.clear();
@@ -497,7 +496,7 @@ public class JGroupsMessenger implements Messenger {
     try {
       pingPonger.sendPingMessage(myChannel, jgAddress, dest);
     } catch (Exception e) {
-      logger.warn("unable to send multicast message: {}", (jgAddress==null? "multicast recipients":jgAddress),
+      logger.warning("unable to send multicast message: " + (jgAddress == null ? "multicast recipients" : jgAddress) +
           e.getMessage());
       return false;
     }
@@ -557,8 +556,8 @@ public class JGroupsMessenger implements Messenger {
         if (senderSeqnos != null) {
           received = String.valueOf(senderSeqnos[0]);
         }
-        logger.warn("{} seconds have elapsed while waiting for multicast messages from {}.  Received {} but expecting at least {}.",
-            Long.toString((warnTime-startTime)/1000L), sender, received, seqno);
+        logger.warning(Long.toString((warnTime - startTime) / 1000L) + " seconds have elapsed while waiting for multicast messages from "+sender+"." +
+            "  Received "+received+" but expecting at least "+seqno+".");
       }
       if (now >= quitTime) {
         throw new GemFireIOException("Multicast operations from " + sender + " did not distribute within " + (now - startTime) + " milliseconds");
@@ -611,9 +610,9 @@ public class JGroupsMessenger implements Messenger {
       }
     }
     
-    if (logger.isDebugEnabled() && reliably) {
+    if (logger.fineEnabled() && reliably) {
       String recips = useMcast? "multicast" : Arrays.toString(msg.getRecipients());
-      logger.debug("sending via JGroups: [{}] recipients: {}", msg, recips);
+      logger.debug("sending via JGroups: ["+msg+"] recipients: "+ recips);
     }
     
     JGAddress local = this.jgAddress;
@@ -631,11 +630,11 @@ public class JGroupsMessenger implements Messenger {
           jmsg.setFlag(Message.Flag.NO_RELIABILITY);
         }
         theStats.incSentBytes(jmsg.getLength());
-        logger.trace("Sending JGroups message: {}", jmsg);
+        logger.info("Sending JGroups message: "+ jmsg);
         myChannel.send(jmsg);
       }
       catch (Exception e) {
-        logger.debug("caught unexpected exception", e);
+        logger.fine("caught unexpected exception", e);
         Throwable cause = e.getCause();
         if (cause instanceof ForcedDisconnectException) {
           problem = (Exception) cause;
@@ -714,7 +713,7 @@ public class JGroupsMessenger implements Messenger {
           }
           tmp.setDest(to);
           tmp.setSrc(this.jgAddress);
-          logger.trace("Unicasting to {}", to);
+          logger.info("Unicasting to "+ to);
           myChannel.send(tmp);
         }
         catch (Exception e) {
@@ -807,7 +806,7 @@ public class JGroupsMessenger implements Messenger {
       services.getStatistics().endMsgSerialization(start);
     }
     catch(IOException | GemFireIOException ex) {
-      logger.warn("Error serializing message", ex);
+      logger.warning("Error serializing message", ex);
       if (ex instanceof GemFireIOException) {
         throw (GemFireIOException)ex;
       } else {
@@ -829,15 +828,12 @@ public class JGroupsMessenger implements Messenger {
     Object result = null;
     
     int messageLength = jgmsg.getLength();
-    
-    if (logger.isTraceEnabled()) {
-      logger.trace("deserializing a message of length "+messageLength);
-    }
-    
+    logger.info("deserializing a message of length " + messageLength);
+
     if (messageLength == 0) {
       // jgroups messages with no payload are used for protocol interchange, such
       // as STABLE_GOSSIP
-      logger.trace("message length is zero - ignoring");
+      logger.info("message length is zero - ignoring");
       return null;
     }
 
@@ -881,8 +877,8 @@ public class JGroupsMessenger implements Messenger {
       problem = e;
     }
     if (problem != null) {
-      logger.error(LocalizedMessage.create(
-            LocalizedStrings.GroupMembershipService_EXCEPTION_DESERIALIZING_MESSAGE_PAYLOAD_0, jgmsg), problem);
+      logger.severe(
+          LocalizedStrings.GroupMembershipService_EXCEPTION_DESERIALIZING_MESSAGE_PAYLOAD_0, jgmsg, problem);
       return null;
     }
 
@@ -905,7 +901,7 @@ public class JGroupsMessenger implements Messenger {
         try {
           digest.writeTo(hdos);
         } catch (Exception e) {
-          logger.fatal("Unable to serialize JGroups messaging digest", e);
+          logger.severe("Unable to serialize JGroups messaging digest", e);
         }
         jrsp.setMessengerData(hdos.toByteArray());
       }
@@ -929,13 +925,13 @@ public class JGroupsMessenger implements Messenger {
           Digest digest = new Digest();
           digest.readFrom(dis);
           if (digest != null) {
-            logger.trace("installing JGroups message digest {}", digest);
+            logger.info("installing JGroups message digest " + digest);
             this.myChannel.getProtocolStack()
                 .getTopProtocol().down(new Event(Event.SET_DIGEST, digest));
             jrsp.setMessengerData(null);
           }
         } catch (Exception e) {
-          logger.fatal("Unable to read JGroups messaging digest", e);
+          logger.severe("Unable to read JGroups messaging digest", e);
         }
       }
       break;
@@ -1027,11 +1023,8 @@ public class JGroupsMessenger implements Messenger {
       if (services.getManager().shutdownInProgress()) {
         return;
       }
+      logger.info("JGroupsMessenger received "+jgmsg+" headers: "+ jgmsg.getHeaders());
 
-      if (logger.isTraceEnabled()) {
-        logger.trace("JGroupsMessenger received {} headers: {}", jgmsg, jgmsg.getHeaders());
-      }
-      
       //Respond to ping messages sent from other systems that are in a auto reconnect state
       byte[] contents = jgmsg.getBuffer();
       if (contents == null) {
@@ -1070,7 +1063,7 @@ public class JGroupsMessenger implements Messenger {
       msg.setBytesRead(jgmsg.getLength());
             
       try {
-        logger.trace("JGroupsMessenger dispatching {} from {}", msg, msg.getSender());
+        logger.info("JGroupsMessenger dispatching "+msg+" from "+ msg.getSender());
         filterIncomingMessage(msg);
         getMessageHandler(msg).processMessage(msg);
       }

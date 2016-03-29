@@ -45,6 +45,7 @@ import com.gemstone.gemfire.internal.DataSerializableFixedID;
 import com.gemstone.gemfire.internal.InternalDataSerializer;
 import com.gemstone.gemfire.internal.OSProcess;
 import com.gemstone.gemfire.internal.SocketCreator;
+import com.gemstone.gemfire.internal.shared.UnsupportedGFXDVersionException;
 import com.gemstone.gemfire.internal.shared.Version;
 import com.gemstone.gemfire.internal.cache.versions.VersionSource;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
@@ -148,7 +149,7 @@ public final class InternalDistributedMember
 
   /** The versions in which this message was modified */
   private static final Version[] dsfidVersions = new Version[] {
-        Version.GFE_71, Version.GFE_90 };
+        Version.GFE_71, Version.GFE_75 };
 
   private void defaultToCurrentHost() {
     this.vmPid = OSProcess.getId();
@@ -201,7 +202,7 @@ public final class InternalDistributedMember
     this.version = netMbr.getVersionOrdinal();
     try {
       this.versionObj = Version.fromOrdinal(version, false);
-    } catch (UnsupportedVersionException e) {
+    } catch (UnsupportedGFXDVersionException e) {
       this.versionObj = Version.CURRENT;
     }
 //    checkHostName();
@@ -237,7 +238,7 @@ public final class InternalDistributedMember
     this.version = m.getVersionOrdinal();
     try {
       this.versionObj = Version.fromOrdinal(version, false);
-    } catch (UnsupportedVersionException e) {
+    } catch (UnsupportedGFXDVersionException e) {
       this.versionObj = Version.CURRENT;
     }
     cachedToString = null;
@@ -732,25 +733,29 @@ public final class InternalDistributedMember
   private transient String cachedToString;
 
   @Override
-  public String toString()
-  {
+  public String toString() {
+    return toString(null);
+  }
+
+  public String toString(final String vmKindStr) {
     String result = cachedToString;
-    if (result == null) {
+    if (result == null || vmKindStr != null) {
       String host;
 
       InetAddress add = getInetAddress();
-        if (add.isMulticastAddress())
-          host = add.getHostAddress();
-        else {
-         // host = shortName(add.getHostName());
-          host = SocketCreator.resolve_dns? shortName(this.hostName) : this.hostName;
-        }
+      if (add.isMulticastAddress())
+        host = add.getHostAddress();
+      else {
+        // host = shortName(add.getHostName());
+        host = SocketCreator.resolve_dns? shortName(this.hostName) : this.hostName;
+      }
       final StringBuilder sb = new StringBuilder();
 
       sb.append(host);
 
       String myName = getName();
-      if (vmPid > 0 || vmKind != DistributionManager.NORMAL_DM_TYPE || !"".equals(myName)) {
+      if (vmPid > 0 || vmKind != DistributionManager.NORMAL_DM_TYPE
+          || vmKindStr != null || !"".equals(myName)) {
         sb.append("(");
 
         if (!"".equals(myName)) {
@@ -765,27 +770,40 @@ public final class InternalDistributedMember
 
         String vmStr = "";
         switch (vmKind) {
-        case DistributionManager.NORMAL_DM_TYPE:
-  //        vmStr = ":local"; // let this be silent
-          break;
-        case DistributionManager.LOCATOR_DM_TYPE:
-          vmStr = ":locator";
-          break;
-        case DistributionManager.ADMIN_ONLY_DM_TYPE:
-          vmStr = ":admin";
-          break;
-        case DistributionManager.LONER_DM_TYPE:
-          vmStr = ":loner";
-          break;
-        default:
-          vmStr = ":<unknown:" + vmKind + ">";
-          break;
+          case DistributionManager.NORMAL_DM_TYPE:
+            //        vmStr = ":local"; // let this be silent
+            break;
+          case DistributionManager.LOCATOR_DM_TYPE:
+            vmStr = ":locator";
+            break;
+          case DistributionManager.ADMIN_ONLY_DM_TYPE:
+            vmStr = ":admin";
+            break;
+          case DistributionManager.LONER_DM_TYPE:
+            vmStr = ":loner";
+            break;
+          default:
+            vmStr = ":<unknown:" + vmKind + ">";
+            break;
         }
-        sb.append(vmStr);
+        if (vmKindStr != null) {
+          sb.append(vmKindStr);
+        }
+        else {
+          sb.append(vmStr);
+        }
+        // for split-brain and security debugging we need to know if the
+        // member has the "can't be coordinator" bit set
+//        JGroupMember jgm = (JGroupMember)ipAddr;
+//        if (!jgm.getAddress().canBeCoordinator()) {
+//          sb.append("<p>");
+//        }
         sb.append(")");
       }
-      if (vmKind != DistributionManager.LONER_DM_TYPE && netMbr.preferredForCoordinator()) {
-        sb.append("<ec>");
+      if (netMbr.splitBrainEnabled()) {
+        if (netMbr.preferredForCoordinator()) {
+          sb.append("<ec>");
+        }
       }
       if (this.vmViewId >= 0) {
         sb.append("<v" + this.vmViewId + ">");
@@ -814,19 +832,15 @@ public final class InternalDistributedMember
         sb.append("(version:").append(Version.toString(this.version))
             .append(')');
       }
-
       if (SHOW_NETMEMBER) {
         sb.append("[[").append(this.netMbr).append("]]");
       }
-
       // leave out Roles on purpose
-      
-//      if (netMbr instanceof GMSMember) {
-//        sb.append("(UUID=").append(((GMSMember)netMbr).getUUID()).append(")");
-//      }
 
       result = sb.toString();
-      cachedToString = result;
+      if (vmKindStr == null) {
+        cachedToString = result;
+      }
     }
     return result;
   }
@@ -921,7 +935,7 @@ public final class InternalDistributedMember
 
      netMbr = MemberFactory.newNetMember(inetAddr, port, sbEnabled, elCoord, version,
          new MemberAttributes(dcPort, vmPid, vmKind, vmViewId, name, groups, durableClientAttributes));
-     if (this.version >= Version.GFE_90.ordinal()) {
+     if (this.version >= Version.GFE_75.ordinal()) {
        try {
          netMbr.readAdditionalData(in);
        } catch (java.io.EOFException e) {
@@ -938,7 +952,7 @@ public final class InternalDistributedMember
 
   public void toData(DataOutput out) throws IOException {
     toDataPre_GFE_9_0_0_0(out);
-    if (this.version >= Version.GFE_90.ordinal()) {
+    if (this.version >= Version.GFE_75.ordinal()) {
       getNetMember().writeAdditionalData(out);
     }
   }
@@ -1023,7 +1037,7 @@ public final class InternalDistributedMember
     fromDataPre_GFE_9_0_0_0(in);
     // just in case this is just a non-versioned read
     // from a file we ought to check the version
-    if (this.version >= Version.GFE_90.ordinal()) {
+    if (this.version >= Version.GFE_75.ordinal()) {
       try {
         netMbr.readAdditionalData(in);
       } catch (EOFException e) {
@@ -1158,7 +1172,7 @@ public final class InternalDistributedMember
 
      synchPayload();
 
-     if (InternalDataSerializer.getVersionForDataStream(in).compareTo(Version.GFE_90)>=0) {
+     if (InternalDataSerializer.getVersionForDataStream(in).compareTo(Version.GFE_75)>=0) {
        netMbr.readAdditionalData(in);
      }
    }
@@ -1186,7 +1200,7 @@ public final class InternalDistributedMember
      // write name last to fix bug 45160
      DataSerializer.writeString(this.name, out);
 
-     if (InternalDataSerializer.getVersionForDataStream(out).compareTo(Version.GFE_90)>=0) {
+     if (InternalDataSerializer.getVersionForDataStream(out).compareTo(Version.GFE_75)>=0) {
        netMbr.writeAdditionalData(out);
      }
    }

@@ -23,15 +23,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import org.apache.logging.log4j.Logger;
-
 import com.gemstone.gemfire.GemFireConfigException;
 import com.gemstone.gemfire.distributed.internal.membership.MemberAttributes;
 import com.gemstone.gemfire.internal.SocketCreator;
 
 public class GMSUtil {
-  static Logger logger = Services.getLogger();
-  
+
   public static List<InetSocketAddress> parseLocators(String locatorsString, String bindAddress) {
     InetAddress addr = null;
     

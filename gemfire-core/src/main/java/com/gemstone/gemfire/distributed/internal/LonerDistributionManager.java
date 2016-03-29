@@ -19,16 +19,7 @@ package com.gemstone.gemfire.distributed.internal;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -166,21 +157,19 @@ public class LonerDistributionManager implements DM {
   
   @Override // DM method
   public void retainMembersWithSameOrNewerVersion(Collection<InternalDistributedMember> members, Version version) {
-    short ordinal = version.ordinal();
     for (Iterator<InternalDistributedMember> it = members.iterator(); it.hasNext(); ) {
       InternalDistributedMember id = it.next();
-      if (id.getVersionOrdinal() < ordinal) {
+      if (id.getVersionObject().compareTo(version) < 0) {
         it.remove();
       }
     }
   }
-  
+
   @Override // DM method
   public void removeMembersWithSameOrNewerVersion(Collection<InternalDistributedMember> members, Version version) {
-    short ordinal = version.ordinal();
     for (Iterator<InternalDistributedMember> it = members.iterator(); it.hasNext(); ) {
       InternalDistributedMember id = it.next();
-      if (id.getVersionOrdinal() >= ordinal) {
+      if (id.getVersionObject().compareTo(version) >= 0) {
         it.remove();
       }
     }
@@ -281,8 +270,12 @@ public class LonerDistributionManager implements DM {
     return executor;
   }
 
-  @Override
+  //@Override TODO:Suranjan see if it is correct
   public Executor getFunctionExcecutor() {
+    return executor;
+  }
+
+  public ExecutorService getPrMetaDataCleanupThreadPool() {
     return executor;
   }
 

@@ -20,6 +20,8 @@ dependencies {
   compile('commons-modeler:commons-modeler:2.0') {
     exclude(group: 'xml-apis', module: 'xml-apis')
   }
+  //provided 'it.unimi.dsi:fastutil:7.0.2'
+  provided files("/home/skumar/Desktop/fastutil-7.0.2.jar")
   compile 'commons-cli:commons-cli:1.3.1'
   compile 'javax.mail:javax.mail-api:1.4.5'
   compile 'javax.resource:javax.resource-api:1.7'

@@ -34,14 +34,13 @@ import java.util.Set;
 
 import com.gemstone.gemfire.InternalGemFireException;
 
-import org.apache.logging.log4j.Logger;
+import com.gemstone.gemfire.LogWriter;
 
 import com.gemstone.gemfire.DataSerializer;
 import com.gemstone.gemfire.cache.GemFireCache;
 import com.gemstone.gemfire.distributed.DistributedSystem;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
 import com.gemstone.gemfire.distributed.internal.LocatorStats;
-import com.gemstone.gemfire.distributed.internal.SharedConfiguration;
 import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedMember;
 import com.gemstone.gemfire.distributed.internal.membership.MembershipManager;
 import com.gemstone.gemfire.distributed.internal.membership.NetView;
@@ -52,9 +51,10 @@ import com.gemstone.gemfire.distributed.internal.membership.gms.interfaces.Locat
 import com.gemstone.gemfire.distributed.internal.membership.gms.mgr.GMSMembershipManager;
 import com.gemstone.gemfire.distributed.internal.tcpserver.TcpClient;
 import com.gemstone.gemfire.distributed.internal.tcpserver.TcpServer;
-import com.gemstone.gemfire.internal.Version;
+import com.gemstone.gemfire.i18n.LogWriterI18n;
+import com.gemstone.gemfire.internal.shared.Version;
 import com.gemstone.gemfire.internal.VersionedObjectInput;
-import com.gemstone.gemfire.internal.logging.LogService;
+import com.gemstone.gemfire.internal.util.LogService;
 
 import static com.gemstone.gemfire.internal.i18n.LocalizedStrings.LOCATOR_UNABLE_TO_RECOVER_VIEW;
 
@@ -62,7 +62,7 @@ public class GMSLocator implements Locator, NetLocator {
 
   /* package */ static final int LOCATOR_FILE_STAMP = 0x7b8cf741;
   
-  private static final Logger logger = LogService.getLogger();
+  private static final LogWriter logger = LogService.logWriter();
 
   private final boolean usePreferredCoordinators;
   private final boolean networkPartitionDetectionEnabled;
@@ -125,8 +125,8 @@ public class GMSLocator implements Locator, NetLocator {
   
   @Override
   public void init(TcpServer server) throws InternalGemFireException {
-    logger.info("GemFire peer location service starting.  Other locators: {}  Locators preferred as coordinators: {}  Network partition detection enabled: {}  View persistence file: {}",
-        locatorString, usePreferredCoordinators, networkPartitionDetectionEnabled, viewFile);
+    logger.info("GemFire peer location service starting.  Other locators: "+locatorString+"  Locators preferred as coordinators: " +
+            ""+usePreferredCoordinators+"  Network partition detection enabled: "+networkPartitionDetectionEnabled+"  View persistence file: " + viewFile);
     recover();
   }
   
@@ -153,8 +153,8 @@ public class GMSLocator implements Locator, NetLocator {
   public Object processRequest(Object request) throws IOException {
     Object response = null;
     
-    if (logger.isDebugEnabled()) {
-      logger.debug("Peer locator processing {}", request);
+    if (logger.fineEnabled()) {
+      logger.debug("Peer locator processing "+ request);
     }
     
     if (localAddress == null && services != null) {
@@ -200,7 +200,7 @@ public class GMSLocator implements Locator, NetLocator {
           } else {
             coord = v.getCoordinator(findRequest.getRejectedCoordinators());
           }
-          logger.debug("Peer locator: coordinator from view is {}", coord);
+          logger.debug("Peer locator: coordinator from view is "+ coord);
           fromView = true;
         }
         
@@ -223,7 +223,7 @@ public class GMSLocator implements Locator, NetLocator {
                 }
               }
             }
-            logger.debug("Peer locator: coordinator from registrations is {}", coord);
+            logger.debug("Peer locator: coordinator from registrations is "+ coord);
           }
         }
         
@@ -234,8 +234,8 @@ public class GMSLocator implements Locator, NetLocator {
         }
       }
     }
-    if (logger.isDebugEnabled()) {
-      logger.debug("Peer locator returning {}", response);
+    if (logger.fineEnabled()) {
+      logger.debug("Peer locator returning "+ response);
     }
     return response;
   }
@@ -245,7 +245,7 @@ public class GMSLocator implements Locator, NetLocator {
       return;
     }
     if (!viewFile.delete() && viewFile.exists()) {
-      logger.warn("Peer locator is unable to delete persistent membership information in " +
+      logger.warning("Peer locator is unable to delete persistent membership information in " +
           viewFile.getAbsolutePath());
     }
     try {
@@ -262,7 +262,8 @@ public class GMSLocator implements Locator, NetLocator {
       }
     }
     catch (Exception e) {
-      logger.warn("Peer locator encountered an error writing current membership to disk.  Disabling persistence.  Care should be taken when bouncing this locator as it will not be able to recover knowledge of the running distributed system", e);
+      logger.warning("Peer locator encountered an error writing current membership to disk. " +
+          " Disabling persistence.  Care should be taken when bouncing this locator as it will not be able to recover knowledge of the running distributed system", e);
       this.viewFile = null;
     }
   }
@@ -295,9 +296,7 @@ public class GMSLocator implements Locator, NetLocator {
     }
   }
 
-  @Override
-  public void restarting(DistributedSystem ds, GemFireCache cache,
-      SharedConfiguration sharedConfig) {
+  public void restarting(DistributedSystem ds, GemFireCache cache) {
     setMembershipManager(((InternalDistributedSystem)ds).getDM().getMembershipManager());
   }
 
@@ -324,11 +323,11 @@ public class GMSLocator implements Locator, NetLocator {
           new GetViewRequest(), 20000, true);
       if (response != null && (response instanceof GetViewResponse)) {
         this.view = ((GetViewResponse)response).getView();
-        logger.info("Peer locator recovered initial membership of {}", view);
+        logger.info("Peer locator recovered initial membership of "+ view);
         return true;
       }
     } catch (IOException | ClassNotFoundException ignore) {
-      logger.debug("Peer locator could not recover membership view from {}: {}", other, ignore.getMessage());
+      logger.debug("Peer locator could not recover membership view from "+other+": "+ ignore.getMessage());
     }
     logger.info("Peer locator was unable to recover state from this locator");
     return false;
@@ -349,7 +348,7 @@ public class GMSLocator implements Locator, NetLocator {
       int version = ois2.readInt();
       if (version != Version.CURRENT_ORDINAL) {
         Version geodeVersion = Version.fromOrdinalNoThrow((short)version, false);
-        logger.info("Peer locator found that persistent view was written with {}", geodeVersion);
+        logger.info("Peer locator found that persistent view was written with "+ geodeVersion);
         ois2 = new VersionedObjectInput(ois2, geodeVersion);
       }
     
@@ -361,9 +360,9 @@ public class GMSLocator implements Locator, NetLocator {
 
     } catch (Exception e) {
       String msg = LOCATOR_UNABLE_TO_RECOVER_VIEW.toLocalizedString(file.toString());
-      logger.warn(msg, e);
+      logger.warning(msg, e);
       if (!file.delete() && file.exists()) {
-        logger.warn("Peer locator was unable to recover from or delete " + file);
+        logger.warning("Peer locator was unable to recover from or delete " + file);
         this.viewFile = null;
       }
       throw new InternalGemFireException(msg, e);

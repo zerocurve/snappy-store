@@ -29,7 +29,7 @@ import com.gemstone.gemfire.distributed.DurableClientAttributes;
 import com.gemstone.gemfire.distributed.internal.membership.MemberAttributes;
 import com.gemstone.gemfire.distributed.internal.membership.NetMember;
 import com.gemstone.gemfire.internal.DataSerializableFixedID;
-import com.gemstone.gemfire.internal.Version;
+import com.gemstone.gemfire.internal.shared.Version;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 
 /**

@@ -171,13 +171,6 @@ public abstract class TXMessage extends AbstractOperationMessage implements
     return false;
   }
 
-  @Override
-  public boolean orderedDelivery(boolean threadOwnsResources) {
-    // use ordered delivery of TX messages by default, particularly
-    // commit/rollback for better behaviour with subsequent ops
-    return true;
-  }
-
   protected int getMessageProcessorType() {
     return DistributionManager.HIGH_PRIORITY_EXECUTOR;
   }

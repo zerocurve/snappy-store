@@ -1,50 +1,52 @@
 /*
- * Copyright (c) 2010-2015 Pivotal Software, Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you
- * may not use this file except in compliance with the License. You
- * may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * permissions and limitations under the License. See accompanying
- * LICENSE file.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.gemstone.gemfire.cache.client.internal.locator.wan;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
+
+import com.gemstone.gemfire.LogWriter;
 import com.gemstone.gemfire.distributed.internal.InternalLocator;
+import com.gemstone.gemfire.distributed.internal.WanLocatorDiscoverer;
 import com.gemstone.gemfire.distributed.internal.tcpserver.TcpClient;
-import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.admin.remote.DistributionLocatorId;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.tcp.ConnectionException;
+import com.gemstone.gemfire.cache.client.internal.locator.wan.LocatorMembershipListener;
+import com.gemstone.gemfire.internal.util.LogService;
 
 /**
  * This class represent a runnable task which exchange the locator information
  * with local locators(within the site) as well as remote locators (across the
  * site)
- * 
+ *
  * @author kbachhav
  * @since 7.0
  */
 public class LocatorDiscovery{
 
-  private InternalLocator internalLocator;
-  
-  private DistributionLocatorId locatorId;
-  
-  private LocatorMembershipListener locatorListener;
-  
-  RemoteLocatorJoinRequest request;
+  private static final LogWriter logger = LogService.logWriter();
 
-  private LogWriterI18n logger;
+  private DistributionLocatorId locatorId;
+
+  private LocatorMembershipListener locatorListener;
+
+  RemoteLocatorJoinRequest request;
 
   public static final int WAN_LOCATOR_CONNECTION_RETRY_ATTEMPT = Integer
       .getInteger("WANLocator.CONNECTION_RETRY_ATTEMPT", 50000).intValue();
@@ -58,15 +60,13 @@ public class LocatorDiscovery{
   public static final int WAN_LOCATOR_PING_INTERVAL = Integer.getInteger(
       "WANLocator.PING_INTERVAL", 10000).intValue();
 
-  public LocatorDiscovery(InternalLocator internalLocator, DistributionLocatorId locotor,RemoteLocatorJoinRequest request,
-      LogWriterI18n logger, LocatorMembershipListener locatorListener) {
-    this.internalLocator = internalLocator;
+  public LocatorDiscovery(DistributionLocatorId locotor,RemoteLocatorJoinRequest request,
+      LocatorMembershipListener locatorListener) {
     this.locatorId = locotor;
-    this.request = request; 
-    this.logger = logger;
+    this.request = request;
     this.locatorListener = locatorListener;
   }
-  
+
   /**
    * When a batch fails, then this keeps the last time when a failure was logged
    * . We don't want to swamp the logs in retries due to same batch failures.
@@ -122,22 +122,20 @@ public class LocatorDiscovery{
       exchangeRemoteLocators();
     }
   }
-  
-  
+
+
   private void exchangeLocalLocators() {
     int retryAttempt = 1;
     while (true) {
       try {
         RemoteLocatorJoinResponse response = (RemoteLocatorJoinResponse)TcpClient
             .requestToServer(locatorId.getHost(), locatorId.getPort(), request,
-                WAN_LOCATOR_CONNECTION_TIMEOUT);
+                WanLocatorDiscoverer.WAN_LOCATOR_CONNECTION_TIMEOUT);
         if (response != null) {
-          LocatorHelper.addExchnagedLocators(internalLocator,
-              response.getLocators(), this.locatorListener);
-          this.logger
-              .info(
-                  LocalizedStrings.LOCATOR_DISCOVERY_TASK_EXCHANGED_LOCATOR_INFORMATION_0_WITH_1,
-                  new Object[] { request.getLocator(), locatorId });
+          LocatorHelper.addExchnagedLocators(response.getLocators(),
+              this.locatorListener);
+          logger.info(LocalizedStrings.LOCATOR_DISCOVERY_TASK_EXCHANGED_LOCATOR_INFORMATION_0_WITH_1,
+              new Object[]{request.getLocator(), locatorId});
           break;
         }
       }
@@ -145,20 +143,15 @@ public class LocatorDiscovery{
         if (retryAttempt == WAN_LOCATOR_CONNECTION_RETRY_ATTEMPT) {
           ConnectionException coe = new ConnectionException(
               "Not able to connect to local locator after "
-              + WAN_LOCATOR_CONNECTION_RETRY_ATTEMPT + " retry attempts",
-          ioe);
-          this.logger
-              .severe(
-                  LocalizedStrings.LOCATOR_DISCOVERY_TASK_COULD_NOT_EXCHANGE_LOCATOR_INFORMATION_0_WITH_1_AFTER_2,
-                  new Object[] { request.getLocator(),locatorId, retryAttempt }, coe);
+                  + WAN_LOCATOR_CONNECTION_RETRY_ATTEMPT + " retry attempts",
+              ioe);
+          logger.severe(LocalizedStrings.LOCATOR_DISCOVERY_TASK_COULD_NOT_EXCHANGE_LOCATOR_INFORMATION_0_WITH_1_AFTER_2,
+              new Object[]{request.getLocator(), locatorId, retryAttempt}, coe);
           break;
         }
         if (skipFailureLogging(locatorId)) {
-          this.logger
-              .warning(
-                  LocalizedStrings.LOCATOR_DISCOVERY_TASK_COULD_NOT_EXCHANGE_LOCATOR_INFORMATION_0_WITH_1_AFTER_2_RETRYING_IN_3_MS,
-                  new Object[] { request.getLocator(), locatorId, retryAttempt,
-                      WAN_LOCATOR_CONNECTION_INTERVAL });
+          logger.warning(LocalizedStrings.LOCATOR_DISCOVERY_TASK_COULD_NOT_EXCHANGE_LOCATOR_INFORMATION_0_WITH_1_AFTER_2_RETRYING_IN_3_MS,
+              new Object[]{request.getLocator(), locatorId, retryAttempt, WAN_LOCATOR_CONNECTION_INTERVAL});
         }
         try {
           Thread.sleep(WAN_LOCATOR_CONNECTION_INTERVAL);
@@ -168,14 +161,13 @@ public class LocatorDiscovery{
         }
         retryAttempt++;
         continue;
-      }
-      catch (ClassNotFoundException cnfe) {
-        this.logger.severe(LocalizedStrings.LOCATOR_DISCOVERY_TASK_ENCOUNTERED_UNEXPECTED_EXCEPTION, cnfe);
+      } catch (ClassNotFoundException cnfe) {
+        logger.error(LocalizedStrings.LOCATOR_DISCOVERY_TASK_ENCOUNTERED_UNEXPECTED_EXCEPTION.toString(), cnfe);
         break;
       }
     }
   }
-  
+
   public void exchangeRemoteLocators() {
     int retryAttempt = 1;
     DistributionLocatorId remoteLocator = this.locatorId;
@@ -184,14 +176,11 @@ public class LocatorDiscovery{
       try {
         response = (RemoteLocatorJoinResponse)TcpClient
             .requestToServer(remoteLocator.getHost(), remoteLocator.getPort(),
-                request, WAN_LOCATOR_CONNECTION_TIMEOUT);
+                request, WanLocatorDiscoverer.WAN_LOCATOR_CONNECTION_TIMEOUT);
         if (response != null) {
-          LocatorHelper.addExchnagedLocators(internalLocator,
-              response.getLocators(), this.locatorListener);
-          this.logger
-              .info(
-                  LocalizedStrings.LOCATOR_DISCOVERY_TASK_EXCHANGED_LOCATOR_INFORMATION_0_WITH_1,
-                  new Object[] { request.getLocator(), locatorId });
+          LocatorHelper.addExchnagedLocators(response.getLocators(), this.locatorListener);
+          logger.info(LocalizedStrings.LOCATOR_DISCOVERY_TASK_EXCHANGED_LOCATOR_INFORMATION_0_WITH_1,
+              new Object[]{request.getLocator(), locatorId});
           RemoteLocatorPingRequest pingRequest = new RemoteLocatorPingRequest(
               "");
           while (true) {
@@ -199,7 +188,7 @@ public class LocatorDiscovery{
             RemoteLocatorPingResponse pingResponse = (RemoteLocatorPingResponse) TcpClient
                 .requestToServer(remoteLocator.getHost(),
                     remoteLocator.getPort(), pingRequest,
-                    WAN_LOCATOR_CONNECTION_TIMEOUT);
+                    WanLocatorDiscoverer.WAN_LOCATOR_CONNECTION_TIMEOUT);
             if (pingResponse != null) {
               continue;
             }
@@ -209,18 +198,13 @@ public class LocatorDiscovery{
       }
       catch (IOException ioe) {
         if (retryAttempt == WAN_LOCATOR_CONNECTION_RETRY_ATTEMPT) {
-          this.logger
-          .severe(
-              LocalizedStrings.LOCATOR_DISCOVERY_TASK_COULD_NOT_EXCHANGE_LOCATOR_INFORMATION_0_WITH_1_AFTER_2,
-              new Object[] { request.getLocator(), remoteLocator, retryAttempt}, ioe);
+          logger.error(LocalizedStrings.LOCATOR_DISCOVERY_TASK_COULD_NOT_EXCHANGE_LOCATOR_INFORMATION_0_WITH_1_AFTER_2.toLocalizedString(new Object[]{request.getLocator(), remoteLocator, retryAttempt})
+              , ioe);
           break;
         }
         if (skipFailureLogging(remoteLocator)) {
-          this.logger
-              .warning(
-                  LocalizedStrings.LOCATOR_DISCOVERY_TASK_COULD_NOT_EXCHANGE_LOCATOR_INFORMATION_0_WITH_1_AFTER_2_RETRYING_IN_3_MS,
-                  new Object[] { request.getLocator(), remoteLocator,
-                      retryAttempt, WAN_LOCATOR_CONNECTION_INTERVAL });
+          logger.warning(LocalizedStrings.LOCATOR_DISCOVERY_TASK_COULD_NOT_EXCHANGE_LOCATOR_INFORMATION_0_WITH_1_AFTER_2_RETRYING_IN_3_MS,
+              new Object[]{request.getLocator(), remoteLocator, retryAttempt, WAN_LOCATOR_CONNECTION_INTERVAL});
         }
         try {
           Thread.sleep(WAN_LOCATOR_CONNECTION_INTERVAL);
@@ -232,7 +216,7 @@ public class LocatorDiscovery{
         continue;
       }
       catch (ClassNotFoundException cnfe) {
-        this.logger.severe(LocalizedStrings.LOCATOR_DISCOVERY_TASK_ENCOUNTERED_UNEXPECTED_EXCEPTION, cnfe);
+        logger.error(LocalizedStrings.LOCATOR_DISCOVERY_TASK_ENCOUNTERED_UNEXPECTED_EXCEPTION.toLocalizedString(), cnfe);
         break;
       }
       catch (InterruptedException e) {

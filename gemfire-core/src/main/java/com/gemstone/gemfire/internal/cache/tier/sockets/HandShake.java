@@ -468,7 +468,7 @@ public class HandShake implements ClientHandShake
       // we do not know the receiver's version at this point, but the on-wire
       // form of InternalDistributedMember changed in 9.0, so we must serialize
       // it using the previous version
-      DataOutput idOut = new VersionedDataOutputStream(hdos, Version.GFE_82);
+      DataOutput idOut = new VersionedDataOutputStream(hdos, Version.GFE_75);
       DataSerializer.writeObject(this.id, idOut);
   
       if (currentClientVersion >= Version.GFE_603.ordinal()) {

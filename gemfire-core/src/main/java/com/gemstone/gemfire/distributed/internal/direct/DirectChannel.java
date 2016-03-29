@@ -64,6 +64,7 @@ import com.gemstone.gemfire.internal.tcp.MsgStreamer;
 import com.gemstone.gemfire.internal.tcp.Stub;
 import com.gemstone.gemfire.internal.tcp.TCPConduit;
 import com.gemstone.gemfire.internal.util.Breadcrumbs;
+import com.gemstone.gemfire.internal.util.LogService;
 import com.gemstone.gemfire.internal.util.concurrent.ReentrantSemaphore;
 
 /**
@@ -75,13 +76,13 @@ import com.gemstone.gemfire.internal.util.concurrent.ReentrantSemaphore;
  * which is used by the DistributionManager to send and receive asynchronous
  * messages.
  */
-public final class DirectChannel {
+public class DirectChannel {
 
     /** A logger to log verbose information */
-    protected final transient LogWriterI18n logger;
+    protected static final LogWriterI18n logger = LogService.getLogger();
 
     /** this is the conduit used for communications */
-    private final transient TCPConduit conduit;
+    private transient TCPConduit conduit;
 
     private volatile boolean disconnected = true;
     
@@ -89,9 +90,9 @@ public final class DirectChannel {
     private volatile boolean disconnectCompleted = true;
 
     /** this is the DistributionManager, most of the time */
-    private final DirectChannelListener receiver;
+    private DirectChannelListener receiver;
 
-    private final InetAddress address;
+    private InetAddress address;
     
     InternalDistributedMember localAddr;
 
@@ -129,50 +130,51 @@ public final class DirectChannel {
       return conduit.getCancelCriterion();
     }
 
-    public DirectChannel(MembershipManager mgr, DirectChannelListener listener,
-        DistributionConfig dc, LogWriterI18n logger, Properties unused) 
-        throws ConnectionException {
-      this.receiver = listener;
-      this.logger = logger;
+  public DirectChannel(MembershipManager mgr, DirectChannelListener listener,
+      DistributionConfig dc)
+      throws ConnectionException {
+    this.receiver = listener;
 
-      this.address = initAddress(dc);
-      boolean isBindAddress = dc.getBindAddress() != null;
-      try {
-        int port = Integer.getInteger("tcpServerPort", 0).intValue();
-        if (port == 0) {
-          port = dc.getTcpPort();
-        }
-        Properties props = System.getProperties();
-        if (props.getProperty("p2p.shareSockets") == null) {
-          props.setProperty("p2p.shareSockets", String.valueOf(dc.getConserveSockets()));
-        }
-        if (dc.getSocketBufferSize() != DistributionConfig.DEFAULT_SOCKET_BUFFER_SIZE) {
-          // Note that the system property "p2p.tcpBufferSize" will be
-          // overridden by the new "socket-buffer-size".
-          props.setProperty("p2p.tcpBufferSize", String.valueOf(dc.getSocketBufferSize()));
-        }
-        if (props.getProperty("p2p.idleConnectionTimeout") == null) {
-          props.setProperty("p2p.idleConnectionTimeout", String.valueOf(dc.getSocketLeaseTime()));
-        }
-        int[] range = dc.getMembershipPortRange();
-        props.setProperty("membership_port_range_start", ""+range[0]);
-        props.setProperty("membership_port_range_end", ""+range[1]);
-
-        this.conduit = new TCPConduit(mgr, port, address, isBindAddress, this, props);
-        disconnected = false;
-        disconnectCompleted = false;
-        this.groupOrderedSenderSem = new ReentrantSemaphore(MAX_GROUP_SENDERS);
-        this.groupUnorderedSenderSem = new ReentrantSemaphore(MAX_GROUP_SENDERS);
-        getLogger().info(LocalizedStrings.DirectChannel_GEMFIRE_P2P_LISTENER_STARTED_ON__0, conduit.getId());
-
+    this.address = initAddress(dc);
+    boolean isBindAddress = dc.getBindAddress() != null;
+    try {
+      int port = Integer.getInteger("tcpServerPort", 0).intValue();
+      if (port == 0) {
+        port = dc.getTcpPort();
       }
-      catch (ConnectionException ce) {
-        logger.severe(LocalizedStrings.DirectChannel_UNABLE_TO_INITIALIZE_DIRECT_CHANNEL_BECAUSE__0, new Object[]{ce.getMessage()}, ce);
-        throw ce; // fix for bug 31973
+      Properties props = System.getProperties();
+      if (props.getProperty("p2p.shareSockets") == null) {
+        props.setProperty("p2p.shareSockets", String.valueOf(dc.getConserveSockets()));
       }
+      if (dc.getSocketBufferSize() != DistributionConfig.DEFAULT_SOCKET_BUFFER_SIZE) {
+        // Note that the system property "p2p.tcpBufferSize" will be
+        // overridden by the new "socket-buffer-size".
+        props.setProperty("p2p.tcpBufferSize", String.valueOf(dc.getSocketBufferSize()));
+      }
+      if (props.getProperty("p2p.idleConnectionTimeout") == null) {
+        props.setProperty("p2p.idleConnectionTimeout", String.valueOf(dc.getSocketLeaseTime()));
+      }
+      int[] range = dc.getMembershipPortRange();
+      props.setProperty("membership_port_range_start", ""+range[0]);
+      props.setProperty("membership_port_range_end", ""+range[1]);
+
+      this.conduit = new TCPConduit(mgr, port, address, isBindAddress, this, props);
+      disconnected = false;
+      disconnectCompleted = false;
+      this.groupOrderedSenderSem = new ReentrantSemaphore(MAX_GROUP_SENDERS);
+      this.groupUnorderedSenderSem = new ReentrantSemaphore(MAX_GROUP_SENDERS);
+      logger.info(
+          LocalizedStrings.DirectChannel_GEMFIRE_P2P_LISTENER_STARTED_ON__0, conduit.getLocalAddr());
+
     }
+    catch (ConnectionException ce) {
+      logger.severe(
+          LocalizedStrings.DirectChannel_UNABLE_TO_INITIALIZE_DIRECT_CHANNEL_BECAUSE__0, new Object[]{ce.getMessage()}, ce);
+      throw ce; // fix for bug 31973
+    }
+  }
 
- 
+
   /**
    * Return how many concurrent operations should be allowed by default.
    * since 6.6, this has been raised to Integer.MAX value from the number
@@ -239,7 +241,7 @@ public final class DirectChannel {
   boolean threadOwnsResources() {
     DM d = getDM();
     if (d != null) {
-      return d.getSystem().threadOwnsResources() && !AlertAppender.isThreadAlerting();
+      return d.getSystem().threadOwnsResources() /*&& !AlertAppender.isThreadAlerting()*/;
     }
     return false;
     

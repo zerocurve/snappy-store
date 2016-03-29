@@ -140,7 +140,7 @@ public class LocalizedStrings extends ParentLocalizedStrings {
   public static final StringId EndpointImpl_0_CAN_NOT_REGISTER_INSTANTIATORS_1_BECAUSE_THE_SERVER_IS_NOT_AVAILABLE = new StringIdImpl(3505, "{0} : Can not register instantiators   {1}  because the server is not available.");
   public static final StringId EndpointImpl_0_CANNOT_UNREGISTER_INTEREST_IN_REGION_1_KEY_2_BECAUSE_THE_SERVER_IS_NOT_AVAILABLE = new StringIdImpl(3506, "{0} : Cannot unregister interest in region  {1}  key  {2}  because the server is not available.");
   public static final StringId EndpointImpl_0_CAN_NOT_NOTIFY_SERVER_THAT_THIS_CLIENT_IS_READY_BECAUSE_THE_SERVER_IS_NOT_AVAILABLE = new StringIdImpl(3507, "{0} : Can not notify server that this client is ready because the server is not available.");
-  public static final StringId CacheCreation_WHILE_STARTING_CACHE_SERVER_0 = new StringIdImpl(3508, "While starting cache server  {0}");
+  public static final StringId CacheCreation_WHILE_STARTING_BRIDGE_SERVER_0 = new StringIdImpl(3508, "While starting cache server  {0}");
   public static final StringId CacheCreation_WHILE_STARTING_GATEWAY_HUB_0 = new StringIdImpl(3509, "While starting gateway hub  {0}");
   public static final StringId CacheXml_ERROR_WHILE_PARSING_XML = new StringIdImpl(3510, "Error while parsing XML");
   public static final StringId CacheXml_FATAL_ERROR_WHILE_PARSING_XML = new StringIdImpl(3511, "Fatal error while parsing XML");
@@ -314,8 +314,9 @@ public class LocalizedStrings extends ParentLocalizedStrings {
   public static final StringId ConnectionProxyImpl_AFTER_A_FAILURE_ON_THE_PRIMARY_HERE_ARE_THE_ENDPOINTS_0 = new StringIdImpl(3674, "After a failure on the primary endpoint, here are the endpoints: {0}");
   public static final StringId ConnectionProxyImpl_AFTER_ADDING_AN_ENDPOINT_HERE_ARE_THE_ENDPOINTS_0 = new StringIdImpl(3675, "After adding an endpoint, here are the endpoints: {0}");
   public static final StringId ConnectionProxyImpl_UNREGISTERED_INTEREST_IN_0_ON_REGION_1_OF_TYPE_2_WITH_POLICY_3_BECAUSE_OF_4 = new StringIdImpl(3677, "unregistered interest in {0} on region {1} of type {2} with policy {3} because of {4}");
-  public static final StringId JGroupMembershipManager_TCPIP_CONNECTIONS_CLOSED = new StringIdImpl(3678, "tcp/ip connections closed");
-  public static final StringId JGroupMembershipManager_THE_MEMBER_WITH_ID_0_IS_NO_LONGER_IN_MY_OWN_VIEW_1 = new StringIdImpl(3679, "The Member with id {0}, is no longer in my own view, {1}");
+  public static final StringId GroupMembershipService_TCPIP_CONNECTIONS_CLOSED = new StringIdImpl(3678, "tcp/ip connections closed");
+  public static final StringId GroupMembershipService_THE_MEMBER_WITH_ID_0_IS_NO_LONGER_IN_MY_OWN_VIEW_1 = new StringIdImpl(3679, "The Member with id {0}, is no longer in my own view, {1}");
+
   /* 3680-3699 unused */
   public static final StringId GemFireVersion_COULD_NOT_FIND_GEMFIRE_JAR = new StringIdImpl(3700, "<Could not find gemfire.jar/gemfirexd.jar>");
   public static final StringId GemFireVersion_COULD_NOT_FIND_RESOURCE_COM_GEMSTONE_GEMFIRE_INTERNAL_0 = new StringIdImpl(3701, "<Could not find resource {0}>");
@@ -600,7 +601,7 @@ public class LocalizedStrings extends ParentLocalizedStrings {
   public static final StringId PasswordUtil_ENCRYPTED_TO_0 = new StringIdImpl(3981, "Encrypted to {0}");
   public static final StringId DistributionManager_SHUTDOWN_MESSAGE_THREAD_FOR_0 = new StringIdImpl(3982, "Shutdown Message Thread for {0}");
   public static final StringId HealthMonitorImpl_HEALTH_MONITOR_OWNED_BY_0 = new StringIdImpl(3983, "Health Monitor owned by {0}");
-  // ok to reuse 3984
+  public static final StringId HealthMonitorImpl_STARTING_HEALTH_MONITOR_HEALTH_WILL_BE_EVALUATED_EVERY_0_SECONDS = new StringIdImpl(3984, "Starting health monitor.  Health will be evaluated every {0} seconds.");
   public static final StringId InternalDistributedSystem_COULD_NOT_RENAME_0_TO_1 = new StringIdImpl(3985, "Could not rename \"{0}\" to \"{1}\".");
   public static final StringId InternalDistributedSystem_RENAMED_OLD_LOG_FILE_TO_0 = new StringIdImpl(3986, "Renamed old log file to \"{0}\".");
   public static final StringId InternalDistributedSystem_COULD_NOT_OPEN_LOG_FILE_0 = new StringIdImpl(3987, "Could not open log file \"{0}\".");
@@ -838,7 +839,9 @@ public class LocalizedStrings extends ParentLocalizedStrings {
   public static final StringId AbstractDistributionConfig_CACHE_XML_FILE_NAME_0 = new StringIdImpl(4220, "The file whose contents is used, by default, to initialize a cache if one is created.  Defaults to \"{0}\".");
   public static final StringId AbstractDistributionConfig_DISABLE_TCP_NAME_0 = new StringIdImpl(4221, "Determines whether TCP/IP communications will be disabled, forcing use of datagrams between members of the distributed system. Defaults to {0}");
   public static final StringId AbstractDistributionConfig_ENABLE_TIME_STATISTICS_NAME = new StringIdImpl(4222, "Turns on timings in distribution and cache statistics.  These are normally turned off to avoid expensive clock probes.");
-  /** 4223-4224 unused */
+  public static final StringId BridgeServerImpl_CACHESERVER_ERROR_CLOSING_LOAD_MONITOR = new StringIdImpl(4223, "CacheServer - Error closing load monitor");
+  public static final StringId BridgeServerImpl_CACHESERVER_ERROR_CLOSING_ADVISOR = new StringIdImpl(4224, "CacheServer - Error closing advisor");
+
   public static final StringId AbstractDistributionConfig_LOG_FILE_NAME_0 = new StringIdImpl(4225, "The file a running system will write log messages to.  Defaults to \"{0}\".");
   public static final StringId AbstractDistributionConfig_LOG_LEVEL_NAME_0_1 = new StringIdImpl(4226, "Controls the type of messages that will actually be written to the system log.  Defaults to \"{0}\".  Allowed values \"{1}\".");
   public static final StringId AbstractDistributionConfig_LOG_FILE_SIZE_LIMIT_NAME = new StringIdImpl(4227, "The maximum size in megabytes of a child log file. Once this limit is exceeded, a new child log is created, and the current child log becomes inactive. If set to zero, child logging is disabled.");
@@ -1000,7 +1003,7 @@ public class LocalizedStrings extends ParentLocalizedStrings {
   public static final StringId RegionAttributesCreation_CUSTOMENTRYTIMETOLIVE_IS_NOT_THE_SAME = new StringIdImpl(4381, "CustomEntryTimeToLive is not the same");
   public static final StringId AbstractRegion_CANNOT_SET_CUSTOM_TIME_TO_LIVE_WHEN_STATISTICS_ARE_DISABLED = new StringIdImpl(4382, "Cannot set custom time to live when statistics are disabled");
   public static final StringId PutMessage_UNKNOWN_DESERIALIZATION_POLICY = new StringIdImpl(4383, "unknown deserialization policy");
-  public static final StringId CacheServerImpl__0_INVALID_EVICTION_POLICY = new StringIdImpl(4384, "{0} Invalid eviction policy");
+  public static final StringId BridgeServerImpl__0_INVALID_EVICTION_POLICY = new StringIdImpl(4384, "{0} Invalid eviction policy");
   public static final StringId MergeLogFiles_IF_A_DIRECTORY_IS_SPECIFIED_ALL_LOG_FILES_IN_THAT_DIRECTORY_ARE_MERGED = new StringIdImpl(4385, "If a directory is specified, all .log files in that directory are merged.");
   public static final StringId MergeLogFiles_FILE_0_IS_NEITHER_A_FILE_NOR_A_DIRECTORY = new StringIdImpl(4386, "File ''{0}'' is neither a file nor a directory.");
   public static final StringId AvailablePort_NETWORK_IS_UNREACHABLE = new StringIdImpl(4387, "Network is unreachable");
@@ -1519,7 +1522,7 @@ public class LocalizedStrings extends ParentLocalizedStrings {
       "GfxdBulkDMLCommand::execute: exception while executing DML for statement event {0}.");
 
   public static final StringId BaseCommand__THE_INPUT_KEY_FOR_THE_0_REQUEST_IS_NULL = new StringIdImpl(4884, " The input key for the {0} request is null");
-  public static final StringId JGroupMembershipManager_PROBLEM_GENERATING_CACHE_XML = new StringIdImpl(4885, "Unable to generate XML description for reconnect of cache due to exception");
+  public static final StringId GroupMembershipService_PROBLEM_GENERATING_CACHE_XML = new StringIdImpl(4885, "Unable to generate XML description for reconnect of cache due to exception");
   public static final StringId BaseCommand__THE_INPUT_REGION_NAME_FOR_THE_0_REQUEST_IS_NULL = new StringIdImpl(4886, " The input region name for the {0} request is null");
   public static final StringId BaseCommand__0_WAS_NOT_FOUND_DURING_1_REQUEST = new StringIdImpl(4887, "{0} was not found during {0} request");
   public static final StringId BaseCommand_DURING_0_NO_ENTRY_WAS_FOUND_FOR_KEY_1 = new StringIdImpl(4888, "During {0} no entry was found for key {1}");
@@ -1916,7 +1919,7 @@ public class LocalizedStrings extends ParentLocalizedStrings {
   public static final StringId GatewaySenderImpl_PARALLEL_GATEWAY_SENDER_0_CANNOT_BE_CREATED_WITH_ORDER_POLICY_1 = new StringIdImpl(5413, "Parallel Gateway Sender {0} can not be created with OrderPolicy {1}");
   public static final StringId GatewaySenderImpl_GATEWAY_SENDER_0_CANNOT_HAVE_DISPATCHER_THREADS_LESS_THAN_1 = new StringIdImpl(5414, "GatewaySender {0} can not be created with dispatcher threads less than 1");
 
-  public static final StringId JGroupMembershipManager_POSSIBLE_LOSS_OF_QUORUM_DETECTED = new StringIdImpl(5415, "Possible loss of quorum due to the loss of {0} cache processes: {1}");
+  public static final StringId GroupMembershipService_POSSIBLE_LOSS_OF_QUORUM_DETECTED = new StringIdImpl(5415, "Possible loss of quorum due to the loss of {0} cache processes: {1}");
 
   public static final StringId Soplog_INVALID_MAGIC = new StringIdImpl(5416, "Invalid sorted oplog magic: {0}");
   public static final StringId Soplog_UNRECOGNIZED_VERSION = new StringIdImpl(5417, "Unrecognized sorted oplog file version: {0}");
@@ -2038,6 +2041,8 @@ public class LocalizedStrings extends ParentLocalizedStrings {
   public static final StringId GFXD_KERBEROS_PRINCIPAL_UNDEF = new StringIdImpl(5615, "Gemfire XD kerberos principal is not configured, kerberos authentication will not be invoked");
 
   /** available 5616-5828 **/
+  public static final StringId DLockRequestProcess_DLOCKREQUESTMESSAGE_REQUEST_0_TIMED_OUT_GRANTOR_STATUS_1 = new StringIdImpl(5616, "DLockRequestMessage: request {0} timed out; grantor status = {1}");
+
 
   public static final StringId DistributedRegion_REGION_0_ENABLE_NETWORK_PARTITION_WARNING = new StringIdImpl(5829, "Creating persistent region {0}, but enable-network-partition-detection is set to false. Running with network partition detection disabled can lead to an unrecoverable system in the event of a network split.");
   public static final StringId Disk_Store_Exception_During_Cache_Close = new StringIdImpl(5830, "Cache close caught an exception during disk store close");
@@ -2082,6 +2087,9 @@ public class LocalizedStrings extends ParentLocalizedStrings {
   
   /** JGroups strings, messageId 15000-90000 **/
   // GMSAuthenticator
+  public static final StringId LOCATOR_UNABLE_TO_RECOVER_VIEW = new StringIdImpl(6606, "Unable to recover previous membership view from {0}");
+  public static final StringId Network_partition_detected = new StringIdImpl(6607, "Exiting due to possible network partition event due to loss of {0} cache processes: {1}");
+
   public static final StringId AUTH_PEER_AUTHENTICATION_FAILED_WITH_EXCEPTION = new StringIdImpl(6608, "Authentication failed for [{0}] using Authenticator [{1}]. {2}");
   public static final StringId AUTH_PEER_AUTHENTICATION_FAILED = new StringIdImpl(6609, "Authentication failed. See coordinator [{0}] logs for details.");
   public static final StringId AUTH_PEER_AUTHENTICATION_MISSING_CREDENTIALS = new StringIdImpl(6610, "Failed to find credentials from [{0}] using Authenticator [{1}]");

@@ -30,7 +30,7 @@ import org.jgroups.simple.cache.*;
 import com.gemstone.gemfire.*;
 import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.Assert;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 import hydra.*;
 import hydra.blackboard.*;

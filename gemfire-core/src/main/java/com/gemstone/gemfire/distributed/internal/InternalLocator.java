@@ -172,11 +172,8 @@ public class InternalLocator extends Locator implements ConnectListener {
   private volatile boolean isSharedConfigurationStarted = false;
   
   private volatile Thread restartThread;
-  
+
   private final ExecutorService _executor;
-  
-  private Thread restartThread;
-  
   
   {
     final LogWriterImpl.LoggingThreadGroup loggerGroup = LogWriterImpl
@@ -317,7 +314,7 @@ public class InternalLocator extends Locator implements ConnectListener {
       )
       throws IOException
     {
-    return startLocator(port, logFile, stateFile, logger, securityLogger, bindAddress, true, dsProperties, peerLocator, enableServerLocator, hostnameForClients);
+    return startLocator(port, logFile, stateFile, logger, securityLogger, bindAddress, true, dsProperties, peerLocator, enableServerLocator, hostnameForClients,loadSharedConfigFromDir);
     }
   /**
    * Creates a distribution locator that runs in this VM on the given
@@ -881,60 +878,7 @@ public class InternalLocator extends Locator implements ConnectListener {
     }
   }
 
- /**
-   * For WAN 70 Exchange the locator information within the distributed system
-   * 
-   * @param config
-   */
-  private void exchangeLocalLocators(DistributionConfigImpl config, LocatorMembershipListener locatorListener) {
-    String localLocator = config.getStartLocator();
-    DistributionLocatorId locatorId = null;
-    if (localLocator.equals(DistributionConfig.DEFAULT_START_LOCATOR)) {
-      locatorId = new DistributionLocatorId(this.port, config.getBindAddress());
-    }
-    else {
-      locatorId = new DistributionLocatorId(localLocator);
-    }
-    LocatorHelper.addLocator(config.getDistributedSystemId(), locatorId, this, locatorListener, null);
 
-    RemoteLocatorJoinRequest request = buildRemoteDSJoinRequest(config);
-    StringTokenizer locatorsOnThisVM = new StringTokenizer(
-        config.getLocators(), ",");
-    while (locatorsOnThisVM.hasMoreTokens()) {
-      DistributionLocatorId localLocatorId = new DistributionLocatorId(
-          locatorsOnThisVM.nextToken());
-      if (!locatorId.equals(localLocatorId)) {
-        LocatorDiscovery localDiscovery = new LocatorDiscovery(this,
-            localLocatorId, request, logger, locatorListener);
-        LocatorDiscovery.LocalLocatorDiscovery localLocatorDiscovery = localDiscovery.new LocalLocatorDiscovery();
-        this._executor.execute(localLocatorDiscovery);
-      }
-    }
-  }
-
-  /**
-   * For WAN 70 Exchange the locator information across the distributed systems
-   * (sites)
-   * 
-   * @param config
-   */
-  private void exchangeRemoteLocators(DistributionConfigImpl config, LocatorMembershipListener locatorListener) {
-    RemoteLocatorJoinRequest request = buildRemoteDSJoinRequest(config);
-    String remoteDustributedSystems = config.getRemoteLocators();
-    if (remoteDustributedSystems.length() > 0) {
-      StringTokenizer remoteLocators = new StringTokenizer(
-          remoteDustributedSystems, ",");
-      while (remoteLocators.hasMoreTokens()) {
-        DistributionLocatorId remoteLocatorId = new DistributionLocatorId(
-            remoteLocators.nextToken());
-        LocatorDiscovery localDiscovery = new LocatorDiscovery(this,
-            remoteLocatorId, request, this.logger, locatorListener);
-        LocatorDiscovery.RemoteLocatorDiscovery remoteLocatorDiscovery = localDiscovery.new RemoteLocatorDiscovery();
-        this._executor.execute(remoteLocatorDiscovery);
-      }
-    }
-  }
-  
   private RemoteLocatorJoinRequest buildRemoteDSJoinRequest(
       DistributionConfigImpl config) {
     String localLocator = config.getStartLocator();
@@ -1099,6 +1043,7 @@ public class InternalLocator extends Locator implements ConnectListener {
   public void waitToStop() throws InterruptedException {
     boolean restarted;
     do {
+      DistributedSystem ds = this.myDs;
       restarted = false;
       this.server.join();
       if (this.stoppedForReconnect) {
@@ -1373,7 +1318,7 @@ public class InternalLocator extends Locator implements ConnectListener {
       int distributedSystemId = request.getDistributedSystemId();
       DistributionLocatorId locator = request.getLocator();
 
-      LocatorHelper.addLocator(distributedSystemId, locator, interalLocator, locatorListener, null);
+      LocatorHelper.addLocator(distributedSystemId, locator, locatorListener, null);
       return new RemoteLocatorJoinResponse(interalLocator.getAllLocatorsInfo());
     }
 
@@ -1392,7 +1337,7 @@ public class InternalLocator extends Locator implements ConnectListener {
       DistributionLocatorId locator = request.getLocator();
       DistributionLocatorId sourceLocatorId = request.getSourceLocator();
 
-      LocatorHelper.addLocator(distributedSystemId, locator, interalLocator, locatorListener, sourceLocatorId);
+      LocatorHelper.addLocator(distributedSystemId, locator, locatorListener, sourceLocatorId);
       return null;
     }
 

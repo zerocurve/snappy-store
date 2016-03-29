@@ -130,7 +130,7 @@ public class StateFlushOperation  {
       gr.setRecipient(target);
       ReplyProcessor21 processor = new ReplyProcessor21(dm, target);
       gr.processorId = processor.getProcessorId();
-      gr.channelState = dm.getMembershipManager().getChannelStates(target, false);
+      gr.channelState = dm.getMembershipManager().getMessageState(target, false);
       if (StateFlushOperation.DEBUG && ((gr.channelState != null) && (gr.channelState.size() > 0)) ) {
         dm.getLoggerI18n().info(LocalizedStrings.StateFlushOperation_CHANNEL_STATES_0, gr.channelStateDescription(gr.channelState));
       }

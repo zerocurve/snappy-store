@@ -86,7 +86,7 @@ import com.gemstone.gemfire.internal.size.SingleObjectSizer;
 import com.gemstone.gemfire.pdx.PdxInstance;
 import com.gemstone.gemfire.pdx.PdxSerializationException;
 import com.gemstone.gemfire.pdx.internal.ConvertableToBytes;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 
 /**
  * Abstract implementation of {@link RegionMap}that has all the common

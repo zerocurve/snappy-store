@@ -26,6 +26,7 @@ import com.gemstone.gemfire.SystemFailure;
 import com.gemstone.gemfire.distributed.DistributedMember;
 import com.gemstone.gemfire.distributed.internal.DMStats;
 import com.gemstone.gemfire.distributed.internal.DistributionMessage;
+import com.gemstone.gnu.trove.TObjectProcedure;
 
 /**
  * A MembershipManager is responsible for reporting a MemberView, as well as
@@ -51,6 +52,13 @@ public interface MembershipManager {
    * @return list of members
    */
   public NetView getView();
+
+  /**
+   * Returns the current view ID. It uses a snapshot of current view and will
+   * not wait for any ongoing changes to View to complete.
+   */
+  public long getViewId();
+
   /**
    * Returns an object that is used to sync access to the view.
    * While this lock is held the view can't change.
@@ -321,5 +329,11 @@ public interface MembershipManager {
    * @param checker the QuorumChecker instance
    */
   public void releaseQuorumChecker(QuorumChecker checker);
+
+  /**
+   * Execute a procedure for each member of the view under the
+   * {@link #getViewLock()}.
+   */
+  public void forEachViewMember(TObjectProcedure proc, boolean excludeShunned);
   
 }

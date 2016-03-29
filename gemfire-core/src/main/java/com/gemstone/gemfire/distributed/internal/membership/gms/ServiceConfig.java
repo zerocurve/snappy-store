@@ -179,7 +179,7 @@ public class ServiceConfig {
     if (lossThreshold > 100) lossThreshold = 100;
     
     memberWeight = Integer.getInteger("gemfire.member-weight", 0);
-    locatorWaitTime = theConfig.getLocatorWaitTime();
+    //locatorWaitTime = theConfig.getLocatorWaitTime();
     
     networkPartitionDetectionEnabled = theConfig.getEnableNetworkPartitionDetection();
   }

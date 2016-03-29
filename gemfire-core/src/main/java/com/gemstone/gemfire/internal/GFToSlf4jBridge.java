@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.gemstone.gemfire.GemFireIOException;
 import com.gemstone.gemfire.internal.shared.ClientSharedUtils;
-import com.gemstone.org.jgroups.util.StringId;
+import com.gemstone.gemfire.i18n.StringId;
 import org.apache.log4j.MDC;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

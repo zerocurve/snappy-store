@@ -101,7 +101,7 @@ public class AvailablePortTask extends Task {
       throw new BuildException(LocalizedStrings.AvailablePortTask_MISSING_PROTOCOL.toLocalizedString());
 
     } else if (protocolString.equalsIgnoreCase("JGROUPS")) {
-      protocol = AvailablePort.JGROUPS;
+      protocol = AvailablePort.MULTICAST;
 
     } else if (protocolString.equalsIgnoreCase("SOCKET")) {
       protocol = AvailablePort.SOCKET;

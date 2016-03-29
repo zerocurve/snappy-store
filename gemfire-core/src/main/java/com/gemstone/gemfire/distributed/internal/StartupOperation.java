@@ -20,6 +20,7 @@ import java.util.*;
 import java.io.*;
 import java.net.UnknownHostException;
 
+import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedMember;
 import com.gemstone.gemfire.internal.admin.remote.DistributionLocatorId;
 import com.gemstone.gemfire.internal.admin.remote.RemoteTransportConfig;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
@@ -55,7 +56,6 @@ public class StartupOperation {
     msg.setDistributedSystemId(dm.getConfig().getDistributedSystemId());
     msg.setRedundancyZone(redundancyZone);
     msg.setEnforceUniqueZone(enforceUniqueZone);
-    msg.setDirectChannel(dm.getDirectChannel());
     msg.setMcastEnabled(transport.isMcastEnabled());
     msg.setMcastPort(dm.getSystem().getOriginalConfig().getMcastPort());
     msg.setMcastHostAddress(dm.getSystem().getOriginalConfig().getMcastAddress());

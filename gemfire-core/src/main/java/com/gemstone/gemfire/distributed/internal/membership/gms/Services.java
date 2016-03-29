@@ -46,14 +46,13 @@ import com.gemstone.gemfire.distributed.internal.membership.gms.mgr.GMSMembershi
 import com.gemstone.gemfire.internal.admin.remote.RemoteTransportConfig;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.util.LogService;
-import com.gemstone.gemfire.internal.logging.LoggingThreadGroup;
 import com.gemstone.gemfire.security.AuthenticationFailedException;
 
 public class Services {
 
   private static final LogWriterI18n logger = LogService.getLogger();
 
-  private static final ThreadGroup threadGroup = LoggingThreadGroup.createThreadGroup("GemFire Membership", logger); 
+  private static final ThreadGroup threadGroup = new LogWriterImpl.LoggingThreadGroup("GemFire Membership", logger);
   
   private static LogWriter staticLogWriter;
   private static LogWriter staticSecurityLogWriter;

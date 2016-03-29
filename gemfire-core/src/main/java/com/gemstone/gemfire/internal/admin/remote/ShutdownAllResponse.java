@@ -41,11 +41,6 @@ public class ShutdownAllResponse extends AdminResponse {
     return true;
   }
   
-  @Override
-  public boolean orderedDelivery(boolean threadOwnsResources) {
-    return true;
-  }
-
   public ShutdownAllResponse(InternalDistributedMember sender, boolean isToShutDown) {
     this.setRecipient(sender);
     this.isToShutDown = isToShutDown;

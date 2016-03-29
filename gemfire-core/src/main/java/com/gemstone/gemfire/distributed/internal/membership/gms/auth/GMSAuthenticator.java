@@ -24,13 +24,13 @@ import com.gemstone.gemfire.distributed.internal.membership.gms.Services;
 import com.gemstone.gemfire.distributed.internal.membership.gms.interfaces.Authenticator;
 import com.gemstone.gemfire.internal.ClassLoadUtil;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
-import com.gemstone.gemfire.internal.logging.InternalLogWriter;
 import com.gemstone.gemfire.security.AuthInitialize;
 import com.gemstone.gemfire.security.AuthenticationFailedException;
 import com.gemstone.gemfire.security.AuthenticationRequiredException;
 import com.gemstone.gemfire.security.GemFireSecurityException;
 
 import java.lang.reflect.Method;
+
 import java.security.Principal;
 import java.util.Properties;
 import java.util.Set;
@@ -119,7 +119,7 @@ public class GMSAuthenticator implements Authenticator {
       return null;
     }
 
-    InternalLogWriter securityLogWriter = services.getSecurityLogWriter();
+    LogWriter securityLogWriter = services.getSecurityLogWriter();
     String failMsg = null;
     if (credentials != null) {
       try {

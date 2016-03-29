@@ -314,7 +314,7 @@ public class CreateAlterDestroyRegionCommands implements CommandMarker {
             prColocatedWith, prLocalMaxMemory, prRecoveryDelay,
             prRedundantCopies, prStartupRecoveryDelay,
             prTotalMaxMemory, prTotalNumBuckets,
-            offHeap, mcastEnabled, regionAttributes);
+            false, mcastEnabled, regionAttributes);
         
 
         if (regionAttributes.getPartitionAttributes() == null && regionFunctionArgs.hasPartitionAttributes()) {
@@ -334,7 +334,7 @@ public class CreateAlterDestroyRegionCommands implements CommandMarker {
           concurrencyChecksEnabled, cloningEnabled, concurrencyLevel, 
           prColocatedWith, prLocalMaxMemory, prRecoveryDelay,
           prRedundantCopies, prStartupRecoveryDelay,
-          prTotalMaxMemory, prTotalNumBuckets, null,compressor, offHeap , mcastEnabled);
+          prTotalMaxMemory, prTotalNumBuckets, null,compressor, false , mcastEnabled);
         
         if (!regionShortcut.name().startsWith("PARTITION") && regionFunctionArgs.hasPartitionAttributes()) {
           throw new IllegalArgumentException(

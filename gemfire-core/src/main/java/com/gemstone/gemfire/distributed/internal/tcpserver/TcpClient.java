@@ -124,7 +124,7 @@ public class TcpClient {
       return null;
     }
     
-    Socket sock=SocketCreator.getDefaultInstance().connect(ipAddr.getAddress(), ipAddr.getPort(), (int)newTimeout, null, false);
+    Socket sock=SocketCreator.getDefaultInstance().connect(ipAddr.getAddress(),ipAddr.getPort(),LOG.getLogWriter(), (int)newTimeout, null, false);
     sock.setSoTimeout((int)newTimeout);
     DataOutputStream out = null;
     try {

@@ -400,6 +400,7 @@ public class Message  {
       }
       return p;
     }
+    return null;
   }
 
   public boolean getEarlyAck() {

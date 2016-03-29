@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import com.gemstone.gemfire.LogWriter;
 import org.apache.log4j.Logger;
 
 import com.gemstone.gemfire.DataSerializer;
@@ -458,7 +459,7 @@ public class NetView implements DataSerializableFixedID {
    * logs the weight of failed members wrt the given previous
    * view
    */
-  public void logCrashedMemberWeights(NetView oldView, Logger log) {
+  public void logCrashedMemberWeights(NetView oldView, LogWriter log) {
     InternalDistributedMember lead = oldView.getLeadMember();
     for (InternalDistributedMember mbr : this.crashedMembers) {
       if (!oldView.contains(mbr)) {

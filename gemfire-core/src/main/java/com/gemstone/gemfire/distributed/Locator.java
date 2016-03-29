@@ -346,7 +346,8 @@ public abstract class Locator {
                                           dsProperties,
                                           peerLocator,
                                           serverLocator,
-                                          hostnameForClients);
+                                          hostnameForClients,
+                                          false);
     }
 
   /**
@@ -375,7 +376,8 @@ public abstract class Locator {
                                         dsProperties,
                                         peerLocator,
                                         serverLocator,
-                                        hostnameForClients);
+                                        hostnameForClients,
+                                        false);
   }
 
   /**

@@ -124,6 +124,9 @@ public final class Connection implements Runnable {
   /** counter to give connections a unique id */
   private static AL idCounter = CFactory.createAL(1);
 
+  /** string used as the reason for initiating suspect processing */
+  public static final String INITIATING_SUSPECT_PROCESSING = "member unexpectedly shut down shared, unordered connection";
+
   /** the table holding this connection */
   final ConnectionTable owner;
   
@@ -424,7 +427,7 @@ public final class Connection implements Runnable {
   private long messagesSent;
 
   /** number of messages received on this connection */
-  private final AtomicLong messagesReceived = new AtomicLong(0);
+  private long messagesReceived;
 
   /** unique ID of this connection (remote if isReceiver==true) */
   private volatile long uniqueId;
@@ -1094,7 +1097,7 @@ public final class Connection implements Runnable {
           // alert listener should not prevent cache operations from continuing
           if ((t.getLogger() instanceof ManagerLogWriter) &&
               ManagerLogWriter.isAlerting()) {
-            throw new IOException("Cannot form connection to alert listener " + key);
+            throw new IOException("Cannot form connection to alert listener " + remoteAddr);
           }
             
           // Wait briefly...
@@ -1344,7 +1347,7 @@ public final class Connection implements Runnable {
         // socket = javax.net.ssl.SSLSocketFactory.getDefault()
         //  .createSocket(remoteAddr.getInetAddress(), remoteAddr.getPort());
         int socketBufferSize = sharedResource ? SMALL_BUFFER_SIZE : this.owner.getConduit().tcpBufferSize;
-        this.socket = SocketCreator.getDefaultInstance().connectForServer( remoteAddr.getInetAddress(), remoteAddr.getDirectChannelPort(), socketBufferSize );
+        this.socket = SocketCreator.getDefaultInstance().connectForServer( remoteAddr.getInetAddress(), remoteAddr.getDirectChannelPort(), owner.getLogger(), socketBufferSize );
         // Set the receive buffer size local fields. It has already been set in the socket.
         setSocketBufferSize(this.socket, false, socketBufferSize, true);
         setSendBufferSize(this.socket);
@@ -1676,7 +1679,7 @@ public final class Connection implements Runnable {
               && owner.getDM().getRootCause() == null) { // don't wait twice if there's a system failure
             readerThreadSnapshot.join(1500);
             if (this.isRunning) {
-              logger.info(LocalizedMessage.create(LocalizedStrings.Connection_TIMED_OUT_WAITING_FOR_READERTHREAD_ON_0_TO_FINISH, this));
+              logger.info(LocalizedStrings.Connection_TIMED_OUT_WAITING_FOR_READERTHREAD_ON_0_TO_FINISH, this);
             }
           }
         }
@@ -2386,7 +2389,7 @@ public final class Connection implements Runnable {
               this.remoteVersion = Version.readVersion(dis, true);
               int dominoNumber = 0;
               if (this.remoteVersion == null ||
-                  (this.remoteVersion.compareTo(Version.GFE_80) >= 0) ) {
+                  (this.remoteVersion.compareTo(Version.GFE_701) >= 0) ) { //TODO:Suranjan check the versioning
                 dominoNumber = dis.readInt();
                 if (this.sharedResource) {
                   dominoNumber = 0;
@@ -2397,14 +2400,14 @@ public final class Connection implements Runnable {
 
               if (!this.sharedResource) {
                 if (tipDomino()) {
-                  logger.info(LocalizedMessage.create(
-                    LocalizedStrings.Connection_THREAD_OWNED_RECEIVER_FORCING_ITSELF_TO_SEND_ON_THREAD_OWNED_SOCKETS));
+                  logger.info(
+                    LocalizedStrings.Connection_THREAD_OWNED_RECEIVER_FORCING_ITSELF_TO_SEND_ON_THREAD_OWNED_SOCKETS);
 // bug #49565 - if domino count is >= 2 use shared resources.
 // Also see DistributedCacheOperation#supportsDirectAck
                 } else { // if (dominoNumber < 2){
                   ConnectionTable.threadWantsOwnResources();
-                  if (logger.isDebugEnabled()) {
-                    logger.debug("thread-owned receiver with domino count of {} will prefer sending on thread-owned sockets", dominoNumber);
+                  if (logger.fineEnabled()) {
+                    logger.fine("thread-owned receiver with domino count of "+dominoNumber+" will prefer sending on thread-owned sockets");
                   }
 //                } else {
 //                  ConnectionTable.threadWantsSharedResources();
@@ -2413,8 +2416,8 @@ public final class Connection implements Runnable {
                 this.owner.owner.stats.incThreadOwnedReceivers(1L, dominoNumber);
               }
               
-              if (logger.isDebugEnabled()) {
-                logger.debug("{} remoteAddr is {} {}", p2pReaderName(), this.remoteAddr,
+              if (logger.fineEnabled()) {
+                logger.fine(p2pReaderName() + " remoteAddr is "+this.remoteAddr+" " +
                     (this.remoteVersion != null ? " (" + this.remoteVersion + ')' : ""));
               }
 
@@ -3158,7 +3161,7 @@ public final class Connection implements Runnable {
       stats.incAsyncQueues(-1);
       if (logger.fineEnabled()) {
         logger.fine("runNioPusher terminated " + " id=" + conduitIdStr 
-            + " from " + remoteId + "/" + remoteAddr);
+            + " from " + remoteAddr + "/" + remoteAddr);
       }
     }
     } finally {
@@ -3911,7 +3914,7 @@ public final class Connection implements Runnable {
                 this.remoteVersion = Version.readVersion(dis, true);
                 int dominoNumber = 0;
                 if (this.remoteVersion == null || 
-                    (this.remoteVersion.compareTo(Version.GFE_80) >= 0)) {
+                    (this.remoteVersion.compareTo(Version.GFE_75) >= 0)) {//TODO:Suranjan check the versioning
                   dominoNumber = dis.readInt();
                   if (this.sharedResource) {
                     dominoNumber = 0;
@@ -3921,8 +3924,8 @@ public final class Connection implements Runnable {
                 }
                 if (!this.sharedResource) {
                   if (tipDomino()) {
-                    logger.info(LocalizedMessage.create(
-                      LocalizedStrings.Connection_THREAD_OWNED_RECEIVER_FORCING_ITSELF_TO_SEND_ON_THREAD_OWNED_SOCKETS));
+                    logger.info(
+                      LocalizedStrings.Connection_THREAD_OWNED_RECEIVER_FORCING_ITSELF_TO_SEND_ON_THREAD_OWNED_SOCKETS);
 // bug #49565 - if domino count is >= 2 use shared resources.
 // Also see DistributedCacheOperation#supportsDirectAck
                   } else { //if (dominoNumber < 2) {

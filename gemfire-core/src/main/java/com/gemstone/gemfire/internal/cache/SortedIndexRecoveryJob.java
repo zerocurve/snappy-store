@@ -56,7 +56,8 @@ public final class SortedIndexRecoveryJob extends BatchJobControl {
   public SortedIndexRecoveryJob(GemFireCacheImpl cache, DiskStoreImpl ds,
       CancelCriterion cc, SortedIndexContainer index, int maxQueuedJobs) {
     // use the function executor thread pool
-    super(cache.getDistributionManager().getFunctionExcecutor(), cache
+    // TODO: Is it correct threadpool Suranjan
+    super(cache.getDistributionManager().getPrMetaDataCleanupThreadPool(), cache
         .getLoggerI18n(), cc, maxQueuedJobs);
     this.dsi = ds;
     this.indexContainer = index;

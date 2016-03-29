@@ -28,6 +28,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.gemstone.gemfire.LogWriter;
 import com.gemstone.gemfire.internal.util.LogService;
 import org.apache.log4j.Logger;
 
@@ -53,7 +54,7 @@ import com.gemstone.gemfire.SystemFailure;
  * configured using the "p2p.ASYNC_CLOSE_POOL_MAX_THREADS" system property.
  */
 public class SocketCloser {
-  //private static final Logger logger = LogService.getLogger();
+  private static final LogWriter logger = LogService.logWriter();
   /** Number of seconds to wait before timing out an unused async close thread. Default is 120 (2 minutes). */
   static final long ASYNC_CLOSE_POOL_KEEP_ALIVE_SECONDS = Long.getLong("p2p.ASYNC_CLOSE_POOL_KEEP_ALIVE_SECONDS", 120).longValue();
   /** Maximum number of threads that can be doing a socket close. Any close requests over this max will queue up waiting for a thread. */
@@ -91,7 +92,7 @@ public class SocketCloser {
     synchronized (asyncCloseExecutors) {
       ThreadPoolExecutor pool = asyncCloseExecutors.get(address);
       if (pool == null) {
-        final ThreadGroup tg = LoggingThreadGroup.createThreadGroup("Socket asyncClose", logger);
+        final ThreadGroup tg = new LogWriterImpl.LoggingThreadGroup("Socket asyncClose", logger.convertToLogWriterI18n());
         ThreadFactory tf = new ThreadFactory() { 
           public Thread newThread(final Runnable command) { 
             Thread thread = new Thread(tg, command); 

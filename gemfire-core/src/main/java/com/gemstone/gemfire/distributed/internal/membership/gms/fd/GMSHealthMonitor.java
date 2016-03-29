@@ -52,6 +52,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.gemstone.gemfire.LogWriter;
 import org.jgroups.util.UUID;
 
 import com.gemstone.gemfire.CancelException;
@@ -107,7 +108,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
   private final AtomicInteger requestId = new AtomicInteger();
 
   /** membership logger */
-  private static Logger logger = Services.getLogger();
+  private static LogWriter logger = Services.getLogger();
   
   /**
    * The number of recipients of periodic heartbeats.  The recipients will
@@ -242,7 +243,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
         long interval = memberTimeoutInMillis / GMSHealthMonitor.LOGICAL_INTERVAL;
         long lastTS = currentTime - nextNeighborTS.getTime();
         if (lastTS + interval >= memberTimeoutInMillis) {
-          logger.trace("Checking member {} ", neighbour);
+          logger.info("Checking member " + neighbour);
           // now do check request for this member;
           checkMember(neighbour);
         }
@@ -288,7 +289,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
         long uuidMSBs = in.readLong();
         GMSHealthMonitor.this.stats.incFinalCheckRequestsReceived();
         GMSHealthMonitor.this.stats.incTcpFinalCheckRequestsReceived();
-        boolean debug = logger.isDebugEnabled();
+        boolean debug = logger.fineEnabled();
         GMSMember gmbr = (GMSMember) GMSHealthMonitor.this.localAddress.getNetMember();
         UUID myUUID = gmbr.getUUID();
         // during reconnect or rapid restart we will have a zero viewId but there may still
@@ -302,11 +303,9 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
             && uuidMSBs == myUUID.getMostSignificantBits()) {
             logger.debug("UUID matches my own - sending OK reply");
           } else {
-            logger.debug("GMSHealthMonitor my UUID is {},{} received is {},{}.  My viewID is {} received is {}",
-              Long.toHexString(myUUID.getMostSignificantBits()),
-              Long.toHexString(myUUID.getLeastSignificantBits()),
-              Long.toHexString(uuidMSBs), Long.toHexString(uuidLSBs),
-              myVmViewId, vmViewId);
+            logger.debug("GMSHealthMonitor my UUID is " + Long.toHexString(myUUID.getMostSignificantBits()) + "" +
+                "," + Long.toHexString(myUUID.getLeastSignificantBits()) + " received is" + Long.toHexString(uuidMSBs) +
+                "," + Long.toHexString(uuidLSBs) + "My viewID is " + myVmViewId + " received is " + vmViewId);
           }
         }
         if (!playingDead
@@ -333,12 +332,12 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
           }
         }
       } catch (IOException e) {
-        logger.debug("Unexpected exception", e);
+        logger.fine("Unexpected exception", e);
       } catch (RuntimeException e) {
-        logger.debug("Unexpected runtime exception", e);
+        logger.fine("Unexpected runtime exception", e);
         throw e;
       } catch (Error e) {
-        logger.debug("Unexpected error", e);
+        logger.fine("Unexpected error", e);
         throw e;
       } finally {
         if (socket != null) {
@@ -370,7 +369,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
       cTS.setTimeStamp(currentTimeStamp);
     }
     if (suspectedMemberInView.remove(sender) != null) {
-      logger.info("No longer suspecting {}", sender);
+      logger.info("No longer suspecting "+ sender);
     }
     setNextNeighbor(currentView, null);
   }
@@ -401,7 +400,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
           String reason = "Member isn't responding to heartbeat requests";
           GMSHealthMonitor.this.initiateSuspicion(mbr, reason);
         } else {
-          logger.trace("Setting next neighbor as member {} has responded.", mbr);
+          logger.info("Setting next neighbor as member "+mbr+" has responded.");
           suspectedMemberInView.remove(mbr);
           // back to previous one
           setNextNeighbor(GMSHealthMonitor.this.currentView, null);
@@ -431,7 +430,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
       // messages by returning true.
       return true;
     }
-    logger.trace("Checking member {}", member);
+    logger.info("Checking member " + member);
     final HeartbeatRequestMessage hrm = constructHeartbeatRequestMessage(member);
     final Response pingResp = new Response();
     requestIdVsResponse.put(hrm.getRequestId(), pingResp);
@@ -440,7 +439,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
       this.stats.incHeartbeatRequestsSent();
       if (membersNotReceivedMsg != null && membersNotReceivedMsg.contains(member)) {
         // member is not part of current view.
-        logger.trace("Member {} is not part of current view.", member);
+        logger.info("Member "+member+" is not part of current view.");
       } else {
         synchronized (pingResp) {
           if (pingResp.getResponseMsg() == null) {
@@ -451,10 +450,10 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
             if (isStopping) {
               return true;
             }
-            logger.trace("no heartbeat response received from {} and no recent activity", member);
+            logger.info("no heartbeat response received from " + member + " and no recent activity");
             return false;
           } else {
-            logger.trace("received heartbeat from {}", member);
+            logger.info("received heartbeat from " + member);
             this.stats.incHeartbeatsReceived();
             if (ts != null) {
               ts.setTimeStamp(System.currentTimeMillis());
@@ -464,7 +463,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
         }
       }
     } catch (InterruptedException e) {
-      logger.debug("GMSHealthMonitor checking thread interrupted, while waiting for response from member: {} .", member);
+      logger.debug("GMSHealthMonitor checking thread interrupted, while waiting for response from member: "+member+" .");
     } finally {
       requestIdVsResponse.remove(hrm.getRequestId());
     }
@@ -481,14 +480,14 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
   private boolean doTCPCheckMember(InternalDistributedMember suspectMember, int port) {
     Socket clientSocket = null;
     try {
-      logger.debug("Checking member {} with TCP socket connection {}:{}.", suspectMember, suspectMember.getInetAddress(), port);
-      clientSocket = SocketCreator.getDefaultInstance().connect(suspectMember.getInetAddress(), port,
+      logger.debug("Checking member "+suspectMember+" with TCP socket connection "+suspectMember.getInetAddress()+":"+port+".");
+      clientSocket = SocketCreator.getDefaultInstance().connect(suspectMember.getInetAddress(), port, logger,
           (int)memberTimeout, new ConnectTimeoutTask(services.getTimer(), memberTimeout), false, -1, false);
       clientSocket.setTcpNoDelay(true);
       return doTCPCheckMember(suspectMember, clientSocket);
     }
     catch (IOException e) {
-      logger.debug("Unexpected exception", e);
+      logger.fine("Unexpected exception", e);
     } 
     finally {
       try {
@@ -497,7 +496,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
           clientSocket.close();
         }
       } catch (IOException e) {
-        logger.trace("Unexpected exception", e);
+        logger.info("Unexpected exception", e);
       }
     }
     return false;
@@ -515,11 +514,11 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
         clientSocket.shutdownOutput();
         this.stats.incFinalCheckRequestsSent();
         this.stats.incTcpFinalCheckRequestsSent();
-        logger.debug("Connected - reading response from suspect member {}", suspectMember);
+        logger.debug("Connected - reading response from suspect member "+ suspectMember);
         int b = in.read();
         this.stats.incFinalCheckResponsesReceived();
         this.stats.incTcpFinalCheckResponsesReceived();
-        logger.debug("Received {}", (b == OK ? "OK" : (b == ERROR ? "ERROR" : b)), suspectMember);
+        logger.debug("Received "+ (b == OK ? "OK" : (b == ERROR ? "ERROR" : b)) +  suspectMember);
         if (b == OK) {
           TimeStamp ts = memberTimeStamps.get(suspectMember);
           if (ts != null) {
@@ -534,10 +533,10 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
         return false;
       }
     } catch (SocketTimeoutException e) {
-      logger.debug("Final check TCP/IP connection timed out for suspect member {}", suspectMember);
+      logger.debug("Final check TCP/IP connection timed out for suspect member "+ suspectMember);
       return false;
     } catch (IOException e) {
-      logger.trace("Unexpected exception", e);
+      logger.info("Unexpected exception", e);
     } 
     return false;
   }
@@ -622,7 +621,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
   ServerSocket createServerSocket(InetAddress socketAddress, int[] portRange) {
     ServerSocket serverSocket = null;
     try {
-      serverSocket = SocketCreator.getDefaultInstance().createServerSocketUsingPortRange(socketAddress, 50/*backlog*/, true/*isBindAddress*/, false/*useNIO*/, 65536/*tcpBufferSize*/, portRange);
+      serverSocket = SocketCreator.getDefaultInstance().createServerSocketUsingPortRange(socketAddress, 50/*backlog*/, true/*isBindAddress*/, false/*useNIO*/, logger, 65536/*tcpBufferSize*/, portRange);
       socketPort = serverSocket.getLocalPort();
     } catch (IOException e) {
       throw new GemFireConfigException("Unable to allocate a failure detection port in the membership-port range", e);
@@ -636,14 +635,14 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
    * start the thread that listens for tcp/ip connections and responds
    * to connection attempts
    */
-  private void startTcpServer(ServerSocket ssocket) {
+  private void startTcpServer(final ServerSocket ssocket) {
     // allocate a socket here so there are no race conditions between knowing the FD
     // socket port and joining the system
 
     serverSocketExecutor.execute(new Runnable() {
       @Override
       public void run() {
-        logger.info("Started failure detection server thread on {}:{}.", ssocket.getInetAddress(), socketPort);
+        logger.info("Started failure detection server thread on "+ssocket.getInetAddress()+":"+socketPort+".");
         Socket socket = null;
         try {
           while (!services.getCancelCriterion().isCancelInProgress() 
@@ -660,14 +659,14 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
 
             } catch (IOException e) {
               if (!isStopping) {
-                logger.trace("Unexpected exception", e);
+                logger.info("Unexpected exception", e);
               }
               try {
                 if (socket != null) {
                   socket.close();
                 }
               } catch (IOException ioe) {
-                logger.trace("Unexpected exception", ioe);
+                logger.info("Unexpected exception", ioe);
               }
             }
           }
@@ -680,7 +679,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
               serverSocket = null;
               logger.info("GMSHealthMonitor server socket closed.");
             } catch (IOException e) {
-              logger.debug("Unexpected exception", e);
+              logger.fine("Unexpected exception", e);
             }
           }
         }
@@ -831,7 +830,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
       }
       InternalDistributedMember oldNeighbor = nextNeighbor;
       if (oldNeighbor != newNeighbor) {
-        logger.debug("Failure detection is now watching {}", newNeighbor);
+        logger.debug("Failure detection is now watching "+ newNeighbor);
         nextNeighbor = newNeighbor;
       }
     }
@@ -901,7 +900,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
           logger.info("GMSHealthMonitor server socket is closed in stopServices().");
         }
         catch (IOException e) {
-          logger.trace("Unexpected exception", e);
+          logger.info("Unexpected exception", e);
         }
       }      
       serverSocketExecutor.shutdownNow();
@@ -972,7 +971,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
       return;
     }
 
-    logger.trace("processing {}", m);
+    logger.info("processing " + m);
 
     switch (m.getDSFID()) {
     case HEARTBEAT_REQUEST:
@@ -1018,10 +1017,10 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
       Set<InternalDistributedMember> membersNotReceivedMsg = services.getMessenger().send(hm);
       this.stats.incHeartbeatsSent();
       if (membersNotReceivedMsg != null && membersNotReceivedMsg.contains(m.getSender())) {
-        logger.debug("Unable to send heartbeat to member: {}", m.getSender());
+        logger.debug("Unable to send heartbeat to member: "+ m.getSender());
       }
     } else {
-      logger.debug("Ignoring heartbeat request intended for {}.  My ID is {}", m.getTarget(), me);
+      logger.debug("Ignoring heartbeat request intended for "+m.getTarget()+".  My ID is "+ me);
     }
   }
 
@@ -1032,7 +1031,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
       contactedBy(m.getSender());
     } else {
       Response resp = requestIdVsResponse.get(m.getRequestId());
-      logger.trace("Got heartbeat from member {}. {}", m.getSender(), (resp != null ? "Check thread still waiting" : "Check thread is not waiting"));
+      logger.info("Got heartbeat from member "+m.getSender()+". "+ (resp != null ? "Check thread still waiting" : "Check thread is not waiting"));
       if (resp != null) {
         synchronized (resp) {
           resp.setResponseMsg(m);
@@ -1091,8 +1090,8 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
     
     if (cv.getCoordinator().equals(localAddress)) {
       for (SuspectRequest req: incomingRequest.getMembers()) {
-        logger.info("received suspect message from {} for {}: {}",
-           sender, req.getSuspectMember(), req.getReason());
+        logger.info("received suspect message from " + sender + " for " + req.getSuspectMember() + ": " +
+            req.getReason());
       }
       checkIfAvailable(sender, sMembers, cv);
     }// coordinator ends
@@ -1115,8 +1114,8 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
       if (coordinator != null && coordinator.equals(localAddress)) {
         // new coordinator
         for (SuspectRequest req: incomingRequest.getMembers()) {
-          logger.info("received suspect message from {} for {}: {}",
-             sender, req.getSuspectMember(), req.getReason());
+          logger.info("received suspect message from " + sender + " for " + req.getSuspectMember() + ": " +
+              req.getReason());
         }
         checkIfAvailable(sender, smbr, cv);
       } else {
@@ -1156,7 +1155,6 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
    * @param initiator
    * @param sMembers
    * @param cv
-   * @param initiateRemoval
    */
   private void checkIfAvailable(final InternalDistributedMember initiator,
       List<SuspectRequest> sMembers, final NetView cv) {
@@ -1187,7 +1185,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
 
         //      if (view == null || !view.equals(cv)) {
         final String reason = sr.getReason();
-        logger.debug("Scheduling final check for member {}; reason={}", mbr, reason);
+        logger.debug("Scheduling final check for member "+mbr+"; reason="+ reason);
         // its a coordinator
         checkExecutor.execute(new Runnable() {
 
@@ -1225,13 +1223,13 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
     // with the startTime, but we don't want to do that because it looks
     // like a heartbeat has been received
 
-    logger.info("Performing final check for suspect member {} reason={}", mbr, reason);
+    logger.info("Performing final check for suspect member "+mbr+" reason="+ reason);
     boolean pinged;
     int port = cv.getFailureDetectionPort(mbr);
     if (port <= 0) {
       logger.info("Unable to locate failure detection port - requesting a heartbeat");
-      if (logger.isDebugEnabled()) {
-        logger.debug("\ncurrent view: {}\nports: {}", cv, Arrays.toString(cv.getFailureDetectionPorts()));
+      if (logger.fineEnabled()) {
+        logger.debug("\ncurrent view: "+cv+"\nports: "+ Arrays.toString(cv.getFailureDetectionPorts()));
       }
       pinged = GMSHealthMonitor.this.doCheckMember(mbr);
       GMSHealthMonitor.this.stats.incFinalCheckRequestsSent();
@@ -1287,7 +1285,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
 //        suspectRequests.clear();
 //      }
 //    }
-    logger.debug("Sending suspect request for members {}", requests);
+    logger.debug("Sending suspect request for members "+ requests);
     List<InternalDistributedMember> recipients;
 //  TODO this needs some rethinking - we need the guys near the
 //  front of the membership view who aren't preferred for coordinator
@@ -1312,7 +1310,7 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
     }
 
     if (failedRecipients != null && failedRecipients.size() > 0) {
-      logger.info("Unable to send suspect message to {}", recipients);
+      logger.info("Unable to send suspect message to "+ recipients);
     }
   }
 

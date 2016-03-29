@@ -171,7 +171,8 @@ public class DistributionLocator  {
                           (Properties)null,
                           peerLocator,
                           serverLocator,
-                          hostnameForClients);
+                          hostnameForClients,
+                          false);
 
           ManagerInfo.setLocatorStarted(directory, port, address);
           locator.waitToStop();

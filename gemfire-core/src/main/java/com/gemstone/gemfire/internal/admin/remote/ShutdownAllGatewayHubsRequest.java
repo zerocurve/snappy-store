@@ -34,11 +34,6 @@ public class ShutdownAllGatewayHubsRequest extends AdminRequest {
   }
   
   @Override
-  public boolean sendViaJGroups() {
-    return true;
-  }
-  
-  @Override
   protected AdminResponse createResponse(DistributionManager dm) {
     GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
     if(cache != null && !cache.isClosed()) {

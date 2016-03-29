@@ -923,9 +923,9 @@ public
     /** Has this thread been told to stop? */
     private volatile boolean shutDown = false;
 
-    protected DSConnectionDaemon(LogWriterI18n logger) {
+    protected DSConnectionDaemon() {
       super(RemoteGfManagerAgent.this.threadGroup,
-            "DSConnectionDaemon");
+          "DSConnectionDaemon");
       setDaemon(true);
     }
 
