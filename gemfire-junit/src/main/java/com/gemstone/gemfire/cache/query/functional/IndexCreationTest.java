@@ -798,7 +798,7 @@ public class IndexCreationTest extends TestCase{
     {
       Properties props = new Properties();
       props.setProperty(DistributionConfig.NAME_NAME, "test");
-      int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+      int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
       props.setProperty("mcast-port", "0");
       props.setProperty("cache-xml-file", IndexCreationTest.class.getResource("index-creation-with-eviction.xml").toURI().getPath());
       DistributedSystem ds = DistributedSystem.connect(props);

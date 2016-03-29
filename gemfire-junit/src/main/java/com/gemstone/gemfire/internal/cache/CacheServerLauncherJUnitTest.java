@@ -96,7 +96,7 @@ public class CacheServerLauncherJUnitTest extends TestCase {
   public void setUp() throws Exception {
     super.setUp();
     assertTrue(JTESTS != null && JTESTS.length() > 0);
-    this.mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    this.mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     int[] tcpPorts = AvailablePortHelper.getRandomAvailableTCPPorts(3);
     this.serverPort = tcpPorts[0];
     this.controllerNamingPort = tcpPorts[1];

@@ -78,7 +78,7 @@ public class DiskRegCacheXmlJUnitTest extends TestCase
     Properties props = new Properties();
     props.setProperty(DistributionConfig.NAME_NAME, "test");
     String path = System.getProperty("JTESTS") + "/lib/diskRegion.xml";
-    int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.setProperty("mcast-port", String.valueOf(unusedPort));
     props.setProperty("cache-xml-file", path);
     ds = DistributedSystem.connect(props);

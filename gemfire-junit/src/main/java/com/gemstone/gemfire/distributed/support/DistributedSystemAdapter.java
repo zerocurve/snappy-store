@@ -18,6 +18,7 @@ package com.gemstone.gemfire.distributed.support;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.net.InetAddress;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -252,5 +253,17 @@ public abstract class DistributedSystemAdapter extends DistributedSystem {
   @Override public StatisticsType[] createTypesFromXml(final Reader reader) throws IOException {
     throw new UnsupportedOperationException("Not Implemented!");
   }
+
+  @Override
+  public Set<DistributedMember> findDistributedMembers(InetAddress address) {
+    throw new UnsupportedOperationException("Not Implemented!");
+  }
+
+  @Override
+  public DistributedMember findDistributedMember(String name) {
+    throw new UnsupportedOperationException("Not Implemented!");
+  }
+  
+  
 
 }

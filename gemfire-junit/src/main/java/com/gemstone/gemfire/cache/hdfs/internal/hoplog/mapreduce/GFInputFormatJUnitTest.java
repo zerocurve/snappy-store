@@ -223,7 +223,7 @@ public class GFInputFormatJUnitTest extends BaseHoplogTestCase {
 
   @Override
   protected void setUp() throws Exception {
-    CLUSTER_PORT = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    CLUSTER_PORT = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     super.setUp();
     regionPath = new Path(testDataDir, getName());
   }

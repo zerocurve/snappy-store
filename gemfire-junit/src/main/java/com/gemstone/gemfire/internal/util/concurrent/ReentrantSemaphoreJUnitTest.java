@@ -19,9 +19,7 @@ package com.gemstone.gemfire.internal.util.concurrent;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
-import com.gemstone.org.jgroups.oswego.concurrent.CountDown;
-
+import com.gemstone.gemfire.internal.util.concurrent.*;
 import junit.framework.TestCase;
 
 /**

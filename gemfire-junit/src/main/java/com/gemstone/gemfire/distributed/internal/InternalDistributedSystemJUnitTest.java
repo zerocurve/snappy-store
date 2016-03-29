@@ -265,8 +265,9 @@ public class InternalDistributedSystemJUnitTest extends TestCase
     checkLocator(localhost + "[12345]");
     checkLocator(localhost + ":12345");
 
-    String bindAddress = 
-      getHostAddress(java.net.InetAddress.getLocalHost());
+    String bindAddress =
+        DistributedTestBase.getHostAddress(java.net.InetAddress.getLocalHost());
+      //getHostAddress(java.net.InetAddress.getLocalHost());
     if (bindAddress.indexOf(':') < 0) {
       checkLocator(localhost + ":" + bindAddress + "[12345]");
     }

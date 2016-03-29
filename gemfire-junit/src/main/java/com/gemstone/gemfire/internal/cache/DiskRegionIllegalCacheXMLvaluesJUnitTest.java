@@ -63,7 +63,7 @@ public class DiskRegionIllegalCacheXMLvaluesJUnitTest extends TestCase
       dir.mkdir();
       dir.deleteOnExit();
       Properties props = new Properties();
-      int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+      int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
       props.setProperty("mcast-port", String.valueOf(unusedPort));
       String localPath =  System.getProperty("JTESTS")+"/../../"+path;
       

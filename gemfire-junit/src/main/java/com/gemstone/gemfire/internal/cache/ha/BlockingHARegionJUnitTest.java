@@ -31,7 +31,7 @@ import io.snappydata.test.dunit.DistributedTestBase.WaitCriterion;
 
 public class BlockingHARegionJUnitTest extends TestCase
 {
-  static int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  static int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   static Cache cache = null;
 
   protected void setUp() throws Exception

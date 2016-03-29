@@ -110,7 +110,7 @@ public class BindDistributedSystemTest extends TestCase {
     Properties props = new Properties();
     props.setProperty(DistributionConfig.BIND_ADDRESS_NAME, bindTo);
     props.setProperty(DistributionConfig.MCAST_PORT_NAME,
-        String.valueOf(AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS)));
+        String.valueOf(AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST)));
     this.system = com.gemstone.gemfire.distributed.DistributedSystem.connect(
         props);
         
