@@ -64,8 +64,7 @@ import com.gemstone.gemfire.test.junit.categories.IntegrationTest;
 
 @Category(IntegrationTest.class)
 public class MembershipJUnitTest {
-  static Level baseLogLevel;
-  
+
   @BeforeClass
   public static void setupClass() {
 //    baseLogLevel = LogService.getBaseLogLevel();

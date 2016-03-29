@@ -434,6 +434,10 @@ subprojects {
     testCompile 'org.jmock:jmock:2.5.1'
     testCompile 'org.jmock:jmock-legacy:2.5.1'
     testCompile 'edu.umd.cs.mtc:multithreadedtc:1.01'
+    testCompile 'org.mockito:mockito-core:1.10.19'
+    testCompile 'org.powermock:powermock-core:1.6.4'
+    testCompile 'org.powermock:powermock-module-junit4:1.6.4'
+    testCompile 'org.powermock:powermock-api-mockito:1.6.4'
     testRuntime 'cglib:cglib-nodep:2.1_3'
     testRuntime 'org.objenesis:objenesis:1.0'
   }

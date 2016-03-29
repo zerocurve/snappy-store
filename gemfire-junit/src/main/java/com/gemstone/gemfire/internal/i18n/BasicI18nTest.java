@@ -18,6 +18,8 @@ package com.gemstone.gemfire.internal.i18n;
 
 import junit.framework.TestCase;
 
+import com.gemstone.gemfire.i18n.StringIdImpl;
+import com.gemstone.gemfire.i18n.StringId;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashSet;
