@@ -200,7 +200,7 @@ public class VarcharForBitDataPartitionTest extends JdbcTestBase{
   }
   
   public void testBug46046() throws Exception {
-    mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     String partitionStrategy = "";
     partitionBy(partitionStrategy);
     

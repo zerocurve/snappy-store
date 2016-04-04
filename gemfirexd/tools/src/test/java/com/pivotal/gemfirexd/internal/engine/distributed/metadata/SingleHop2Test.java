@@ -54,7 +54,7 @@ public class SingleHop2Test extends JdbcTestBase {
     }
 
     Properties props1 = new Properties();
-    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props1.put("mcast-port", String.valueOf(mport));
     setupConnection(props1);
     Connection conn = TestUtil.getConnection(props1);
@@ -137,7 +137,7 @@ public class SingleHop2Test extends JdbcTestBase {
     }
     
     Properties props1 = new Properties();
-    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props1.put("mcast-port", String.valueOf(mport));
     setupConnection(props1);
     Connection conn = TestUtil.getConnection(props1);
@@ -236,7 +236,7 @@ public class SingleHop2Test extends JdbcTestBase {
 	  return;
 	}
     Properties props1 = new Properties();
-    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props1.put("mcast-port", String.valueOf(mport));
     setupConnection(props1);
     Connection conn = TestUtil.getConnection(props1);
@@ -299,7 +299,7 @@ public class SingleHop2Test extends JdbcTestBase {
 	  return;
 	}
     Properties props1 = new Properties();
-    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props1.put("mcast-port", String.valueOf(mport));
     setupConnection(props1);
     Connection conn = TestUtil.getConnection(props1);
@@ -401,7 +401,7 @@ public class SingleHop2Test extends JdbcTestBase {
 	  return;
 	}  
     Properties props1 = new Properties();
-    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props1.put("mcast-port", String.valueOf(mport));
     setupConnection(props1);
     Connection conn = TestUtil.getConnection(props1);
@@ -488,7 +488,7 @@ public class SingleHop2Test extends JdbcTestBase {
 	  return;
 	}  
     Properties props1 = new Properties();
-    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props1.put("mcast-port", String.valueOf(mport));
     setupConnection(props1);
     Connection conn = TestUtil.getConnection(props1);

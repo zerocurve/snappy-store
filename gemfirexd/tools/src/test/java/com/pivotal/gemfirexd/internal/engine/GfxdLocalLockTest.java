@@ -20,7 +20,7 @@ package com.pivotal.gemfirexd.internal.engine;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import com.gemstone.org.jgroups.oswego.concurrent.WriterPreferenceReadWriteLock;
+import com.gemstone.gemfire.internal.concurrent.WriterPreferenceReadWriteLock;
 import com.pivotal.gemfirexd.internal.engine.locks.impl.GfxdReentrantReadWriteLock;
 import com.pivotal.gemfirexd.jdbc.JdbcTestBase;
 

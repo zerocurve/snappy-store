@@ -529,7 +529,7 @@ public class UpdateStatementConstraintCheckTest extends JdbcTestBase {
     Properties props = new Properties();
     RETRY: while (true) {
       final int mcastPort = AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS);
+          .getRandomAvailablePort(AvailablePort.MULTICAST);
       props.setProperty("mcast-port", String.valueOf(mcastPort));
       try {
         return getConnection(props);

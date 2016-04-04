@@ -174,7 +174,7 @@ public class ClientAuthzObjectModDUnitTest extends ClientAuthorizationTestBase {
 
     if (mcastPort == null) {
       mcastPort = new Integer(AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS));
+          .getRandomAvailablePort(AvailablePort.MULTICAST));
     }
     return SecurityTestUtil.createCacheServer(authProps, null, mcastPort, null,
         null, Boolean.FALSE, new Integer(SecurityTestUtil.NO_EXCEPTION));
@@ -185,7 +185,7 @@ public class ClientAuthzObjectModDUnitTest extends ClientAuthorizationTestBase {
 
     if (mcastPort == null) {
       mcastPort = new Integer(AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS));
+          .getRandomAvailablePort(AvailablePort.MULTICAST));
     }
     SecurityTestUtil.createCacheServer(authProps, null, mcastPort, null,
         serverPort, Boolean.FALSE, new Integer(SecurityTestUtil.NO_EXCEPTION));

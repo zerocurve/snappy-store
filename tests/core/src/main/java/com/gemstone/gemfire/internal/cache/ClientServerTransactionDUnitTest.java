@@ -141,7 +141,7 @@ public class ClientServerTransactionDUnitTest extends CacheTestCase {
 //        af.setScope(Scope.DISTRIBUTED_ACK);
 //        af.setDataPolicy(DataPolicy.REPLICATE);
 //        Properties props = getDistributedSystemProperties();
-//        props.put("mcast-port", ""+AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS));
+//        props.put("mcast-port", ""+AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST));
 //        props.remove("locators");
 //        system = (InternalDistributedSystem)DistributedSystem.connect(props);
 //        Cache cache = CacheFactory.create(system);

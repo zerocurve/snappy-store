@@ -46,7 +46,7 @@ public class LRUClockTest extends junit.framework.TestCase {
   
   private String myTestName;
 
-  //static int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  //static int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 
   static Properties sysProps = new Properties();
   static {

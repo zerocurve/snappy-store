@@ -119,7 +119,7 @@ public class GemFireXDAuthenticationDUnit extends DistributedSQLTestBase {
     final AuthenticationSchemes scheme = AuthenticationSchemes.BUILTIN;
 
     final String locatorPort = String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     
     final Properties diffSystemProps = scheme.startupProps(false, true, false, true, false);
     final Properties locatorConnectionCredentials = scheme.bootCredentials();
@@ -1531,7 +1531,7 @@ public class GemFireXDAuthenticationDUnit extends DistributedSQLTestBase {
     final AuthenticationSchemes scheme = AuthenticationSchemes.LDAP;
     
     final String locatorPort = String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     
     final Properties locatorSystemProps = scheme.startupProps(false, true, false, false, false);
     locatorSystemProps.setProperty(com.pivotal.gemfirexd.Attribute.GFXD_PREFIX

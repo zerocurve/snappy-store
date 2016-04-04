@@ -461,7 +461,7 @@ public class WanAuthorizationDUnitTest extends ClientAuthorizationTestBase {
     SecurityTestUtil.clearStaticSSLContext();
     SecurityTestUtil.setJavaProps((Properties)javaProps);
 
-    int mcastport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     Integer mport = new Integer(mcastport);
     props.setProperty(DistributionConfig.MCAST_PORT_NAME, mport.toString());
     props.setProperty("log-level", "finest");

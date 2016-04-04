@@ -152,7 +152,7 @@ public class WanQueueSizeDUnitTest extends CacheTestCase {
         public static void createWanServer(String host) throws Exception {
           WanQueueSizeDUnitTest test = new WanQueueSizeDUnitTest("name");
           Properties props = new Properties();
-          int port = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+          int port = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
           props.setProperty(DistributionConfig.MCAST_PORT_NAME, Integer.toString(port));
           cache = test.createCache(props);
 
@@ -195,7 +195,7 @@ public class WanQueueSizeDUnitTest extends CacheTestCase {
 	public static void createWanClient() throws Exception {
 	  WanQueueSizeDUnitTest test = new WanQueueSizeDUnitTest("name");
 	  Properties props = new Properties();
-	  int port = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+	  int port = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 	  props.setProperty(DistributionConfig.MCAST_PORT_NAME, Integer.toString(port));
 	  cache = test.createCache(props);
 

@@ -36,7 +36,7 @@ public class LocalStatisticsTest extends StatisticsTestCase {
         Properties props = new Properties();
         props.setProperty("statistic-sampling-enabled", "true");
         props.setProperty("statistic-archive-file", "StatisticsTestCase-localTest.gfs");
-//         int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+//         int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 //         props.setProperty("mcast-port", String.valueOf(unusedPort));
         // make it a loner since test does not distribution
         props.setProperty("mcast-port", "0");

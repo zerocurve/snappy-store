@@ -62,7 +62,7 @@ public class GfxdJarInstallationTest extends JdbcTestBase {
 
   public void testResultProcessorFromInstalledJar() throws Exception {
     Properties props1 = new Properties();
-    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props1.put("mcast-port", String.valueOf(mport));
     setupConnection(props1);
     Connection conn = TestUtil.getConnection(props1);

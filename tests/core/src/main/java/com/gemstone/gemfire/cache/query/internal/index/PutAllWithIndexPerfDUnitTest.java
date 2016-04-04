@@ -82,7 +82,7 @@ public class PutAllWithIndexPerfDUnitTest extends CacheTestCase {
     vm0.invoke(new CacheSerializableRunnable("Create Bridge Server") {
         public void run2() throws CacheException {
           Properties config = new Properties();
-          int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+          int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
           config.setProperty("mcast-port", String.valueOf(unusedPort));
           Cache cache = new CacheFactory(config).create();
           AttributesFactory factory = new AttributesFactory();

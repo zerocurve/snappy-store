@@ -39,7 +39,7 @@ import java.rmi.RemoteException;
  */
 public class UpgradeDiskStoreDUnitTest extends CacheTestCase {
 
-  final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   final String member1_dir = "member1_dir";
   final String member2_dir = "member2_dir";
   final String member1_dir4test = "member1_dir4test";

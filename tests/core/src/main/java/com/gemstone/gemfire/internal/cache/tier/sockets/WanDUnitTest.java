@@ -182,7 +182,7 @@ public class WanDUnitTest extends DistributedTestCase
   public static Object createServerCache1(Object end_port ) throws Exception
   {
     Properties props = new Properties();
-    int mcast_port = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS) ;
+    int mcast_port = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST) ;
     props.setProperty(DistributionConfig.MCAST_PORT_NAME, Integer.toString(mcast_port));
     props.setProperty(DistributionConfig.LOCATORS_NAME, "");
     cache = impl.createCache(props);
@@ -306,7 +306,7 @@ public class WanDUnitTest extends DistributedTestCase
   public static Object createServerCache3() throws Exception
   {
     Properties props = new Properties();
-    int mcast_port = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS) ;
+    int mcast_port = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST) ;
     props.setProperty(DistributionConfig.MCAST_PORT_NAME, Integer.toString(mcast_port));
     props.setProperty(DistributionConfig.LOCATORS_NAME, "");
     cache = impl.createCache(props);

@@ -396,7 +396,7 @@ public class AlterHDFSStoreTest extends JdbcTestBase {
   
   public void testDDLConflation() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     props.put(DistributionConfig.MCAST_TTL_NAME, "0");
     Connection conn = TestUtil.getConnection(props);

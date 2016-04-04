@@ -55,7 +55,7 @@ import java.util.*;
     final VM server = host.getVM(0);
     final VM client = host.getVM(1);
     final String regionName = getUniqueName();
-    final int mcastPort = 0; /* loner is ok for this test*/ //AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = 0; /* loner is ok for this test*/ //AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server.getHost());
 

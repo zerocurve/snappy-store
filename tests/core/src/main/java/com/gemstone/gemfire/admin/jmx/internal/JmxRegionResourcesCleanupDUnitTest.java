@@ -163,7 +163,7 @@ public class JmxRegionResourcesCleanupDUnitTest extends AdminDUnitTestCase {
    * Initializes the properties for the distributed system to be started. 
    */
   public static void initDSProperties() {
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.clear();
     props.setProperty(DistributionConfig.MCAST_PORT_NAME, String.valueOf(mcastPort));
     props.setProperty(DistributionConfig.LOCATORS_NAME, "");

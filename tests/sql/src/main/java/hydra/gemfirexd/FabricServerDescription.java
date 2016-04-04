@@ -1474,7 +1474,7 @@ implements Serializable {
         Long key = FabricServerPrms.mcastPort;
         i = tab.getInteger(key, tab.getWild(key, index, priorPort));
         if (i == null) {
-          i = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS, addr);
+          i = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST, addr);
           usedMcastPorts.put(fsd.getDistributedSystem(), i);
         } else if (i != priorPort) {
           String s = BasePrms.nameForKey(FabricServerPrms.distributedSystem)
@@ -1484,7 +1484,7 @@ implements Serializable {
           throw new HydraConfigException(s);
         }
         if (!AvailablePort.isPortAvailable(i.intValue(),
-                                           AvailablePort.JGROUPS, addr)) {
+                                           AvailablePort.MULTICAST, addr)) {
           String s = "Port is already in use: " + i;
           throw new HydraConfigException(s);
         }

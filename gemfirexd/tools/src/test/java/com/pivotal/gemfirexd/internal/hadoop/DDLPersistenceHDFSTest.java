@@ -121,7 +121,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
     Properties props = new Properties();
     System.setProperty(ResolverUtils.GFXD_USE_PRE1302_HASHCODE, "true");
     
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -185,7 +185,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
   }
   public void testDDLPersistenceOnHDFS() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -303,7 +303,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
   public void testDDLReplayOnHDFS() throws Exception {
     
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -431,7 +431,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
   public void testDDLReplayOfTwoHDFSStores() throws Exception {
     
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -516,7 +516,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
   public void testDDLReplayColocatedRegions() throws Exception {
     
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -578,7 +578,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
   public void testDDLReplayHDFSRegionColocatedWithNonHDFS() throws Exception {
     
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -647,7 +647,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
   public void testCreateTableConstraintsDuringReplay() throws Exception {
       
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("server-groups", "SG1");
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
@@ -752,7 +752,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
   public void testAlterTableConstraintsDuringReplay() throws Exception {
     TestUtil.shutDown();
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     props.put("server-groups", "SG1");
     Connection conn = TestUtil.getConnection(props);
@@ -925,7 +925,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
   public void doReadHoplogSplitTest(boolean writeOnly) throws Exception {
     
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -1032,7 +1032,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
    */
   public void testReadHoplogSplitNoLobs() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -1130,7 +1130,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
   public void testForeignKeyConstraint() throws Exception {
     
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -1202,7 +1202,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
 
   public void testCannotConnect() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -1237,7 +1237,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
     MiniDFSCluster cluster = builder.build();
     
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -1290,7 +1290,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
   
   public void testBug50574() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -1330,7 +1330,7 @@ public class DDLPersistenceHDFSTest extends JdbcTestBase {
   public void testEvictionCriteriaFunction() throws Exception {
     
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();

@@ -75,6 +75,7 @@ import com.gemstone.gemfire.distributed.internal.membership.gms.messenger.GMSQuo
 import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.Assert;
 import com.gemstone.gemfire.internal.SystemTimer;
+import com.gemstone.gemfire.internal.cache.partitioned.PartitionMessageWithDirectReply;
 import com.gemstone.gemfire.internal.shared.Version;
 import com.gemstone.gemfire.internal.admin.remote.RemoteTransportConfig;
 import com.gemstone.gemfire.internal.cache.GemFireCacheImpl;
@@ -1041,6 +1042,13 @@ public class GMSMembershipManager implements MembershipManager, Manager
    */
   protected void handleOrDeferMessage(DistributionMessage msg) {
     synchronized(startupLock) {
+      if (beingSick || playingDead) {
+        // cache operations are blocked in a "sick" member
+        if (msg.containsRegionContentChange() || msg instanceof PartitionMessageWithDirectReply) {
+          startupMessages.add(new StartupEvent(msg));
+          return;
+        }
+      }
       if (!processingEvents) {
         startupMessages.add(new StartupEvent(msg));
         return;

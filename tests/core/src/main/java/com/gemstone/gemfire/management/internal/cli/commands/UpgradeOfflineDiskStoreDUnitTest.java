@@ -68,7 +68,7 @@ public class UpgradeOfflineDiskStoreDUnitTest extends CliCommandTestBase {
     super(name);
     // TODO Auto-generated constructor stub
   }
-  final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   final String member1_dir = "mem1_dir";
   final String member2_dir = "mem2_dir";
   final String member1_dir4test = "mem1_dir4test";

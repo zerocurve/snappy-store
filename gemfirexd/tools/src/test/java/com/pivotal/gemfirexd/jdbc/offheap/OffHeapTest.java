@@ -128,7 +128,7 @@ public class OffHeapTest extends JdbcTestBase {
 
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -184,7 +184,7 @@ public class OffHeapTest extends JdbcTestBase {
   public void testOffHeapMemoryReleaseLobsForInsertDeletes() throws Exception {
 
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -230,7 +230,7 @@ public class OffHeapTest extends JdbcTestBase {
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -287,7 +287,7 @@ public class OffHeapTest extends JdbcTestBase {
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -379,7 +379,7 @@ public class OffHeapTest extends JdbcTestBase {
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -466,7 +466,7 @@ public class OffHeapTest extends JdbcTestBase {
   
   public void testLobCols() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -2169,7 +2169,7 @@ public class OffHeapTest extends JdbcTestBase {
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -3685,7 +3685,7 @@ public class OffHeapTest extends JdbcTestBase {
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -3767,7 +3767,7 @@ public class OffHeapTest extends JdbcTestBase {
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -3825,7 +3825,7 @@ public class OffHeapTest extends JdbcTestBase {
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -3886,7 +3886,7 @@ public class OffHeapTest extends JdbcTestBase {
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -3942,7 +3942,7 @@ public class OffHeapTest extends JdbcTestBase {
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -4005,7 +4005,7 @@ public class OffHeapTest extends JdbcTestBase {
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -4084,7 +4084,7 @@ public class OffHeapTest extends JdbcTestBase {
    
    SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
    Properties props = new Properties();
-   int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+   int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
    props.put("mcast-port", String.valueOf(mcastPort));
    Connection conn = TestUtil.getConnection(props);
    Statement st = conn.createStatement();
@@ -4568,7 +4568,7 @@ public class OffHeapTest extends JdbcTestBase {
   
   public void _testBug() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();

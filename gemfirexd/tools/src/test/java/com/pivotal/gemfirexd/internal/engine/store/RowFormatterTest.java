@@ -1804,7 +1804,7 @@ public class RowFormatterTest extends JdbcTestBase {
         : com.pivotal.gemfirexd.Attribute.USERNAME_ALT_ATTR, "Soubhik");
     cp.put(com.pivotal.gemfirexd.Attribute.PASSWORD_ATTR, "Soubhik");
     cp.setProperty("mcast-port", String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS)));
+        .getRandomAvailablePort(AvailablePort.MULTICAST)));
 
     Connection conn = TestUtil.getConnection(cp);
     Statement st = conn.createStatement();

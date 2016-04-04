@@ -314,11 +314,11 @@ public interface DistributionConfig extends Config, ManagerLogWriter.LogConfig {
    * Locator wait time - how long to wait for a locator to start before giving up &
    * throwing a GemFireConfigException
    */
-//  public static final String LOCATOR_WAIT_TIME_NAME = "locator-wait-time";
-//  public static final int DEFAULT_LOCATOR_WAIT_TIME = 0;
-//  //public int getLocatorWaitTime();
-//  public void setLocatorWaitTime(int seconds);
-//  public boolean isLocatorWaitTimeModifiable();
+  public static final String LOCATOR_WAIT_TIME_NAME = "locator-wait-time";
+  public static final int DEFAULT_LOCATOR_WAIT_TIME = 10;
+  public int getLocatorWaitTime();
+  public void setLocatorWaitTime(int seconds);
+  public boolean isLocatorWaitTimeModifiable();
   
   
   /**

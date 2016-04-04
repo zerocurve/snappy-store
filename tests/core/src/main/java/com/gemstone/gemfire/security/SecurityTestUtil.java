@@ -222,7 +222,7 @@ public class SecurityTestUtil extends DistributedTestCase {
 
     if (mcastPort == null) {
       mcastPort = new Integer(AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS));
+          .getRandomAvailablePort(AvailablePort.MULTICAST));
     }
     return mcastPort;
   }

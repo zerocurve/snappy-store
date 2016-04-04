@@ -430,7 +430,7 @@ public class BugsTest extends JdbcTestBase {
     reduceLogLevelForTest("config");
 
      Properties props = new Properties();
-     int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+     int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
      props.put("mcast-port", String.valueOf(mcastPort));
      Connection conn = TestUtil.getConnection(props);    
     Statement st = conn.createStatement();
@@ -577,7 +577,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void testBug50100_1() throws Exception {
     Properties props1 = new Properties();
-    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     DMLQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     props1.put("mcast-port", String.valueOf(mport));
     setupConnection(props1);
@@ -1133,7 +1133,7 @@ public class BugsTest extends JdbcTestBase {
     try {
       System.setProperty(GfxdConstants.GFXD_DISABLE_STATEMENT_MATCHING, "true");
       Properties props1 = new Properties();
-      int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+      int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
       props1.put("mcast-port", String.valueOf(mport));
       setupConnection(props1);
       Connection conn = TestUtil.getConnection(props1);
@@ -1165,7 +1165,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void testBug48976() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -1196,7 +1196,7 @@ public class BugsTest extends JdbcTestBase {
 
     Properties props = new Properties();
 
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 
     props.put("mcast-port", String.valueOf(mcastPort));
 
@@ -1285,7 +1285,7 @@ public class BugsTest extends JdbcTestBase {
 
   public void _testBug46792() throws Exception {
     Properties props1 = new Properties();
-    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props1.put("mcast-port", String.valueOf(mport));
     setupConnection(props1);
     Connection conn = TestUtil.getConnection(props1);
@@ -1330,7 +1330,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void testDeleteInPersistentRegion() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -1405,7 +1405,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void testBug47464_NPE() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -1418,7 +1418,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void test48074_TSMC() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     conn.createStatement().execute(
@@ -1486,7 +1486,7 @@ public class BugsTest extends JdbcTestBase {
 
     Properties props = new Properties();
     props.setProperty("mcast-port", String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS)));
+        .getRandomAvailablePort(AvailablePort.MULTICAST)));
     Connection conn = getConnection(props);
     Statement st = conn.createStatement();
     st.execute("create table t1 (col1 bigint)");
@@ -1764,7 +1764,7 @@ public class BugsTest extends JdbcTestBase {
    */
   public void testBug46584() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -1787,7 +1787,7 @@ public class BugsTest extends JdbcTestBase {
 
   public void testBug46568() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -1880,7 +1880,7 @@ public class BugsTest extends JdbcTestBase {
   public void testBug46490() throws Exception {
 
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -1953,7 +1953,7 @@ public class BugsTest extends JdbcTestBase {
 
   public void testBug46508() throws Exception {
     Properties prop = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     prop.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(prop);
 
@@ -2000,7 +2000,7 @@ public class BugsTest extends JdbcTestBase {
   }
   
   public void testBug46444() throws Exception {
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     Properties props = new Properties();
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
@@ -2040,7 +2040,7 @@ public class BugsTest extends JdbcTestBase {
 
   public void testPrepStatementBatchUpdate() throws Exception {
     Properties props1 = new Properties();
-    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props1.put("mcast-port", String.valueOf(mport));
     setupConnection(props1);
     long initialvalueofmaxbatchsize = GemFireXDUtils.DML_MAX_CHUNK_SIZE;
@@ -2174,7 +2174,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void testBug46046() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -2517,7 +2517,7 @@ public class BugsTest extends JdbcTestBase {
   public void testBug42613() throws Exception {
     Properties prop = new Properties();
     
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     prop.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(prop);
 
@@ -2607,7 +2607,7 @@ public class BugsTest extends JdbcTestBase {
 	    
 	    Properties props = new Properties();
 	    //props.put("mcast-port", "23344");
-	    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+	    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 	    props.put("mcast-port", String.valueOf(mcastPort));
 	    Connection conn = TestUtil.getConnection(props);
 	    
@@ -2700,7 +2700,7 @@ public class BugsTest extends JdbcTestBase {
   public void testForumBugFromPgibb_RR_PR() throws Exception {
     Properties props = new Properties();
     //props.put("mcast-port", "23343");
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
 //    props.put("log-file", "/home/kneeraj/tmplog.log");
 //    props.put("log-level", "fine");
@@ -6411,7 +6411,7 @@ public class BugsTest extends JdbcTestBase {
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(false);
     
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -6635,7 +6635,7 @@ public class BugsTest extends JdbcTestBase {
   public void testBug47289_1() throws Exception {
     Properties props = new Properties();
     
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -6674,7 +6674,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void testBug47289_2() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -6722,7 +6722,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void testBug47289_4() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -6754,7 +6754,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void testBug47289_5() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -6807,7 +6807,7 @@ public class BugsTest extends JdbcTestBase {
 
   public void testBug47289_6() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -6860,7 +6860,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void testBug47289_3() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -8396,7 +8396,7 @@ public class BugsTest extends JdbcTestBase {
   }
 
   public void testBug47066() throws Exception {
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     Properties props = new Properties();
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
@@ -8547,7 +8547,7 @@ public class BugsTest extends JdbcTestBase {
 
   public void testSELECT_CASE_Bug51286() throws Exception {
     Properties p = new Properties();
-    p.setProperty("mcast-port", String.valueOf(AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS)));
+    p.setProperty("mcast-port", String.valueOf(AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST)));
     setupConnection(p);
     final int port = TestUtil.startNetserverAndReturnPort();
     
@@ -8637,7 +8637,7 @@ public class BugsTest extends JdbcTestBase {
   public void testCASE_IN_Bug_51249() throws Exception {
     Properties p = new Properties();
     p.setProperty("mcast-port", String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS)));
+        .getRandomAvailablePort(AvailablePort.MULTICAST)));
     p.setProperty("SKIP_SPS_PRECOMPILE", "true");
     setupConnection(p);
     int port = TestUtil.startNetserverAndReturnPort();
@@ -8717,7 +8717,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void testBug51718() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 //    props.setProperty("gemfirexd.debug.true", "QueryDistribution");
     props.setProperty("table-default-partitioned", "false");
     props.put("mcast-port", String.valueOf(mcastPort));
@@ -8750,7 +8750,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void testBug51958() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 //    props.setProperty("gemfirexd.debug.true", "QueryDistribution");
     props.setProperty("table-default-partitioned", "false");
     props.put("mcast-port", String.valueOf(mcastPort));
@@ -8891,7 +8891,7 @@ public class BugsTest extends JdbcTestBase {
   
   public void testBug52352() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     try {    
       helperBug52352(props, "'''test'''", "'test'");

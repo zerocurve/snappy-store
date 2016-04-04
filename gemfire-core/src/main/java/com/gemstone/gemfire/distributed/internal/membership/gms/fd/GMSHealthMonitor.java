@@ -411,6 +411,9 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
   }
 
   private void initiateSuspicion(InternalDistributedMember mbr, String reason) {
+    if (services.getJoinLeave().isMemberLeaving(mbr)) {
+      return;
+    }
     SuspectRequest sr = new SuspectRequest(mbr, reason);
     List<SuspectRequest> sl = new ArrayList<SuspectRequest>();
     sl.add(sr);
@@ -1038,6 +1041,8 @@ public class GMSHealthMonitor implements HealthMonitor, MessageHandler {
           resp.notify();
         }
       }
+      //we got heartbeat lets update timestamp
+      contactedBy(m.getSender());
     }
   }
 

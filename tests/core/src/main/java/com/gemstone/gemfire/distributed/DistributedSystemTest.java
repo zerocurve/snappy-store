@@ -75,7 +75,7 @@ public class DistributedSystemTest extends DistributedTestCase {
     disconnectAllFromDS();
     Properties p = getDistributedSystemProperties();
     p.put(DistributionConfig.LOCATORS_NAME, "");
-    p.put(DistributionConfig.MCAST_PORT_NAME, ""+AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS));
+    p.put(DistributionConfig.MCAST_PORT_NAME, ""+AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST));
     p.put(DistributionConfig.DISABLE_TCP_NAME, "true");
     InternalDistributedSystem ds = (InternalDistributedSystem)DistributedSystem.connect(p);
     try {
@@ -141,7 +141,7 @@ public class DistributedSystemTest extends DistributedTestCase {
   public void testGetSameSystemTwice() {
     Properties config = new Properties();
 
-//     int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+//     int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 //     config.setProperty("mcast-port", String.valueOf(unusedPort));
     // a loner is all this test needs
     config.setProperty("mcast-port", "0");
@@ -163,7 +163,7 @@ public class DistributedSystemTest extends DistributedTestCase {
   public void testGetDifferentSystem() {
     Properties config = new Properties();
 
-//     int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+//     int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 //     config.setProperty("mcast-port", String.valueOf(unusedPort));
     // a loner is all this test needs
     config.setProperty("mcast-port", "0");
@@ -194,7 +194,7 @@ public class DistributedSystemTest extends DistributedTestCase {
   public void testGetDifferentSystemAfterClose() {
     Properties config = new Properties();
 
-//     int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+//     int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 //     config.setProperty("mcast-port", String.valueOf(unusedPort));
     // a loner is all this test needs
     config.setProperty("mcast-port", "0");
@@ -213,7 +213,7 @@ public class DistributedSystemTest extends DistributedTestCase {
   public void testGetProperties() {
     Properties config = new Properties();
 
-//     int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+//     int unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 //     config.setProperty("mcast-port", String.valueOf(unusedPort));
     // a loner is all this test needs
     int unusedPort = 0;
@@ -252,7 +252,7 @@ public class DistributedSystemTest extends DistributedTestCase {
   /** test the ability to set the port used to listen for tcp/ip connections */
   public void testSpecificTcpPort() throws Exception {
     Properties config = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     int tcpPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     config.setProperty("mcast-port", String.valueOf(mcastPort));
     config.setProperty("locators", "");
@@ -309,7 +309,7 @@ public class DistributedSystemTest extends DistributedTestCase {
 
   public void testUDPPortRange() throws Exception {
     Properties config = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     int unicastPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     config.setProperty("mcast-port", String.valueOf(mcastPort));
     config.setProperty("locators", "");
@@ -326,7 +326,7 @@ public class DistributedSystemTest extends DistributedTestCase {
 
   public void testMembershipPortRange() throws Exception {
     Properties config = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     int unicastPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     config.setProperty("mcast-port", String.valueOf(mcastPort));
     config.setProperty("locators", "");
@@ -345,7 +345,7 @@ public class DistributedSystemTest extends DistributedTestCase {
 
   public void testMembershipPortRangeWithExactThreeValues() throws Exception {
     Properties config = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     config.setProperty("mcast-port", String.valueOf(mcastPort));
     config.setProperty("locators", "");
     config.setProperty(DistributionConfig.MEMBERSHIP_PORT_RANGE_NAME, ""
@@ -365,7 +365,7 @@ public class DistributedSystemTest extends DistributedTestCase {
 
   public void testConflictingUDPPort() throws Exception {
     final Properties config = new Properties();
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int unicastPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     config.setProperty("mcast-port", String.valueOf(mcastPort));
     config.setProperty("locators", "");
@@ -399,7 +399,7 @@ public class DistributedSystemTest extends DistributedTestCase {
     Properties config = new Properties();
 
 //     int unusedPort =
-//       AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+//       AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 //     config.setProperty("mcast-port", String.valueOf(unusedPort));
     // a loner is all this test needs
     config.setProperty("mcast-port", "0");

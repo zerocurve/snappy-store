@@ -232,7 +232,7 @@ public class ShutdownAllPersistentGatewayDUnitTest extends PersistentGatewayDUni
     VM vm1 = host.getVM(1);
     VM vm2 = host.getVM(2);
 
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int destinationPort = AvailablePortHelper.getRandomAvailableTCPPortOnVM(vm2);
     final int locatorPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
 

@@ -118,7 +118,7 @@ public class DropIfExistsTest extends JdbcTestBase {
 
   public void testBug51005() throws SQLException {
     Properties props1 = new Properties();
-    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props1.put("mcast-port", String.valueOf(mport));
     setupConnection(props1);
     Connection conn = TestUtil.getConnection(props1);
@@ -153,7 +153,7 @@ public class DropIfExistsTest extends JdbcTestBase {
   // Verify a similar pattern of the bug for "drop table if exists"
   public void testBug51005_2() throws SQLException {
     Properties props1 = new Properties();
-    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props1.put("mcast-port", String.valueOf(mport));
     setupConnection(props1);
     Connection conn = TestUtil.getConnection(props1);

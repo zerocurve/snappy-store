@@ -118,7 +118,7 @@ public class OffHeapTableDiskPersistence  extends TableDiskPersistenceTest {
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -204,7 +204,7 @@ public class OffHeapTableDiskPersistence  extends TableDiskPersistenceTest {
     // System.setProperty("gemfire.OFF_HEAP_TOTAL_SIZE", "2G");
     SelectQueryInfo.setTestFlagIgnoreSingleVMCriteria(true);
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();

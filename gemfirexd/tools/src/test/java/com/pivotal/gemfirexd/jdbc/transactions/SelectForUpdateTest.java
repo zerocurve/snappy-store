@@ -1150,7 +1150,7 @@ public class SelectForUpdateTest extends JdbcTestBase {
   public void testSelectForUpdateLockingFromClient() throws Exception {
     final Properties props = new Properties();
     props.setProperty("mcast-port", String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS)));
+        .getRandomAvailablePort(AvailablePort.MULTICAST)));
     setupConnection(props);
     // start a network server
     final int netPort = AvailablePort

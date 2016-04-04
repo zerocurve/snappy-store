@@ -135,7 +135,7 @@ public class ProcedureTest2DUnit extends DistributedSQLTestBase {
     return cs;
   }
 
-  public void testExecuteOnServerGroupProcedureCall() throws Exception {
+  public void _testExecuteOnServerGroupProcedureCall() throws Exception {
     //startServerVMs(3, 0, "sg1");
     startServerVMs(1, 0, "SG2");
     //startServerVMs(1, 0, null);
@@ -192,7 +192,7 @@ public class ProcedureTest2DUnit extends DistributedSQLTestBase {
     }
   }
   
-  public void testExecuteOnTableWithWhereClauseAndLocalAndGlobalEscape() throws Exception {
+  public void _testExecuteOnTableWithWhereClauseAndLocalAndGlobalEscape() throws Exception {
     startVMs(1, 3);
     clientSQLExecute(1,
         "create table EMP.PARTITIONTESTTABLE (ID int not null, "
@@ -367,7 +367,7 @@ public class ProcedureTest2DUnit extends DistributedSQLTestBase {
     rs3[0] = c.createStatement().executeQuery(global_sql);
   }
   
-  public void testExecuteOnAllAndLocalAndGlobalEscape() throws Exception {
+  public void _testExecuteOnAllAndLocalAndGlobalEscape() throws Exception {
     startVMs(1, 3);
     serverSQLExecute(1,
         "create table EMP.PARTITIONTESTTABLE (ID int not null, "
@@ -497,7 +497,7 @@ public class ProcedureTest2DUnit extends DistributedSQLTestBase {
     conn.close();
   }
   
-  public void testExecuteOnServerGroupsAndLocalAndGlobalEscape() throws Exception {
+  public void _testExecuteOnServerGroupsAndLocalAndGlobalEscape() throws Exception {
     startServerVMs(2, 0, "SG2");
     startServerVMs(1, 0, null);
     startClientVMs(1, 0, null);
@@ -571,7 +571,7 @@ public class ProcedureTest2DUnit extends DistributedSQLTestBase {
     } while(cs.getMoreResults());
   }
 
-  public void testExecuteAndLocalAndGlobalEscape() throws Exception {
+  public void _testExecuteAndLocalAndGlobalEscape() throws Exception {
     startVMs(1, 3);
     clientSQLExecute(1,
         "create table EMP.PARTITIONTESTTABLE (ID int not null, "
@@ -643,7 +643,7 @@ public class ProcedureTest2DUnit extends DistributedSQLTestBase {
     getGlobalLogger().info("from proc txid is: " + txid);
   }
 
-  public void testTxn() throws Exception {
+  public void _testTxn() throws Exception {
     startVMs(1, 1);
     clientSQLExecute(1,
         "create table EMP.PARTITIONTESTTABLE (ID int not null, "

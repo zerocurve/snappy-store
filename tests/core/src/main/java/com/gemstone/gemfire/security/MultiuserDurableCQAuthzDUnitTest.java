@@ -210,7 +210,7 @@ public class MultiuserDurableCQAuthzDUnitTest extends
     Integer port2 = new Integer(AvailablePort
         .getRandomAvailablePort(AvailablePort.SOCKET));
     Integer mcastPort = new Integer(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     // Close down any running servers
     server1.invoke(SecurityTestUtil.class, "closeCache");
     server2.invoke(SecurityTestUtil.class, "closeCache");

@@ -342,7 +342,7 @@ public class CacheServerTestUtil extends DistributedTestCase
       Boolean notifyBySubscription) throws Exception
   {
     Properties props = new Properties();
-//    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+//    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.setProperty(DistributionConfig.MCAST_PORT_NAME, "0");
     props.setProperty(DistributionConfig.LOCATORS_NAME, "localhost["+DistributedTestCase.getDUnitLocatorPort()+"]");
     new CacheServerTestUtil("temp").createCache(props);

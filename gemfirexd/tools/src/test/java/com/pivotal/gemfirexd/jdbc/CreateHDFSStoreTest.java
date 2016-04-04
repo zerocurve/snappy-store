@@ -316,7 +316,7 @@ public void testConnectionProperties() throws Exception {
   
   //restart to clean the memory
   Properties props = new Properties();
-  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   props.put("mcast-port", String.valueOf(mcastPort)); 
   props.put("query-HDFS", "true"); 
   conn = TestUtil.getConnection(props);
@@ -349,7 +349,7 @@ public void testConnectionProperties() throws Exception {
   
   //restart to clean the memory
   props = new Properties();
-  mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   props.put("mcast-port", String.valueOf(mcastPort)); 
   props.put("query-HDFS", "false");
   conn = TestUtil.getConnection(props);
@@ -389,7 +389,7 @@ public void testConnectionProperties() throws Exception {
 
 public void testDDLConflation() throws Exception {
   Properties props = new Properties();
-  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   props.put("mcast-port", String.valueOf(mcastPort));    
   props.put(DistributionConfig.MCAST_TTL_NAME, "0");
   Connection conn = TestUtil.getConnection(props);
@@ -410,7 +410,7 @@ public void testDDLConflation() throws Exception {
 public void testSYSHDFSSTORE_AllAttributes() throws Exception {
   
   Properties props = new Properties();
-  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   props.put("mcast-port", String.valueOf(mcastPort));    
   props.put(DistributionConfig.MCAST_TTL_NAME, "0");
   Connection conn = TestUtil.getConnection(props);
@@ -521,7 +521,7 @@ public void testSYSHDFSSTORE_AllAttributes() throws Exception {
 
 public void testSYSHDFSSTORE_TimeUnitConversion() throws Exception {
   Properties props = new Properties();
-  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   props.put("mcast-port", String.valueOf(mcastPort));    
   props.put(DistributionConfig.MCAST_TTL_NAME, "0");
   Connection conn = TestUtil.getConnection(props);
@@ -675,7 +675,7 @@ public void testSYSHDFSSTORE_TimeUnitConversion() throws Exception {
 
 public void testSYSHDFSSTORE_InvalidTimeInterval() throws Exception {
   Properties props = new Properties();
-  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   props.put("mcast-port", String.valueOf(mcastPort));    
   props.put(DistributionConfig.MCAST_TTL_NAME, "0");
   Connection conn = TestUtil.getConnection(props);
@@ -741,7 +741,7 @@ public void testSYSHDFSSTORE_InvalidTimeInterval() throws Exception {
 
 public void testSYSHDFSSTORE_DefaultAttributes() throws Exception {
   Properties props = new Properties();
-  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   props.put("mcast-port", String.valueOf(mcastPort));    
   props.put(DistributionConfig.MCAST_TTL_NAME, "0");
   Connection conn = TestUtil.getConnection(props);
@@ -838,7 +838,7 @@ public void testSYSHDFSSTORE_DefaultAttributes() throws Exception {
 
 public void testSYSHDFSSTORE_AddAndDelete() throws Exception {
   Properties props = new Properties();
-  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   props.put("mcast-port", String.valueOf(mcastPort));    
   props.put(DistributionConfig.MCAST_TTL_NAME, "0");
   Connection conn = TestUtil.getConnection(props);
@@ -899,7 +899,7 @@ public void testSYSHDFSSTORE_AddAndDelete() throws Exception {
 //various syntax tests
 public void testHDFSStoreDDLSyntax() throws Exception {
   Properties props = new Properties();
-  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   props.put("mcast-port", String.valueOf(mcastPort));    
   props.put(DistributionConfig.MCAST_TTL_NAME, "0");
   Connection conn = TestUtil.getConnection(props);
@@ -942,7 +942,7 @@ public void testHDFSStoreDDLSyntax() throws Exception {
 //partitioned table test
 public void testPartitionHDFSStore() throws Exception {
   Properties props = new Properties();
-  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
   props.put("mcast-port", String.valueOf(mcastPort));    
   props.put(DistributionConfig.MCAST_TTL_NAME, "0");
   Connection conn = TestUtil.getConnection(props);
@@ -1008,7 +1008,7 @@ public void testPartitionHDFSStore() throws Exception {
 //Replicated table test
   public void testReplicatedHDFSStore() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     props.put(DistributionConfig.MCAST_TTL_NAME, "0");
     Connection conn = TestUtil.getConnection(props);
@@ -1039,7 +1039,7 @@ public void testPartitionHDFSStore() throws Exception {
 
   public void testHDFSWriteOnly() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));    
     props.put(DistributionConfig.MCAST_TTL_NAME, "0");
     Connection conn = TestUtil.getConnection(props);
@@ -1111,7 +1111,7 @@ public void testPartitionHDFSStore() throws Exception {
 
   public void testPutDML() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     props.put(DistributionConfig.MCAST_TTL_NAME, "0");
     Connection conn = TestUtil.getConnection(props);
@@ -1163,7 +1163,7 @@ public void testPartitionHDFSStore() throws Exception {
 
     //restart
     Properties props2 = new Properties();
-    mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props2.put("mcast-port", String.valueOf(mcastPort));
     props2.put(DistributionConfig.MCAST_TTL_NAME, "0");
     conn = TestUtil.getConnection(props2);
@@ -2508,7 +2508,7 @@ public void testPartitionHDFSStore() throws Exception {
   
   public void testBug49661_ConnectionProperty() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort)); 
     props.put("query-HDFS", "true"); 
     Connection conn = TestUtil.getConnection(props);    
@@ -2690,7 +2690,7 @@ public void testPartitionHDFSStore() throws Exception {
   
   public void testStats() throws Exception {
     Properties props = new Properties();
-    props.setProperty("mcast-port", AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS) + "");
+    props.setProperty("mcast-port", AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST) + "");
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
     ResultSet rs = null;

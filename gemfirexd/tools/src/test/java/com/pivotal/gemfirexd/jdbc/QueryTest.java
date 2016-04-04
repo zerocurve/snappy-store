@@ -76,7 +76,7 @@ public class QueryTest extends JdbcTestBase {
 
     Properties props = new Properties();
     props.setProperty("mcast-port", Integer.toString(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS)));
+        .getRandomAvailablePort(AvailablePort.MULTICAST)));
     
     setupConnection(props);
     TestUtil.assertTimerLibraryLoaded();
@@ -250,7 +250,7 @@ public class QueryTest extends JdbcTestBase {
     ResultSet r = null;
     final Properties props = new Properties();
     props.setProperty("mcast-port", Integer.toString(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS)));
+        .getRandomAvailablePort(AvailablePort.MULTICAST)));
     
     {
       stmt.execute("create table t1 (i int, s smallint, d double precision, r real, c10 char(10),c30 char(30), vc10 varchar(10), vc30 varchar(30))");
@@ -1529,7 +1529,7 @@ public class QueryTest extends JdbcTestBase {
   public void test42856_42918_singleDistributedNode() throws SQLException {
     Properties props = new Properties();
     String available_port = String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     props.setProperty("mcast-port", available_port);
     Connection conn = getConnection(props);
     Statement st = conn.createStatement();
@@ -2657,7 +2657,7 @@ public class QueryTest extends JdbcTestBase {
     Properties cp = new Properties();
     //cp.setProperty("log-level", "fine");
     cp.setProperty("mcast-port", Integer.toString(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS)));
+        .getRandomAvailablePort(AvailablePort.MULTICAST)));
     Connection conn = TestUtil.getConnection(cp);
 
     Statement st = conn.createStatement();
@@ -2730,7 +2730,7 @@ public class QueryTest extends JdbcTestBase {
     Properties cp = new Properties();
     //cp.setProperty("log-level", "fine");
     cp.setProperty("mcast-port", Integer.toString(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS)));
+        .getRandomAvailablePort(AvailablePort.MULTICAST)));
     Connection conn = TestUtil.getConnection(cp);
 
     Statement st = conn.createStatement();
@@ -3296,7 +3296,7 @@ public class QueryTest extends JdbcTestBase {
   public void test51502() throws Exception {
     Properties p = new Properties();
     p.setProperty("mcast-port", Integer.toString(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS)));
+        .getRandomAvailablePort(AvailablePort.MULTICAST)));
     getConnection(p);
     Connection conn = startNetserverAndGetLocalNetConnection();
     Statement st = conn.createStatement();

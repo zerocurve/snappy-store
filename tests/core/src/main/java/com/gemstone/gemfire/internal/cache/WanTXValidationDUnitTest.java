@@ -131,9 +131,9 @@ public class WanTXValidationDUnitTest extends DistributedTestCase {
     int ePort1 = new Integer(AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET));
     
     int mcast_port1 = AvailablePort
-    .getRandomAvailablePort(AvailablePort.JGROUPS);
+    .getRandomAvailablePort(AvailablePort.MULTICAST);
     int mcast_port2 = AvailablePort
-    .getRandomAvailablePort(AvailablePort.JGROUPS);
+    .getRandomAvailablePort(AvailablePort.MULTICAST);
     
     
     gnode1.invoke(getClass(), "createServerCache",

@@ -28,6 +28,7 @@ import com.gemstone.gemfire.distributed.internal.membership.gms.interfaces.Manag
 import com.gemstone.gemfire.distributed.internal.membership.gms.mgr.GMSMembershipManager;
 import com.gemstone.gemfire.test.dunit.DistributedTestCase;
 import com.gemstone.gemfire.test.dunit.DistributedTestCase.WaitCriterion;
+import org.jgroups.JChannel;
 
 /**
  * This helper class provides access to membership manager information that
@@ -166,6 +167,11 @@ public class MembershipManagerHelper
       }
     }
     MembershipManagerHelper.inhibitForcedDisconnectLogging(false);
+  }
+
+  /** returns the JGroups channel for the given distributed system */
+  public static JChannel getJChannel(DistributedSystem sys) {
+    return getMembershipManager(sys).channel;
   }
   
 }

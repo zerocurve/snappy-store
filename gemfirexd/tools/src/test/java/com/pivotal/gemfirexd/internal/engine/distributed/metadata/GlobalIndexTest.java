@@ -74,7 +74,7 @@ public class GlobalIndexTest extends JdbcTestBase
     try {
       System.setProperty("gemfirexd.cacheGlobalIndex", "true");
       Properties props1 = new Properties();
-      int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+      int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
       props1.put("mcast-port", String.valueOf(mport));
       Connection conn = TestUtil.getConnection(props1);
       Statement s = conn.createStatement();
@@ -134,7 +134,7 @@ public class GlobalIndexTest extends JdbcTestBase
     try {
       System.setProperty("gemfirexd.cacheGlobalIndex", "true");
       Properties props1 = new Properties();
-      int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+      int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
       props1.put("mcast-port", String.valueOf(mport));
       Connection conn = TestUtil.getConnection(props1);
       Statement s = conn.createStatement();
@@ -197,7 +197,7 @@ public class GlobalIndexTest extends JdbcTestBase
     try {
       System.setProperty("gemfirexd.cacheGlobalIndex", "true");
       Properties props1 = new Properties();
-      int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+      int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
       props1.put("mcast-port", String.valueOf(mport));
       Connection conn = TestUtil.getConnection(props1);
       Statement s = conn.createStatement();
@@ -257,7 +257,7 @@ public class GlobalIndexTest extends JdbcTestBase
     try {
       System.setProperty("gemfirexd.cacheGlobalIndex", "true");
       Properties props1 = new Properties();
-      int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+      int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
       props1.put("mcast-port", String.valueOf(mport));
       Connection conn = TestUtil.getConnection(props1);
       Statement s = conn.createStatement();
@@ -315,7 +315,7 @@ public class GlobalIndexTest extends JdbcTestBase
     try {
       System.setProperty("gemfirexd.cacheGlobalIndex", "true");
       Properties props1 = new Properties();
-      int mport = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+      int mport = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
       props1.put("mcast-port", String.valueOf(mport));
       Connection conn = TestUtil.getConnection(props1);
       Statement s = conn.createStatement();

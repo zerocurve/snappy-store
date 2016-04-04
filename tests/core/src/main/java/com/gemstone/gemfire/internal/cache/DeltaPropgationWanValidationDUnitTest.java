@@ -146,7 +146,7 @@ public class DeltaPropgationWanValidationDUnitTest extends DistributedTestCase {
       Integer ePort1, Integer ePort2, String host) throws Exception {
     Properties props = new Properties();
     int mcast_port = AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS);
+        .getRandomAvailablePort(AvailablePort.MULTICAST);
     props.setProperty(DistributionConfig.MCAST_PORT_NAME, mcast_port + "");
     props.setProperty(DistributionConfig.LOCATORS_NAME, "");
     cache = impl.createCache(props);

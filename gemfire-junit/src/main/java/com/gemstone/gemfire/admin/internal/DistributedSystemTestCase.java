@@ -56,7 +56,7 @@ public abstract class DistributedSystemTestCase extends TestCase {
 //    this.system = (InternalDistributedSystem) 
 //        InternalDistributedSystem.connect(props);
 //     props.setProperty(DistributionConfig.MCAST_PORT_NAME, 
-//         String.valueOf(AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS)));
+//         String.valueOf(AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST)));
     this.system = DistributedSystem.connect(defineProperties());
   }
 

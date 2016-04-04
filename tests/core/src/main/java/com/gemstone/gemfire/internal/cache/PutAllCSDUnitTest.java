@@ -135,7 +135,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM client1 = host.getVM(2);
     VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server.getHost());
 
@@ -382,7 +382,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());
@@ -453,7 +453,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());
@@ -619,7 +619,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());
@@ -783,7 +783,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     final VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());
@@ -920,7 +920,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());
@@ -1100,7 +1100,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     final VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());
@@ -1332,7 +1332,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     final VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());
@@ -1491,7 +1491,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     final VM client1 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort3 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
@@ -1635,7 +1635,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());
@@ -1735,7 +1735,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());
@@ -1800,7 +1800,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());
@@ -1872,7 +1872,7 @@ public void testOneServer() throws CacheException, InterruptedException {
    *  // Start server server1.invoke(new CacheSerializableRunnable(title+"Create
    * Bridge Server 1") { public void run2() throws CacheException { Properties
    * config = new Properties(); config.setProperty("log-level", "info"); // int
-   * unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS); //
+   * unusedPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST); //
    * config.setProperty("mcast-port", String.valueOf(unusedPort)); // system =
    * (InternalDistributedSystem) DistributedSystem.connect(config); system =
    * (new PutAllCSDUnitTest("temp")).getSystem(config); AttributesFactory
@@ -1926,7 +1926,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());
@@ -2019,7 +2019,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM server2 = host.getVM(1);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
 //    final String serverHost = getServerHostName(server1.getHost());
@@ -2185,7 +2185,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM client2 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());
@@ -2285,7 +2285,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM client1 = host.getVM(3);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort3 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
@@ -2393,7 +2393,7 @@ public void testOneServer() throws CacheException, InterruptedException {
     VM client1 = host.getVM(2);
     final String regionName = getUniqueName();
     
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int serverPort1 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int serverPort2 = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final String serverHost = getServerHostName(server1.getHost());

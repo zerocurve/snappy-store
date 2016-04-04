@@ -1272,7 +1272,7 @@ public class DistributedSystemDUnitTest extends AdminDUnitTestCase {
     VM vm2 = host.getVM(2);
     VM vm3 = host.getVM(3);
 
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     final int expectedCount = 4;
     final int cpuLoadTime = 10000;
     final long startTryingTime = System.currentTimeMillis() + 5000;

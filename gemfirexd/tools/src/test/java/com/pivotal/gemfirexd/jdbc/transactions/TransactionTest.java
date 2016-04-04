@@ -2516,7 +2516,7 @@ public class TransactionTest extends JdbcTestBase {
     Properties cp = new Properties();
     cp.setProperty("host-data", "true");
     cp.setProperty("mcast-port", String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS)));
+        .getRandomAvailablePort(AvailablePort.MULTICAST)));
     
     Connection conn = TestUtil.getConnection(cp);
     

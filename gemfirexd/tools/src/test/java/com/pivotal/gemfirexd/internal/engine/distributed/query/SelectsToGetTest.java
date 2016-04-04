@@ -71,7 +71,7 @@ public class SelectsToGetTest extends JdbcTestBase {
   public SelectsToGetTest(String name) {
     super(name);
     available_port = String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     // System.setProperty("gemfirexd.authentication.required", "true");
     // System.setProperty("gemfirexd.authentication.provider", "BUILTIN");
     // System.setProperty("gemfirexd.debug.true", "AuthenticationTrace");
@@ -81,7 +81,7 @@ public class SelectsToGetTest extends JdbcTestBase {
 
   public static void main(String[] args) {
     available_port = String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     TestRunner.run(new TestSuite(SelectsToGetTest.class));
   }
 
@@ -1558,7 +1558,7 @@ public class SelectsToGetTest extends JdbcTestBase {
   public static void launchSecondaryServers() throws Exception {
 
     available_port = String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     
     boolean before = LAUNCH_PEER_SERVER;
     

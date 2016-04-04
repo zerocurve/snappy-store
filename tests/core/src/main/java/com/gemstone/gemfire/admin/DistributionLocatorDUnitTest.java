@@ -247,7 +247,7 @@ public class DistributionLocatorDUnitTest
     final int port =
       AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     final int mcastport =
-      AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+      AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     File dir = new File(this.getUniqueName() + "-locator");
     dir.mkdirs();
     assertTrue(dir.exists());

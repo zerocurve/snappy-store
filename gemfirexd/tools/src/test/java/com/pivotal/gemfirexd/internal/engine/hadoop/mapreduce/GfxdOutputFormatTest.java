@@ -49,10 +49,10 @@ public class GfxdOutputFormatTest extends JdbcTestBase {
   public void testMR2OutputWriter() throws Exception {
     FabricServer server = FabricServiceManager.getFabricServerInstance();
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.setProperty("mcast-port", String.valueOf(mcastPort));
     server.start(props);
-    int clientPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int clientPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     server.startNetworkServer("localhost", clientPort, props);
     
     Connection conn;
@@ -118,10 +118,10 @@ public class GfxdOutputFormatTest extends JdbcTestBase {
   public void testMR1OutputWriter() throws Exception {
     FabricServer server = FabricServiceManager.getFabricServerInstance();
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.setProperty("mcast-port", String.valueOf(mcastPort));
     server.start(props);
-    int clientPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int clientPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     server.startNetworkServer("localhost", clientPort, props);
     
     Connection conn;
@@ -190,10 +190,10 @@ public class GfxdOutputFormatTest extends JdbcTestBase {
   public void testMR1BatchWriter() throws Exception {
     FabricServer server = FabricServiceManager.getFabricServerInstance();
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.setProperty("mcast-port", String.valueOf(mcastPort));
     server.start(props);
-    int clientPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int clientPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     server.startNetworkServer("localhost", clientPort, props);
     
     Connection conn;

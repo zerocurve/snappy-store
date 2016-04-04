@@ -1306,7 +1306,7 @@ public class AdminDSSecurityDUnitTest extends AdminDUnitTestCase {
 
         port = -1;
         dsProperties = new Properties();
-        dsProperties.put("mcast-port", ""+AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS));
+        dsProperties.put("mcast-port", ""+AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST));
         javaProperties = new Properties();
         port = startLocator(gen, dsProperties, javaProperties);
         // Discard the javaProperties to discard any credentials in those

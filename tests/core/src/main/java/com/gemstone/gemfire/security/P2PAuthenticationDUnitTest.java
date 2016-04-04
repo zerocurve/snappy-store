@@ -91,7 +91,7 @@ public class P2PAuthenticationDUnitTest extends DistributedTestCase {
       stateFile.delete();
     }
     int mcastPort = AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS);
+        .getRandomAvailablePort(AvailablePort.MULTICAST);
     File logFile = new File(getUniqueName() + "-locator" + port + ".log");
     Properties props = new Properties();
     props.setProperty(DistributionConfig.MCAST_PORT_NAME, ""+mcastPort);

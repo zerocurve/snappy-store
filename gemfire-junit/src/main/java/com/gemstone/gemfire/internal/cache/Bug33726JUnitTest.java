@@ -47,17 +47,18 @@ public class Bug33726JUnitTest extends TestCase{
     
   }
   
-  @After
+  //@After
   public void tearDown(){
     
   }
   
   
   
-  @Test
+  //@Test
   public void testAfterRegionCreate() {
     Properties props = new Properties();
-    props.put(DistributionConfig.MCAST_PORT_NAME, "0");
+    props.setProperty("mcast-port", "0");
+    //props.put(DistributionConfig.MCAST_PORT_NAME, "0");
     DistributedSystem ds = DistributedSystem.connect(props);
     AttributesFactory factory = new AttributesFactory();
     factory.setCacheListener(new TestCacheListener());

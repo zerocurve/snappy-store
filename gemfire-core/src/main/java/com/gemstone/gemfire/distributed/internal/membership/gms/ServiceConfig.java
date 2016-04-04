@@ -146,7 +146,9 @@ public class ServiceConfig {
     };
     
     joinTimeout = Long.getLong("p2p.joinTimeout", defaultJoinTimeout).longValue();
-    
+
+    System.out.println("SKSKSK the join timeout is " + this.joinTimeout);
+
     // if network partition detection is enabled, we must connect to the locators
     // more frequently in order to make sure we're not isolated from them
     if (theConfig.getEnableNetworkPartitionDetection()) {
@@ -179,7 +181,7 @@ public class ServiceConfig {
     if (lossThreshold > 100) lossThreshold = 100;
     
     memberWeight = Integer.getInteger("gemfire.member-weight", 0);
-    //locatorWaitTime = theConfig.getLocatorWaitTime();
+    locatorWaitTime = theConfig.getLocatorWaitTime();
     
     networkPartitionDetectionEnabled = theConfig.getEnableNetworkPartitionDetection();
   }

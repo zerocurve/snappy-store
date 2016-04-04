@@ -105,7 +105,7 @@ public class ClientAuthorizationTestBase extends DistributedTestCase {
 
     if (mcastPort == null) {
       mcastPort = new Integer(AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS));
+          .getRandomAvailablePort(AvailablePort.MULTICAST));
     }
     return SecurityTestUtil.createCacheServer((Properties)authProps, javaProps,
         mcastPort, null, null, Boolean.TRUE, new Integer(
@@ -116,7 +116,7 @@ public class ClientAuthorizationTestBase extends DistributedTestCase {
       Object authProps, Object javaProps) {
     if (mcastPort == null) {
       mcastPort = new Integer(AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS));
+          .getRandomAvailablePort(AvailablePort.MULTICAST));
     }
     SecurityTestUtil.createCacheServer((Properties)authProps, javaProps,
         mcastPort, null, serverPort, Boolean.TRUE, new Integer(

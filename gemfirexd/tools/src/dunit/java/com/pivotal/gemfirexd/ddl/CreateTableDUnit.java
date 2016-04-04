@@ -2197,7 +2197,7 @@ public class CreateTableDUnit extends DistributedSQLTestBase {
   public void _testTestFlagToEnableVersioning_True() throws Exception {
     Properties props = new Properties();
     props.put(TestUtil.TEST_FLAG_ENABLE_CONCURRENCY_CHECKS, "true");
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     startVMs(0, 4, mcastPort, null, props);
 
     // Flag should be true for persistent partitioned table
@@ -2260,7 +2260,7 @@ public class CreateTableDUnit extends DistributedSQLTestBase {
     
     Properties props = new Properties();
     props.put(TestUtil.TEST_FLAG_ENABLE_CONCURRENCY_CHECKS, "false");
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     startVMs(0, 4, mcastPort, null, props);
     
     // Flag should be false for persistent partitioned table 

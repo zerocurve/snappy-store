@@ -84,7 +84,7 @@ public class DataAwareProcedureTest extends JdbcTestBase{
   
   public void testBug46553() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -117,7 +117,7 @@ public class DataAwareProcedureTest extends JdbcTestBase{
   
   public void testBug46554() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -150,7 +150,7 @@ public class DataAwareProcedureTest extends JdbcTestBase{
   
   public void testBug46556() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
@@ -184,7 +184,7 @@ public class DataAwareProcedureTest extends JdbcTestBase{
   
   public void testBug49947() throws Exception {
     Properties props = new Properties();
-    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put("mcast-port", String.valueOf(mcastPort));
     Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();

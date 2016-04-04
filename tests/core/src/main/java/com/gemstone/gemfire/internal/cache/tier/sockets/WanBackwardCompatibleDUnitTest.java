@@ -187,7 +187,7 @@ public class WanBackwardCompatibleDUnitTest extends DistributedTestCase {
   public static Object createServerCache(String site, String name,
       Integer ePort1, Integer ePort2, String host) throws Exception {
     Properties props = new Properties();
-    int mcast_port = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS) ;
+    int mcast_port = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST) ;
     props.setProperty(DistributionConfig.MCAST_PORT_NAME, mcast_port+"");
     props.setProperty(DistributionConfig.LOCATORS_NAME, "");
 

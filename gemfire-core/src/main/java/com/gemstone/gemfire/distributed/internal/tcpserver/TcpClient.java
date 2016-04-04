@@ -115,7 +115,7 @@ public class TcpClient {
     // establish the old GossipVersion for the server
     int gossipVersion = TcpServer.getCurrentGossipVersion();
 
-    if (Version.GFE_71.compareTo(serverVersion) > 0) {
+    if (Version.GFXD_20.compareTo(serverVersion) > 0) {
       gossipVersion = TcpServer.getOldGossipVersion();
     }
 

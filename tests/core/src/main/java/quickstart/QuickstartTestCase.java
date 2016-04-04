@@ -32,7 +32,7 @@ import junit.framework.TestCase;
  */
 public abstract class QuickstartTestCase extends TestCase {
 
-  private final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+  private final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
 
   public QuickstartTestCase(String name) {
     super(name);

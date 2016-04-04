@@ -161,9 +161,9 @@ public class WanAuthenticationDUnitTest extends ClientAuthorizationTestBase {
     Iterator iter = SecurityTestUtil.getAllGenerators().iterator();
     while (iter.hasNext()) {
       int mcastport1 = AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS);
+          .getRandomAvailablePort(AvailablePort.MULTICAST);
       int mcastport2 = AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS);
+          .getRandomAvailablePort(AvailablePort.MULTICAST);
 
       CredentialGenerator gen = (CredentialGenerator)iter.next();
       Properties extraProps = gen.getSystemProperties();
@@ -224,9 +224,9 @@ public class WanAuthenticationDUnitTest extends ClientAuthorizationTestBase {
     Iterator iter = SecurityTestUtil.getAllGenerators().iterator();
     while (iter.hasNext()) {
       int mcastport1 = AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS);
+          .getRandomAvailablePort(AvailablePort.MULTICAST);
       int mcastport2 = AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS);
+          .getRandomAvailablePort(AvailablePort.MULTICAST);
       CredentialGenerator gen = (CredentialGenerator)iter.next();
 
       Properties extraProps = gen.getSystemProperties();
@@ -286,9 +286,9 @@ public class WanAuthenticationDUnitTest extends ClientAuthorizationTestBase {
     Iterator iter = SecurityTestUtil.getAllGenerators().iterator();
     while (iter.hasNext()) {
       int mcastport1 = AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS);
+          .getRandomAvailablePort(AvailablePort.MULTICAST);
       int mcastport2 = AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS);
+          .getRandomAvailablePort(AvailablePort.MULTICAST);
       CredentialGenerator gen = (CredentialGenerator)iter.next();
 
       Properties extraProps = gen.getSystemProperties();

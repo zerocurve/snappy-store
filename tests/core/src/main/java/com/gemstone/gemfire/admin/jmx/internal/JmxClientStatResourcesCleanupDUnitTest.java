@@ -552,7 +552,7 @@ public class JmxClientStatResourcesCleanupDUnitTest extends AdminDUnitTestCase {
 
   public void setUp() throws Exception {    
     disconnectAllFromDS();
-    mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     
     initDSProperties(mcastPort);
     super.setUp();

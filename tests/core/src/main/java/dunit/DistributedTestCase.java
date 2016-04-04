@@ -16,6 +16,15 @@
  */
 package dunit;
 
+import com.gemstone.gemfire.InternalGemFireError;
+import com.gemstone.gemfire.SystemFailure;
+import com.gemstone.gemfire.cache.Region;
+import com.gemstone.gemfire.cache.query.internal.QueryObserverHolder;
+import com.gemstone.gemfire.internal.cache.DiskStoreObserver;
+import com.gemstone.gemfire.internal.cache.HARegion;
+import com.gemstone.gemfire.internal.cache.LocalRegion;
+import com.gemstone.gemfire.internal.cache.PartitionedRegion;
+import com.gemstone.gemfire.internal.cache.xmlcache.CacheCreation;
 import hydra.GemFireDescription;
 import hydra.GemFirePrms;
 import hydra.HostHelper;
@@ -31,6 +40,7 @@ import java.io.PrintWriter;
 import java.io.FileOutputStream;
 import java.io.Serializable;
 import java.io.StringWriter;
+import java.net.UnknownHostException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,6 +50,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 
+import org.jgroups.stack.IpAddress;
 import util.TestException;
 import junit.framework.TestCase;
 
@@ -61,8 +72,7 @@ import com.gemstone.gemfire.distributed.internal.DistributionConfig;
 import com.gemstone.gemfire.distributed.internal.DistributionConfigImpl;
 import com.gemstone.gemfire.distributed.internal.DistributionMessageObserver;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
-import com.gemstone.gemfire.distributed.internal.membership.jgroup.JGroupMembershipManager;
-import com.gemstone.gemfire.distributed.internal.membership.jgroup.MembershipManagerHelper;
+
 import com.gemstone.gemfire.internal.AvailablePort;
 import com.gemstone.gemfire.internal.InternalDataSerializer;
 import com.gemstone.gemfire.internal.InternalInstantiator;
@@ -80,11 +90,7 @@ import com.gemstone.gemfire.internal.cache.tier.sockets.CacheServerTestUtil;
 import com.gemstone.gemfire.internal.cache.tier.sockets.ClientProxyMembershipID;
 import com.gemstone.gemfire.internal.cache.tier.sockets.DataSerializerPropogationDUnitTest;
 import com.gemstone.gemfire.management.internal.cli.LogWrapper;
-import com.gemstone.org.jgroups.Event;
-import com.gemstone.org.jgroups.JChannel;
-import com.gemstone.org.jgroups.stack.IpAddress;
-import com.gemstone.org.jgroups.stack.Protocol;
-import com.gemstone.org.jgroups.util.GemFireTracer;
+
 
 import dunit.eclipse.DUnitLauncher;
 import dunit.impl.DUnitBB;
@@ -546,19 +552,7 @@ public abstract class DistributedTestCase extends TestCase
    * test with disconnectFromDS() or disconnectAllFromDS().
    */
   public void crashDistributedSystem(final DistributedSystem msys) {
-    MembershipManagerHelper.inhibitForcedDisconnectLogging(true);
-    MembershipManagerHelper.playDead(msys);
-    JChannel c = MembershipManagerHelper.getJChannel(msys);
-    Protocol udp = c.getProtocolStack().findProtocol("UDP");
-    udp.stop();
-    udp.passUp(new Event(Event.EXIT, new RuntimeException("killing member's ds")));
-    try {
-      MembershipManagerHelper.getJChannel(msys).waitForClose();
-    }
-    catch (InterruptedException ie) {
-      Thread.currentThread().interrupt();
-      // attempt rest of work with interrupt bit set
-    }
+    MembershipManagerHelper.crashDistributedSystem(msys);
     MembershipManagerHelper.inhibitForcedDisconnectLogging(false);
     WaitCriterion wc = new WaitCriterion() {
       public boolean done() {
@@ -613,7 +607,7 @@ public abstract class DistributedTestCase extends TestCase
    */
   public final InternalDistributedSystem getMcastSystem() {
     Properties props = this.getDistributedSystemProperties();
-    int port = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    int port = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     props.put(DistributionConfig.MCAST_PORT_NAME, ""+port);
     props.put(DistributionConfig.MCAST_TTL_NAME, "0");
     props.put(DistributionConfig.LOCATORS_NAME, "");
@@ -733,6 +727,10 @@ public abstract class DistributedTestCase extends TestCase
   private static void cleanupThisVM() {
     IpAddress.resolve_dns = true;
     SocketCreator.resolve_dns = true;
+    SocketCreator.resetHostNameCache();
+    CacheCreation.clearThreadLocals();
+    System.getProperties().remove("gemfire.log-level");
+    System.getProperties().remove("jgroups.resolve_dns");
     InitialImageOperation.slowImageProcessing = 0;
     DistributionMessageObserver.setInstance(null);
     QueryTestUtils.setCache(null);
@@ -745,14 +743,53 @@ public abstract class DistributedTestCase extends TestCase
     InternalBridgeMembership.unregisterAllListeners();
     ClientStatsManager.cleanupForTests();
     unregisterInstantiatorsInThisVM();
-    DUnitLauncher.checkForSuspectStrings();
-    JGroupMembershipManager.DEBUG_JAVAGROUPS = Boolean.getBoolean("JGroups.DEBUG");
-    GemFireTracer.DEBUG = JGroupMembershipManager.DEBUG_JAVAGROUPS;
-    Protocol.trace = GemFireTracer.DEBUG;
+    DistributionMessageObserver.setInstance(null);
+    QueryObserverHolder.reset();
+    DiskStoreObserver.setInstance(null);
+    
     if (InternalDistributedSystem.systemAttemptingReconnect != null) {
       InternalDistributedSystem.systemAttemptingReconnect.stopReconnecting();
     }
+    ExpectedException ex;
+    while((ex = expectedExceptions.poll()) != null) {
+      ex.remove();
+    }
   }
+
+  private static void closeCache() {
+    GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
+    if(cache != null && !cache.isClosed()) {
+      destroyRegions(cache);
+      cache.close();
+    }
+  }
+  
+  protected static final void destroyRegions(Cache cache)
+      throws InternalGemFireError, Error, VirtualMachineError {
+    if (cache != null && !cache.isClosed()) {
+      //try to destroy the root regions first so that
+      //we clean up any persistent files.
+      for (Iterator itr = cache.rootRegions().iterator(); itr.hasNext();) {
+        Region root = (Region)itr.next();
+        //for colocated regions you can't locally destroy a partitioned
+        //region.
+        if(root.isDestroyed() || root instanceof HARegion || root instanceof PartitionedRegion) {
+          continue;
+        }
+        try {
+          root.localDestroyRegion("teardown");
+        }
+        catch (VirtualMachineError e) {
+          SystemFailure.initiateFailure(e);
+          throw e;
+        }
+        catch (Throwable t) {
+          getLogWriter().error(t);
+        }
+      }
+    }
+  }
+  
   
   public static void unregisterAllDataSerializersFromAllVms()
   {
@@ -788,7 +825,7 @@ public abstract class DistributedTestCase extends TestCase
   protected static void disconnectAllFromDS() {
     disconnectFromDS();
     invokeInEveryVM(DistributedTestCase.class,
-                    "disconnectFromDS");
+        "disconnectFromDS");
   }
 
   /**
@@ -853,7 +890,11 @@ public abstract class DistributedTestCase extends TestCase
    * @return an ip literal, this method honors java.net.preferIPvAddresses
    */
   public static String getIPLiteral() {
-    return HostHelper.getHostAddress();
+    try {
+      return SocketCreator.getLocalHost().getHostAddress();
+    } catch (UnknownHostException e) {
+      throw new Error("problem determining host IP address", e);
+    }
   }
  
   /**
@@ -938,6 +979,27 @@ public abstract class DistributedTestCase extends TestCase
       fail("interrupted", e);
     }
     
+  }
+  
+  /**
+   * Blocks until the clock used for expiration moves forward.
+   * @return the last time stamp observed
+   */
+  public static final long waitForExpiryClockToChange(LocalRegion lr) {
+    return waitForExpiryClockToChange(lr, lr.cacheTimeMillis());
+  }
+  /**
+   * Blocks until the clock used for expiration moves forward.
+   * @param baseTime the timestamp that the clock must exceed
+   * @return the last time stamp observed
+   */
+  public static final long waitForExpiryClockToChange(LocalRegion lr, final long baseTime) {
+    long nowTime;
+    do {
+      Thread.yield();
+      nowTime = lr.cacheTimeMillis();
+    } while ((nowTime - baseTime) <= 0L);
+    return nowTime;
   }
   
   /** pause for specified ms interval
@@ -1333,6 +1395,7 @@ public abstract class DistributedTestCase extends TestCase
       sys.getLogWriter().info(add);
     }
     getLogWriter().info(add);
+    expectedExceptions.add(ret);
     return ret;
   }
 
@@ -1392,6 +1455,20 @@ public abstract class DistributedTestCase extends TestCase
         }
       } finally {
         bb.getSharedLock().unlock();
+      }
+    }
+  }
+  /** 
+   * delete locator state files.  Use this after getting a random port
+   * to ensure that an old locator state file isn't picked up by the
+   * new locator you're starting.
+   * @param ports
+   */
+  public void deleteLocatorStateFile(int... ports) {
+    for (int i=0; i<ports.length; i++) {
+      File stateFile = new File("locator"+ports[i]+"view.dat");
+      if (stateFile.exists()) {
+        stateFile.delete();
       }
     }
   }

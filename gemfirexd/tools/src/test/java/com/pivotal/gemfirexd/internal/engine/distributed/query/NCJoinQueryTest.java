@@ -69,7 +69,7 @@ public class NCJoinQueryTest extends JdbcTestBase {
     System.setProperty("gemfirexd.debug.true", "TraceNCJ");
     Properties props = new Properties();
     String available_port = String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     props.setProperty("mcast-port", available_port);
     Connection conn = getConnection(props);
     Statement st = conn.createStatement();
@@ -127,7 +127,7 @@ public class NCJoinQueryTest extends JdbcTestBase {
   public void testSingleDistributedNode_PRpk_PRpk() throws SQLException {
     Properties props = new Properties();
     String available_port = String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     props.setProperty("mcast-port", available_port);
     Connection conn = getConnection(props);
     Statement st = conn.createStatement();
@@ -181,7 +181,7 @@ public class NCJoinQueryTest extends JdbcTestBase {
   public void testSingleDistributedNode_PRpk_REPpk() throws SQLException {
     Properties props = new Properties();
     String available_port = String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     props.setProperty("mcast-port", available_port);
     Connection conn = getConnection(props);
     Statement st = conn.createStatement();
@@ -235,7 +235,7 @@ public class NCJoinQueryTest extends JdbcTestBase {
   public void testSingleDistributedNode_REPpk_REPpk() throws SQLException {
     Properties props = new Properties();
     String available_port = String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     props.setProperty("mcast-port", available_port);
     Connection conn = getConnection(props);
     Statement st = conn.createStatement();
@@ -292,7 +292,7 @@ public class NCJoinQueryTest extends JdbcTestBase {
     //System.setProperty("gemfirexd.debug.true", "TraceNCJ");
     Properties props = new Properties();
     String available_port = String.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     props.setProperty("mcast-port", available_port);
     Connection conn = getConnection(props);
     Statement st = conn.createStatement();

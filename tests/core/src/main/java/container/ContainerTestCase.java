@@ -63,7 +63,7 @@ public class ContainerTestCase extends TestCase {
   }
 
   protected static String getRandomAvailableMCastPortString() {
-    return String.valueOf(AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS));
+    return String.valueOf(AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST));
   }
 
   protected static void closeCache(final Cache cache) {

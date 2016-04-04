@@ -213,7 +213,7 @@ public class ClientCQPostAuthorizationDUnitTest extends
       Integer port2 = Integer.valueOf(AvailablePort
           .getRandomAvailablePort(AvailablePort.SOCKET));
       Integer mcastPort = Integer.valueOf(AvailablePort
-          .getRandomAvailablePort(AvailablePort.JGROUPS));
+          .getRandomAvailablePort(AvailablePort.MULTICAST));
       // Close down any running servers
       server1.invoke(SecurityTestUtil.class, "closeCache");
       server2.invoke(SecurityTestUtil.class, "closeCache");
@@ -273,7 +273,7 @@ public class ClientCQPostAuthorizationDUnitTest extends
   public static void createServerCache(Properties serverProps,
       Properties javaProps, Integer serverPort) {
     Integer mcastPort = Integer.valueOf(AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS));
+        .getRandomAvailablePort(AvailablePort.MULTICAST));
     SecurityTestUtil.createCacheServer((Properties)serverProps, javaProps,
         mcastPort, null, serverPort, Boolean.TRUE, Integer.valueOf(
             SecurityTestUtil.NO_EXCEPTION));

@@ -583,6 +583,10 @@ public abstract class AbstractDistributionConfig
   public boolean isLocatorsModifiable() {
     return _modifiableDefault();
   }
+  
+  public boolean isLocatorWaitTimeModifiable() {
+    return _modifiableDefault();
+  }
 
   public boolean isRemoteLocatorsModifiable() {
     return _modifiableDefault();

@@ -43,7 +43,7 @@ public class TimeServer extends Thread {
   public TimeServer(String name) throws IOException {
     super(name);
     host = HostHelper.getCanonicalHostName();
-    port = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+    port = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
     socket = new DatagramSocket(port);
   }
   

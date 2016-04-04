@@ -594,7 +594,8 @@ public class InternalLocator extends Locator implements ConnectListener {
     }
     this.securityLogger.fine("SecurityLogWriter for locator is created.");
 
-    this.locatorListener = new LocatorMembershipListenerImpl(locator);
+    this.locatorListener = new LocatorMembershipListenerImpl(this);
+
 //    if(locatorListener != null) {
 //      this.locatorListener.setPort(this.port);
 //      this.locatorListener.setConfig(this.getConfig());

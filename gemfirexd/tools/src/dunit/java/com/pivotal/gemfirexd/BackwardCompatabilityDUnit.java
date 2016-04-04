@@ -333,7 +333,7 @@ public class BackwardCompatabilityDUnit extends BackwardCompatabilityTestBase {
    * @throws Exception
    */
   public void DISABLED_MERGE_testUpgradeDiskStoreWithMultipleServers() throws Exception{
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);;
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);;
     
     boolean restartVMs = false;
     for (int listIdx = 0; listIdx < compatibleVersionLists.length; listIdx++) {
@@ -964,7 +964,7 @@ public class BackwardCompatabilityDUnit extends BackwardCompatabilityTestBase {
    * - Verify data again connecting to the fourth server.
    */
   public void DISABLED_MERGE_testUpgradeDiskStoreAddNewServerWithNoData() throws Exception{
-    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);;
+    final int mcastPort = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);;
     boolean restartVMs = false;
     boolean restartFourthVM = false;
     for (int listIdx = 0; listIdx < compatibleVersionLists.length; listIdx++) {

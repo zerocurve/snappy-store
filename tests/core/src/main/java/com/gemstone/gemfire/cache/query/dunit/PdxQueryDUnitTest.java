@@ -3706,7 +3706,7 @@ public class PdxQueryDUnitTest extends CacheTestCase {
         public void run2() throws CacheException {
           Properties config = new Properties();
           mcastPort = AvailablePort
-              .getRandomAvailablePort(AvailablePort.JGROUPS);
+              .getRandomAvailablePort(AvailablePort.MULTICAST);
           config.setProperty("mcast-port", String.valueOf(mcastPort));
           Cache cache = new CacheFactory(config).create();
           AttributesFactory factory = new AttributesFactory();

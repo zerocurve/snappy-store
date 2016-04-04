@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -263,7 +264,7 @@ public class FabricServerTest extends TestUtil implements UnitTest {
       launcher += ".bat";
     }
     final int mcastPort = AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS);
+        .getRandomAvailablePort(AvailablePort.MULTICAST);
     final int port = AvailablePort
         .getRandomAvailablePort(AvailablePort.SOCKET);
     try {
@@ -429,7 +430,7 @@ public class FabricServerTest extends TestUtil implements UnitTest {
         + String.valueOf(AvailablePort
             .getRandomAvailablePort(AvailablePort.SOCKET)) + "]";
     distort.setProperty(DistributionConfig.MCAST_PORT_NAME, String
-        .valueOf(AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS)));
+        .valueOf(AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST)));
     distort.setProperty(DistributionConfig.LOCATORS_NAME, locatoradd);
     
     createPropertyFile(new Properties(), wrongf, distort);
@@ -866,7 +867,7 @@ public class FabricServerTest extends TestUtil implements UnitTest {
           .getConnectedInstance();
       gfeLocator = InternalLocator.startLocator(port2, null, null, sys
           .getLogWriterI18n(), sys.getSecurityLogWriter()
-          .convertToLogWriterI18n(), localHost, false, null, true, true, null);
+          .convertToLogWriterI18n(), localHost, false, null, true, true, null,false);
       // we should not be able to connect to server
       final Connection conn = getNetConnection(netPort, null, null);
       final Statement stmt = conn.createStatement();
@@ -968,7 +969,7 @@ public class FabricServerTest extends TestUtil implements UnitTest {
   public void testConnectionWithAuthentication() throws SQLException,
       InterruptedException {
     final FabricServer fabapi = FabricServiceManager.getFabricServerInstance();
-    final String currentHost = DistributedTestBase.getIPLiteral();
+    final String currentHost = getIPLiteral();
 
     final Properties shutdownProp = new Properties();
     shutdownProp.setProperty("user", "sysUser1");
@@ -1105,7 +1106,7 @@ public class FabricServerTest extends TestUtil implements UnitTest {
       launcher += ".bat";
     }
     final int mcastPort = AvailablePort
-        .getRandomAvailablePort(AvailablePort.JGROUPS);
+        .getRandomAvailablePort(AvailablePort.MULTICAST);
     final int port = AvailablePort.getRandomAvailablePort(AvailablePort.SOCKET);
     try {
 
@@ -1310,5 +1311,17 @@ public class FabricServerTest extends TestUtil implements UnitTest {
       }
     }
     return -1;
+  }
+
+  /** get the IP literal name for the current host, use this instead of
+   * "localhost" to avoid IPv6 name resolution bugs in the JDK/machine config.
+   * @return an ip literal, this method honors java.net.preferIPvAddresses
+   */
+  public static String getIPLiteral() {
+    try {
+      return SocketCreator.getLocalHost().getHostAddress();
+    } catch (UnknownHostException e) {
+      throw new Error("problem determining host IP address", e);
+    }
   }
 }

@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Map;
@@ -37,6 +38,7 @@ import com.gemstone.gemfire.internal.HeapDataOutputStream;
 import com.gemstone.gemfire.internal.InternalDataSerializer;
 import com.gemstone.gemfire.internal.cache.persistence.DiskStoreID;
 import com.gemstone.gemfire.internal.shared.Version;
+import com.gemstone.gemfire.internal.SocketCreator;
 
 public class RegionVersionVectorJUnitTest extends TestCase {
 
@@ -55,7 +57,7 @@ public class RegionVersionVectorJUnitTest extends TestCase {
   public void testRegionVersionVectors() throws Exception {
     // this is just a quick set of unit tests for basic RVV functionality
     
-    final String local = DistributedTestCase.getIPLiteral();
+    final String local = getIPLiteral();
     InternalDistributedMember server1 = new InternalDistributedMember(local, 101);
     InternalDistributedMember server2 = new InternalDistributedMember(local, 102);
     InternalDistributedMember server3 = new InternalDistributedMember(local, 103);
@@ -267,7 +269,19 @@ public class RegionVersionVectorJUnitTest extends TestCase {
     assertFalse(rv1.contains(server2, bitSetRollPoint+2));
   
   }
-  
+
+  /** get the IP literal name for the current host, use this instead of
+   * "localhost" to avoid IPv6 name resolution bugs in the JDK/machine config.
+   * @return an ip literal, this method honors java.net.preferIPvAddresses
+   */
+  public static String getIPLiteral() {
+    try {
+      return SocketCreator.getLocalHost().getHostAddress();
+    } catch (UnknownHostException e) {
+      throw new Error("problem determining host IP address", e);
+    }
+  }
+
   public void testRVVSerialization() throws IOException, ClassNotFoundException {
     DiskStoreID ownerId = new DiskStoreID(0, 0);
     DiskStoreID id1 = new DiskStoreID(0, 1);

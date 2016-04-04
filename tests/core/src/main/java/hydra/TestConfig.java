@@ -2088,13 +2088,13 @@ public class TestConfig implements Serializable {
 	    int port = gfd.getMcastPort().intValue();
 	    if (port != DistributionConfig.MIN_MCAST_PORT) {
 	      // port is specified in test config, log warning if port is already in use
-	      if (!AvailablePort.isPortAvailable(port, AvailablePort.JGROUPS,
+	      if (!AvailablePort.isPortAvailable(port, AvailablePort.MULTICAST,
                                  addr)) {
 		log().error("The port specified: " + port + " is already in use!  Test results will be invalid");
               }
             } else {
 	      // port not specified in test config
-	      port = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS,
+	      port = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST,
                                    addr);
             }
             log().info("assigning mcast port: " + port + " to distributed system: " + dsName);

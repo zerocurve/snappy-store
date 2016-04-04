@@ -23,19 +23,18 @@ import com.gemstone.gemfire.distributed.DistributedSystem;
 import com.gemstone.gemfire.distributed.Locator;
 import com.gemstone.gemfire.distributed.internal.DistributionConfig;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
-import com.gemstone.gemfire.distributed.internal.InternalLocator;
-import com.gemstone.gemfire.distributed.internal.membership.jgroup.MembershipManagerHelper;
 import com.gemstone.gemfire.internal.AvailablePort;
 import com.gemstone.gemfire.internal.SocketCreator;
-import com.gemstone.org.jgroups.Event;
-import com.gemstone.org.jgroups.JChannel;
-import com.gemstone.org.jgroups.stack.Protocol;
 import com.pivotal.gemfirexd.DistributedSQLTestBase;
 import com.pivotal.gemfirexd.FabricService;
 import com.pivotal.gemfirexd.FabricServiceManager;
 import com.pivotal.gemfirexd.TestUtil;
 import com.pivotal.gemfirexd.internal.engine.fabricservice.FabricServiceImpl;
 import com.pivotal.gemfirexd.internal.iapi.error.ShutdownException;
+import org.jgroups.JChannel;
+import org.jgroups.Event;
+import org.jgroups.stack.Protocol;
+
 
 import io.snappydata.test.dunit.AsyncInvocation;
 import io.snappydata.test.dunit.SerializableCallable;
@@ -228,22 +227,25 @@ public class GemFireXDReconnectDUnit extends DistributedSQLTestBase {
         final DistributedSystem msys = InternalDistributedSystem.getAnyInstance();
         final FabricServiceImpl service = (FabricServiceImpl)FabricServiceManager.currentFabricServiceInstance();
         final Locator oldLocator = Locator.getLocator();
-        MembershipManagerHelper.playDead(msys);
-        JChannel c = MembershipManagerHelper.getJChannel(msys);
-        Protocol udp = c.getProtocolStack().findProtocol("UDP");
-        udp.stop();
-        udp.passUp(new Event(Event.EXIT, new ForcedDisconnectException("killing member's ds")));
-        if (oldLocator != null) {
-          WaitCriterion wc = new WaitCriterion() {
-            public boolean done() {
-              return ((InternalLocator)oldLocator).isStopped();
-            }
-            public String description() {
-              return "waiting for locator to stop: " + oldLocator;
-            }
-          };
-          waitForCriterion(wc, 10000, 50, true);
-        }
+
+//        MembershipManagerHelper.playDead(msys);
+//        JChannel c = MembershipManagerHelper.getJChannel(msys);
+//        Protocol udp = c.getProtocolStack().findProtocol("UDP");
+//        udp.stop();
+//        udp.up(new Event(Event.DISCONNECT, new ForcedDisconnectException("killing member's ds")));
+//        if (oldLocator != null) {
+//          WaitCriterion wc = new WaitCriterion() {
+//            public boolean done() {
+//              return ((InternalLocator)oldLocator).isStopped();
+//            }
+//            public String description() {
+//              return "waiting for locator to stop: " + oldLocator;
+//            }
+//          };
+//          waitForCriterion(wc, 10000, 50, true);
+//        }
+        // call the DistributedTestCase method TODO:Suranjan
+
         if (waitForReconnect) {
           WaitCriterion wc = new WaitCriterion() {
             public boolean done() {

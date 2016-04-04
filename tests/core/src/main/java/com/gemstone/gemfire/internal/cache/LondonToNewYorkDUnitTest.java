@@ -322,7 +322,7 @@ import dunit.VM;
         Integer i = (Integer) new ObjectInputStream(new FileInputStream(dsFile)).readObject();
         port = i.intValue();
       } else {  // create one and write it
-        port = AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS);
+        port = AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST);
         new ObjectOutputStream(new FileOutputStream(dsFile)).writeObject(new Integer(port));
       }
     }

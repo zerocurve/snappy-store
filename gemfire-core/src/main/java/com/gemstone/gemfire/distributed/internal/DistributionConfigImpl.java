@@ -97,6 +97,9 @@ public class DistributionConfigImpl
   /** The locations of the distribution locators */
   private String locators = DEFAULT_LOCATORS;
   
+  /** The amount of time to wait for a locator to appear when starting up */
+  private int locatorWaitTime;
+  
   /** The name of the log file */
   private File logFile = DEFAULT_LOG_FILE;
   
@@ -324,6 +327,7 @@ public class DistributionConfigImpl
     this.bindAddress = other.getBindAddress();
     this.serverBindAddress = other.getServerBindAddress();
     this.locators = ((DistributionConfigImpl)other).locators; 
+    this.locatorWaitTime = other.getLocatorWaitTime();
     this.remoteLocators = other.getRemoteLocators();
     this.startLocator = other.getStartLocator();
     this.startLocatorPort = ((DistributionConfigImpl)other).startLocatorPort;
@@ -980,11 +984,18 @@ public class DistributionConfigImpl
     this.locators = value;
   }
   
+  public void setLocatorWaitTime(int value) {
+    this.locatorWaitTime = value;
+  }
+  
+  public int getLocatorWaitTime() {
+    return this.locatorWaitTime;
+  }
+  
   public void setDeployWorkingDir(File value) {
     checkDeployWorkingDir(value);
     this.deployWorkingDir = value;
   }
-
   public void setLogFile(File value) {
     checkLogFile(value);
     this.logFile = value;
@@ -1034,7 +1045,6 @@ public class DistributionConfigImpl
       }
     }
     this.startLocator = value;
-    //this.name = ""+this.distributedSystemId;
   }
   public void setStatisticSamplingEnabled(boolean value) {
     checkStatisticSamplingEnabled(value);
@@ -1702,6 +1712,9 @@ public class DistributionConfigImpl
         return false;
     } else if (!locators.equals(other.locators))
       return false;
+    if (locatorWaitTime != other.locatorWaitTime) {
+      return false;
+    }
     if (lockMemory != other.lockMemory)
       return false;
     if (logDiskSpaceLimit != other.logDiskSpaceLimit)
@@ -1912,7 +1925,7 @@ public class DistributionConfigImpl
   public final int hashCode() {
     // this was auto-generated using Eclipse
     final int prime = 31;
-    int result = 1;
+    int result = super.hashCode();
     result = prime * result + ackForceDisconnectThreshold;
     result = prime * result + ackWaitThreshold;
     result = prime * result + archiveDiskSpaceLimit;
@@ -2079,7 +2092,7 @@ public class DistributionConfigImpl
 
   /**
    * For dunit tests we do not allow use of the default multicast address/port.
-   * Please use AvailablePort.getRandomAvailablePort(AvailablePort.JGROUPS)
+   * Please use AvailablePort.getRandomAvailablePort(AvailablePort.MULTICAST)
    * to obtain a free port for your test.
    */
   public void checkForDisallowedDefaults() {
