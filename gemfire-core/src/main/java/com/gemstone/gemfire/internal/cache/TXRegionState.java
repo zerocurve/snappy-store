@@ -30,6 +30,7 @@ import com.gemstone.gemfire.cache.Operation;
 import com.gemstone.gemfire.cache.RegionDestroyedException;
 import com.gemstone.gemfire.cache.TransactionDataRebalancedException;
 import com.gemstone.gemfire.cache.TransactionException;
+import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
 import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.cache.execute.BucketMovedException;
 import com.gemstone.gemfire.internal.cache.locks.ExclusiveSharedSynchronizer;
@@ -280,7 +281,7 @@ public final class TXRegionState extends ReentrantLock {
           + entryKey + ",type=" + entryKey.getClass().getName() + "] in region "
           + this.region.getFullPath() + " doFullValueFlush=" + doFullValueFlush
           + " with value=" + ArrayUtils.objectStringNonRecursive(val) + ": "
-          + ArrayUtils.objectRefString(txes));
+          + ArrayUtils.objectRefString(txes), new Exception());
     }
     return txes;
   }
@@ -604,20 +605,14 @@ public final class TXRegionState extends ReentrantLock {
             try {
               cbEvent = tx.commitEntryPhase2(txes, cbEvent, eventsToFree,
                   firstTime, reuseEV, logger, logFine);
-              if (cbEvent == null) {
-                break;
-              }
               firstTime = false;
             } catch (Throwable t) {
               handleGIICommitException(t, logger);
             } finally {
-              if (cbEvent != null) {
-                if (reuseEV) {
-                  cbEvent.release();
-                }
-                else {
-                  eventsToFree.add(cbEvent);
-                }
+              if (reuseEV) {
+                cbEvent.release();
+              } else {
+                eventsToFree.add(cbEvent);
               }
             }
           }
@@ -725,6 +720,20 @@ public final class TXRegionState extends ReentrantLock {
     final LocalRegion rgn = this.region;
     final TXState tx = getTXState();
     this.tmpEx = te;
+    if (TXStateProxy.LOG_FINE) {
+      final LogWriterI18n logger = InternalDistributedSystem.getLoggerI18n();
+      StringBuilder sb = new StringBuilder();
+      sb.append("pendingTXOps="+this.pendingTXOps+";size="+(this.pendingTXOps == null ? "null" : this.pendingTXOps.size()));
+      sb.append("; pendingGIITXLocked="+this.pendingGIILockFlag);
+      sb.append("; entryMods" + (this.entryMods == null ? "null" : this.entryMods.size()));
+      logger.info(LocalizedStrings.DEBUG, "KN: cleanup called some info = " + sb.toString());
+
+    }
+    //final LogWriterI18n logger = InternalDistributedSystem.getLoggerI18n();
+//    if (logger != null) {
+//      logger.convertToLogWriter().info("KN: TXRegionState::cleanup called + pendingTXXOps = " + this.pendingTXOps +
+//          " and pendingGIITXLocked = " + this.pendingGIITXLocked + " and entry mod size = " + (this.entryMods != null ? this.entryMods.size() : "null"));
+//    }
     // check for GII in progress for the region
     if (this.pendingTXOps != null && this.pendingGIITXLocked) {
       // set the order for commit/rollback
@@ -768,6 +777,9 @@ public final class TXRegionState extends ReentrantLock {
               if (txes.isDirty()) {
                 numChanges++;
               }
+//              if (logger != null) {
+//                logger.convertToLogWriter().info("KN: TXRegionState::cleanup txes cleanup called for txes="+txes);
+//              }
               txes.cleanup(tx, rgn, lockPolicy, writeMode, removeFromList,
                   false, forCommit);
             } catch (Throwable t) {
@@ -776,7 +788,7 @@ public final class TXRegionState extends ReentrantLock {
                   err = (Error)t)) {
                 SystemFailure.initiateFailure(err);
                 // If this ever returns, rethrow the error. We're poisoned
-                // now, so don't let this thread continue.
+                // now, so don't let this thread continue.TXR
                 throw err;
               }
               tmpEx = TXState.processCleanupException(t, tmpEx);

@@ -4570,6 +4570,9 @@ RETRY_LOOP:
    */
   private void processAndGenerateTXVersionTag(final LocalRegion owner,
       EntryEventImpl cbEvent, RegionEntry re, TXRegionState txr) {
+    LogWriterI18n log = owner.getLogWriterI18n();
+    log.fine("KN: processAndGenerateTXVersionTag called with cbEvent: " + cbEvent, new Exception());
+    log.fine("KN: processAndGenerateTXVersionTag cbEvent versionTag: " + (cbEvent != null ? cbEvent.getVersionTag() : "null"));
     if (cbEvent != null && owner.getConcurrencyChecksEnabled()
         && (!owner.getScope().isLocal() || owner.getDataPolicy()
             .withPersistence())) {
@@ -4593,18 +4596,22 @@ RETRY_LOOP:
               && owner.getSystem().getConfig().getDeltaPropagation()
               && !owner.getScope().isDistributedNoAck());
           VersionSource<?> source = txr.getVersionSource();
+          log.fine("KN: processAndGenerateTXVersionTag eventHasDelta: " + eventHasDelta + " source: " + source);
           // isRemoteVersionSource should be invoked only after the
           // getVersionSource call is complete
           VersionTag<?> tag = re.generateVersionTag(source,
               txr.isRemoteVersionSource(), eventHasDelta, owner, cbEvent);
           if (tag != null) {
-            LogWriterI18n log = owner.getLogWriterI18n();
+            //LogWriterI18n log = owner.getLogWriterI18n();
             if (log.fineEnabled()) {
               log.fine("generated version tag " + tag + " for "
                   + owner.getFullPath() + ", source=" + source
                   + ", isRemoteSource=" + txr.isRemoteVersionSource());
             }
             cbEvent.setVersionTag(tag);
+          }
+          else {
+            log.fine("KN: processAndGenerateTXVersionTag version tag is null cbEvent: " + cbEvent);
           }
         }
       } catch (ConcurrentCacheModificationException ignore) {
@@ -4710,13 +4717,11 @@ RETRY_LOOP:
       lr = owner.getPartitionedRegion();
     }
     if (isInvalidate) { // ignore shouldNotifyGatewayHub check for invalidates
-      return (isPartitioned || isInitialized)
-          && (lr.shouldDispatchListenerEvent()
+      return (lr.shouldDispatchListenerEvent()
             || lr.shouldNotifyBridgeClients()
             || lr.getConcurrencyChecksEnabled());
     } else {
-      return (isPartitioned || isInitialized)
-          && (lr.shouldDispatchListenerEvent()
+      return (lr.shouldDispatchListenerEvent()
             || lr.shouldNotifyBridgeClients() 
             || lr.shouldNotifyGatewayHub()
             || lr.shouldNotifyGatewaySenders()

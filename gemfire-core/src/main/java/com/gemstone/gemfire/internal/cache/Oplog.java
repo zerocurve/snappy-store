@@ -1990,6 +1990,7 @@ public final class Oplog implements CompactableOplog {
           tag = readVersionsFromOplog(dis);
           // Update the RVV with the new entry
           if (drs != null) {
+            logger.convertToLogWriter().info("KN: keybytes = " + Arrays.toString(keyBytes));
             drs.recordRecoveredVersionTag(tag);
           }
         }
@@ -2036,8 +2037,8 @@ public final class Oplog implements CompactableOplog {
             valueBytes = DiskEntry.TOMBSTONE_BYTES;
           }
           Object key = deserializeKey(keyBytes, version, in);
-          // logger.info(LocalizedStrings.DEBUG, "DEBUG: recover krf key=" + key
-          // + " id=" + oplogKeyId);
+          logger.info(LocalizedStrings.DEBUG, "DEBUG: recover krf key=" + key
+           + " id=" + oplogKeyId);
           /*
           {
             Object oldValue = getRecoveryMap().put(oplogKeyId, key);
@@ -2078,13 +2079,13 @@ public final class Oplog implements CompactableOplog {
           } else {
             DiskId curdid = de.getDiskId();
             //assert curdid.getOplogId() != getOplogId();
-            if (DiskStoreImpl.TRACE_RECOVERY) {
+            //if (DiskStoreImpl.TRACE_RECOVERY) {
               logger.info(LocalizedStrings.DEBUG,
                   "TRACE_RECOVERY ignore readNewEntry because getOplogId()="
                       + getOplogId() + " != curdid.getOplogId()="
                       + curdid.getOplogId() + " for drId=" + drId + " key="
                       + key);
-            }
+            //}
           }
           Object oldEntry = getRecoveryMap().put(oplogKeyId, de);
           if (oldEntry != null) {
@@ -5566,6 +5567,7 @@ public final class Oplog implements CompactableOplog {
           if (rvv != null && (version = entry.getVersionStamp()) != null) {
             //TODO: Asif: Temporary fix for Bug #47395.
             //We need to find out the actual cause as to why the DiskEntry's Version Tag does not contain DiskStoreID
+            logger.convertToLogWriter().info("KN: version.memId: " + version.getMemberID() + " key = " + entry.getKey());
             if(version.getMemberID() == null) {
               version.setMemberID(dr.getDiskStoreID());
             }

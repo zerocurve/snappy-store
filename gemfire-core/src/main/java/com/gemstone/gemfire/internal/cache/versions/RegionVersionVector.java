@@ -58,7 +58,7 @@ import com.gemstone.gemfire.internal.shared.Version;
  */
 public abstract class RegionVersionVector<T extends VersionSource<?>> implements DataSerializableFixedID, MembershipListener {
   
-  public static boolean DEBUG = Boolean.getBoolean("gemfire.VersionVector.VERBOSE");
+  public static boolean DEBUG = true; //Boolean.getBoolean("gemfire.VersionVector.VERBOSE");
   
   
   
@@ -697,7 +697,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     
     //Update the version holder
     if (DEBUG && logger != null) {
-      logger.info(LocalizedStrings.DEBUG, "recording rv" + version + " for " + mbr);
+      logger.info(LocalizedStrings.DEBUG, "recording rv" + version + " for " + mbr, new Exception());
     }
     holder.recordVersion(version, logger);
   }

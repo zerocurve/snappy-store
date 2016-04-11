@@ -142,7 +142,7 @@ public final class TXRemoteCommitMessage extends TXMessage {
     else {
       // if no TXState was created (e.g. due to only getEntry/size operations
       // that don't start remote TX) then ignore, but try to remove from hosted
-      // txStates neverthless
+      // txStates nevertheless
       final GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
       final TXManagerImpl txMgr;
       if (cache != null &&

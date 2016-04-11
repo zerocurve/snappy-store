@@ -2034,6 +2034,7 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
   public final VersionTag generateVersionTag(VersionSource mbr,
       boolean isRemoteVersionSource, boolean withDelta, LocalRegion region,
       EntryEventImpl event) {
+    LogWriterI18n log = event.getRegion().getLogWriterI18n();
     VersionStamp stamp = this.getVersionStamp();
     if (stamp != null && region.getServerProxy() == null) { // clients do not generate versions
       int v = stamp.getEntryVersion()+1;
@@ -2059,6 +2060,8 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
 
       VersionTag tag = VersionTag.create(mbr);
       tag.setEntryVersion(v);
+      log.fine("KN: region: " + region + " version vector: " + (region != null ? region.getVersionVector() : "null")
+          + " isRemoteVersionSource: " + isRemoteVersionSource);
       if (region.getVersionVector() != null) {
         if (isRemoteVersionSource) {
           tag.setRegionVersion(region.getVersionVector().getNextRemoteVersion(
@@ -2068,6 +2071,8 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
           tag.setRegionVersion(region.getVersionVector().getNextVersion());
         }
       }
+      log.fine("KN: After region: " + region + " version vector: " + (region != null ? region.getVersionVector() : "null")
+          + " isRemoteVersionSource: " + isRemoteVersionSource);
       if (withDelta) {
         tag.setPreviousMemberID(previous);
       }

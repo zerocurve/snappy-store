@@ -89,7 +89,7 @@ public final class TXChanges {
         txProxy.getTxMgr().getLogger().info(LocalizedStrings.DEBUG,
             "TXChanges: isDirty=" + txIsDirty + " numTXRegions="
             + txProxy.regions.size() + " checkpoint=" + msg.txRegionCheckpoint
-            + " for " + txProxy.getTransactionId().shortToString());
+            + " for " + txProxy.getTransactionId().shortToString(), new Exception());
       }
       THashSet newRegions = null;
       Throwable txInconsistentThr = null;

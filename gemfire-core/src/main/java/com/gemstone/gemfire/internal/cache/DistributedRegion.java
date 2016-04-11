@@ -217,6 +217,7 @@ public class DistributedRegion extends LocalRegion implements
   public static volatile CountDownLatch testLatch;
   public static volatile String testRegionName;
   public static volatile boolean testLatchWaiting;
+  private boolean avoidDeltaGII;
 
   /** Creates a new instance of DistributedRegion */
   protected DistributedRegion(String regionName, RegionAttributes attrs,
@@ -3499,7 +3500,14 @@ public class DistributedRegion extends LocalRegion implements
       SystemProperties.getServerInstance().getLong(
           "DISK_ITERATOR_MAX_PENDING_ENTRIES", 10000000L));
 
-   /**
+  public void setAvoidDeltaGII() {
+    this.avoidDeltaGII = true;
+  }
+
+  public boolean getAvoidDeltaGII() {
+    return this.avoidDeltaGII;
+  }
+  /**
    * Should only be used if this region has entries on disk that are not in memory.
    * This currently happens for overflow and for recovery when values are not recovered.
    * The first iteration does a normal iteration of the regionEntries.

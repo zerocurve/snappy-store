@@ -45,6 +45,7 @@ import com.gemstone.gemfire.cache.TransactionWriter;
 import com.gemstone.gemfire.cache.TransactionWriterException;
 import com.gemstone.gemfire.cache.UnsupportedOperationInTransactionException;
 import com.gemstone.gemfire.distributed.internal.DM;
+import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
 import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedMember;
 import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.Assert;
@@ -1187,6 +1188,11 @@ public final class TXState implements TXStateInterface {
       final TransactionObserver observer) {
     this.state = commit ? State.CLOSED_COMMIT : State.CLOSED_ROLLBACK;
 
+    if (TXStateProxy.LOG_FINE) {
+      final LogWriterI18n logger = InternalDistributedSystem.getLoggerI18n();
+      logger.info(LocalizedStrings.DEBUG, "KN: cleanup with commit = " + commit
+          + " state = " + this.state + " and pendingOps = " + this.pendingOps + " pendingOpsRegion = " + this.pendingOpsRegions, new Exception());
+    }
     final LockingPolicy lockPolicy = getLockingPolicy();
     
     final LockMode writeMode = commit ? LockMode.EX : lockPolicy
@@ -1206,6 +1212,19 @@ public final class TXState implements TXStateInterface {
       if (this.txLocked.compareAndSet(true, false)) {
         unlockTXState();
       }
+      if (TXStateProxy.LOG_FINE) {
+        final LogWriterI18n logger = InternalDistributedSystem.getLoggerI18n();
+        StringBuilder sb = new StringBuilder();
+        if (finalizeRegions == null) {
+          sb.append("finalizeRegions=null");
+        }
+        else {
+          for(TXRegionState txr : finalizeRegions) {
+            sb.append("txr="+txr+";");
+          }
+        }
+        logger.info(LocalizedStrings.DEBUG, "KN: cleanup this.finalizeregions = " + sb.toString());
+      }
       cleanupTXRS(this.finalizeRegions, lockPolicy, writeMode, commit, true,
           observer);
     }
@@ -1216,8 +1235,17 @@ public final class TXState implements TXStateInterface {
       final boolean commit, final boolean releaseTXRSGIILocks,
       final TransactionObserver observer) throws TransactionException {
 
+    if (TXStateProxy.LOG_FINE) {
+      final LogWriterI18n logger = InternalDistributedSystem.getLoggerI18n();
+      logger.info(LocalizedStrings.DEBUG, "KN: cleanupTXRS");
+    }
+
     TransactionException cleanEx = null;
     for (TXRegionState txrs : regionStates) {
+      if (TXStateProxy.LOG_FINE) {
+        final LogWriterI18n logger = InternalDistributedSystem.getLoggerI18n();
+        logger.info(LocalizedStrings.DEBUG, "KN: cleanupTXRS txrs = " + txrs);
+      }
       /*
        * Need to unlock the primary lock for rebalancing so that rebalancing
        * can resume.
@@ -1243,6 +1271,10 @@ public final class TXState implements TXStateInterface {
 
       txrs.lock();
       try {
+        if (TXStateProxy.LOG_FINE) {
+          final LogWriterI18n logger = InternalDistributedSystem.getLoggerI18n();
+          logger.info(LocalizedStrings.DEBUG, "KN: cleanupTXRS txrs.cleanup going to be called");
+        }
         cleanEx = txrs.cleanup(lockPolicy, writeMode, commit, false, cleanEx);
       } catch (Throwable t) {
         Error err;

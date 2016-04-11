@@ -134,8 +134,8 @@ public class DiskStoreImpl implements DiskStore, ResourceListener<MemoryEvent> {
 
   private static final SystemProperties sysProps = SystemProperties
       .getServerInstance();
-  public static final boolean TRACE_RECOVERY = sysProps.getBoolean(
-      "disk.TRACE_RECOVERY", false);
+  public static final boolean TRACE_RECOVERY = true; //sysProps.getBoolean(
+      //"disk.TRACE_RECOVERY", false);
   public static final boolean TRACE_WRITES = sysProps.getBoolean(
       "disk.TRACE_WRITES", false);
   public static final boolean KRF_DEBUG = sysProps.getBoolean(

@@ -35,25 +35,7 @@ import com.gemstone.gemfire.CancelException;
 import com.gemstone.gemfire.GemFireException;
 import com.gemstone.gemfire.InternalGemFireError;
 import com.gemstone.gemfire.SystemFailure;
-import com.gemstone.gemfire.cache.CacheException;
-import com.gemstone.gemfire.cache.ConflictException;
-import com.gemstone.gemfire.cache.DataPolicy;
-import com.gemstone.gemfire.cache.EntryNotFoundException;
-import com.gemstone.gemfire.cache.IllegalTransactionStateException;
-import com.gemstone.gemfire.cache.IsolationLevel;
-import com.gemstone.gemfire.cache.Operation;
-import com.gemstone.gemfire.cache.PartitionAttributes;
-import com.gemstone.gemfire.cache.Region;
-import com.gemstone.gemfire.cache.RegionDestroyedException;
-import com.gemstone.gemfire.cache.SynchronizationCommitConflictException;
-import com.gemstone.gemfire.cache.TransactionBatchException;
-import com.gemstone.gemfire.cache.TransactionDataNodeHasDepartedException;
-import com.gemstone.gemfire.cache.TransactionDataRebalancedException;
-import com.gemstone.gemfire.cache.TransactionException;
-import com.gemstone.gemfire.cache.TransactionFlag;
-import com.gemstone.gemfire.cache.TransactionInDoubtException;
-import com.gemstone.gemfire.cache.TransactionStateReadOnlyException;
-import com.gemstone.gemfire.cache.UnsupportedOperationInTransactionException;
+import com.gemstone.gemfire.cache.*;
 import com.gemstone.gemfire.cache.execute.ResultCollector;
 import com.gemstone.gemfire.cache.query.internal.IndexUpdater;
 import com.gemstone.gemfire.distributed.internal.DM;
@@ -90,8 +72,11 @@ import com.gemstone.gemfire.internal.cache.partitioned.InvalidateMessage;
 import com.gemstone.gemfire.internal.cache.partitioned.PartitionMessage.PartitionResponse;
 import com.gemstone.gemfire.internal.cache.partitioned.PutMessage;
 import com.gemstone.gemfire.internal.cache.partitioned.RegionAdvisor.PartitionProfile;
+import com.gemstone.gemfire.internal.cache.persistence.DiskStoreID;
 import com.gemstone.gemfire.internal.cache.tier.sockets.ClientProxyMembershipID;
 import com.gemstone.gemfire.internal.cache.tier.sockets.VersionedObjectList;
+import com.gemstone.gemfire.internal.cache.versions.DiskRegionVersionVector;
+import com.gemstone.gemfire.internal.cache.versions.RegionVersionVector;
 import com.gemstone.gemfire.internal.concurrent.MapCallback;
 import com.gemstone.gemfire.internal.concurrent.MapCallbackAdapter;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
@@ -179,8 +164,8 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
   /** True if operations related to transactions have to be logged globally. */
   private static boolean VERBOSE = VERBOSE_ON();
   private static boolean VERBOSEVERBOSE = VERBOSEVERBOSE_ON();
-  public static boolean LOG_FINE = VERBOSE | VERBOSEVERBOSE;
-  public static boolean LOG_FINEST = VERBOSEVERBOSE;
+  public static boolean LOG_FINE = true; //VERBOSE | VERBOSEVERBOSE;
+  public static boolean LOG_FINEST = true; // VERBOSEVERBOSE;
   public static boolean LOG_VERSIONS = LOG_FINE | StateFlushOperation.DEBUG
       | DistributionManager.VERBOSE;
   public static boolean TRACE_EXECUTE = LOG_FINE || DistributionManager.VERBOSE
@@ -1177,6 +1162,32 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
   final void setCommitVersionSources(long commitTime, THashMap versionSources) {
     this.commitTime = commitTime;
     this.regionDiskVersionSources = versionSources;
+//    final GemFireCacheImpl cache = getTxMgr().getCache();
+//    if (cache == null) return;
+//    if (LOG_FINE) {
+//      final TXManagerImpl txMgr = getTxMgr();
+//      final LogWriterI18n logger = txMgr.getLogger();
+//      logger.info(LocalizedStrings.DEBUG, "KN: Setting commit version sources");
+//    }
+//    if (this.regionDiskVersionSources != null && !this.regionDiskVersionSources.isEmpty()) {
+//      this.regionDiskVersionSources.forEachEntry(new TObjectObjectProcedure() {
+//        @Override
+//        public boolean execute(Object regionInfoShip, Object b) {
+//          LocalRegion r = ((RegionInfoShip)regionInfoShip).lookupRegion(cache);
+//          RegionVersionVector rvv = null;
+//          if (b instanceof DiskStoreID) {
+//            new DiskRegionVersionVector((DiskStoreID)b);
+//          }
+//          r.setVersionVector(rvv);
+//          if (LOG_FINE) {
+//            final TXManagerImpl txMgr = getTxMgr();
+//            final LogWriterI18n logger = txMgr.getLogger();
+//            logger.info(LocalizedStrings.DEBUG, "KN: Setting region version sources for region: " + r + " rvv="+rvv);
+//          }
+//          return false;
+//        }
+//      });
+//    }
   }
 
   final boolean waitForPendingRCs(final DM dm) {
@@ -4146,7 +4157,7 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
     final int newCount = this.refCount.decrementAndGet();
     if (LOG_FINE) {
       getTxMgr().getLogger().info(LocalizedStrings.DEBUG,
-          this.txId.shortToString() + ": decremented refCount to " + newCount);
+          this.txId.shortToString() + ": decremented refCount to " + newCount, new Exception());
     }
     return newCount;
   }

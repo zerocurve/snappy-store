@@ -1249,6 +1249,10 @@ public class InitialImageOperation  {
 
   void processTXChunk(TXBatchMessage txEvents,
       StoppableCountDownLatch txIdChunkRecvLatch) {
+    // Force full gii if later this becomes source.
+    if (txEvents != null && txEvents.pendingTXId != null) {
+      this.region.setAvoidDeltaGII();
+    }
     // wait for TXId chunk to be processed first
     int maxTries = 50;
     while (true) {
@@ -2031,9 +2035,12 @@ public class InitialImageOperation  {
                 RegionStateMessage.send(dm, getSender(), this.processorId, eventState, true);
               }
             }
+            final ArrayList<TXRegionState> txrss = new ArrayList<>();
+            final THashMap txIdMap = new THashMap();
+            boolean shipTXStates = collectActiveTransactions(rgn, txrss, txIdMap);
             if (this.checkTombstoneVersions && this.versionVector != null && rgn.concurrencyChecksEnabled) {
               synchronized(rgn.getCache().getTombstoneService().blockGCLock) {
-              if (goWithFullGII(rgn, this.versionVector)) {
+              if (rgn.getAvoidDeltaGII() || shipTXStates || goWithFullGII(rgn, this.versionVector)) {
                 if (TRACE_GII) {
                   logger.info(LocalizedStrings.DEBUG, "have to do fullGII");
                 }
@@ -2059,7 +2066,7 @@ public class InitialImageOperation  {
 
             final int fid = flowControl.getId();
             final int txMsgNum = chunkTXEntries(rgn, dm, CHUNK_SIZE_IN_BYTES,
-                flowControl, fid, seriesNum, numSeries);
+                flowControl, fid, seriesNum, numSeries, txrss, txIdMap);
 
             final RegionVersionHolder holderToSend = holderToSync;
             boolean finished = rgn.chunkEntries(sender, CHUNK_SIZE_IN_BYTES, !keysOnly, versionVector,
@@ -2204,19 +2211,13 @@ public class InitialImageOperation  {
       }
     }
 
-    protected int chunkTXEntries(DistributedRegion rgn, DistributionManager dm,
-        final int chunkSizeInBytes, final InitialImageFlowControl flowControl,
-        final int fid, final int seriesNum, final int numSeries)
-        throws IOException {
-
+    protected boolean collectActiveTransactions(final DistributedRegion rgn,
+        final ArrayList<TXRegionState> txrss, final THashMap txIdMap) {
       // loop through existing TXStates and register inProgress ones
       // (including those that are committing but ignoring those that
       // have completed the commit/rollback)
       final TXManagerImpl txMgr = rgn.getCache().getCacheTransactionManager();
-      int offset, msgNum = 0;
 
-      final ArrayList<TXRegionState> txrss = new ArrayList<TXRegionState>();
-      final THashMap txIdMap = new THashMap();
       // first acquire locks on all TXStates
       for (TXStateProxy proxy : txMgr.getHostedTransactionsInProgress()) {
         final TXState txState = proxy.getLocalTXState();
@@ -2242,6 +2243,17 @@ public class InitialImageOperation  {
           }
         }
       }
+      return txrss.size() > 0;
+    }
+
+    protected int chunkTXEntries(DistributedRegion rgn, DistributionManager dm,
+        final int chunkSizeInBytes, final InitialImageFlowControl flowControl,
+        final int fid, final int seriesNum, final int numSeries,
+        final ArrayList<TXRegionState> txrss, final THashMap txIdMap)
+        throws IOException {
+
+      int offset, msgNum = 0;
+
       if (txrss.isEmpty()) {
         return msgNum;
       }
@@ -4512,8 +4524,8 @@ public class InitialImageOperation  {
     
   }
 
-  public static final boolean TRACE_GII = Boolean.getBoolean("gemfire.GetInitialImage.TRACE_GII");
-  public static final boolean TRACE_GII_FINER = TRACE_GII || Boolean.getBoolean("gemfire.GetInitialImage.TRACE_GII_FINER");
+  public static final boolean TRACE_GII = true; // Boolean.getBoolean("gemfire.GetInitialImage.TRACE_GII");
+  public static final boolean TRACE_GII_FINER = true; // TRACE_GII || Boolean.getBoolean("gemfire.GetInitialImage.TRACE_GII_FINER");
   public static boolean FORCE_FULL_GII = Boolean.getBoolean("gemfire.GetInitialImage.FORCE_FULL_GII");
   
   // test hook to fail gii at the receiving end
@@ -4674,6 +4686,23 @@ public class InitialImageOperation  {
     default:
       throw new RuntimeException("Illegal test hook type");
     }
+  }
+
+  public static boolean anyTestHookInstalled() {
+    return (internalBeforeGetInitialImage != null ||
+    internalBeforeRequestRVV != null ||
+    internalAfterRequestRVV != null ||
+    internalAfterCalculatedUnfinishedOps != null ||
+    internalBeforeSavedReceivedRVV != null ||
+    internalAfterSavedReceivedRVV != null ||
+    internalAfterSentRequestImage != null ||
+    internalAfterReceivedRequestImage != null ||
+    internalDuringPackingImage != null ||
+    internalAfterSentImageReply != null ||
+    internalAfterReceivedImageReply != null ||
+    internalDuringApplyDelta != null ||
+    internalBeforeCleanExpiredTombstones != null ||
+    internalAfterSavedRVVEnd != null);
   }
 
   public static void resetGIITestHook(final GIITestHookType type, final boolean setNull) {
