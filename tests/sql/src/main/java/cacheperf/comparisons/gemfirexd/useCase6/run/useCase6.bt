@@ -1,4 +1,5 @@
-cacheperf/comparisons/gemfirexd/useCase6/useCase6Thin.conf
+//cacheperf/comparisons/gemfirexd/useCase6/useCase6Thin.conf
+cacheperf/comparisons/gemfirexd/useCase6/useCase6Smart.conf
 
 locatorHosts=1
 locatorVMsPerHost=1
@@ -21,7 +22,7 @@ newstoreThreadsPerVM=1
 
 api=GFXD
 
-txIsolation = read_committed
+txIsolation = none
 persist = true
 
 clientHeapMB = 2048
