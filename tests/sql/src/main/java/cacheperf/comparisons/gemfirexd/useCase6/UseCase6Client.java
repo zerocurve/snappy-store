@@ -118,21 +118,16 @@ public class UseCase6Client extends QueryPerfClient {
 //------------------------------------------------------------------------------
 
   public static void executeDDLTask()
-      throws FileNotFoundException, IOException, SQLException {
+          throws FileNotFoundException, IOException, SQLException {
     UseCase6Client c = new UseCase6Client();
     c.initialize();
     Vector<String> clientNames = TestConfig.getInstance().getClientNames();
-//    TestTask t = TestConfig.getInstance().getTasks();
     for (String clientName : clientNames) {
-      Log.getLogWriter().info("Client Name is ::" + clientName);
       if ((clientName.startsWith("newstore"))) {
         numServers++;
         UseCase6BB.getBB().getSharedCounters().increment(UseCase6BB.numServersInBB);
       }
     }
-    Log.getLogWriter().info("swati--Number of servers to be started in the task::" + numServers);
-    int numServersInBB = (int) UseCase6BB.getBB().getSharedCounters().read(UseCase6BB.numServersInBB);
-    Log.getLogWriter().info("swati--Number of servers in BB::" + numServersInBB);
     if (c.sttgid == 0) {
       c.executeDDL();
     }
@@ -294,38 +289,24 @@ public class UseCase6Client extends QueryPerfClient {
   }
 
   public static void generateAndLoadDataTaskForSmart() throws SQLException {
-//    Set<Integer> threadIDsInBB = (Set<Integer>) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_threadID);
-//    int size = (int) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.numThreadsInStartStoreTask);
     String stringSize = (String) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.numThreadsInStartStoreTask);
     int size = Integer.parseInt(stringSize);
     String serverStatus = (String) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status);
-    Log.getLogWriter().info("");
     if (serverStatus.equalsIgnoreCase("Generate_Data")) {
       UseCase6Client c = new UseCase6Client();
       c.initialize();
       if (c.ttgid == 0) {
-        c.generateAndLoadData();
-        Log.getLogWriter().info("swati--generateAndLoadDataTaskForSmart task executed...");
+        c.generateAndLoadDataForSmart();
         if (QueryPerfClient.getTotalThreds() >= size) {
           UseCase6BB.getBB().getSharedMap().put(UseCase6BB.startFabricServerTask_Status, "Trigger_Rebalance");
-          Log.getLogWriter().info("swati--startFabricServerTask_Status value in generateAndLoadDataTaskForSmart is :: " + UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status));
         } else {
           UseCase6BB.getBB().getSharedMap().put(UseCase6BB.startFabricServerTask_Status, "startServer");
-          Log.getLogWriter().info("swati--startFabricServerTask_Status value in generateAndLoadDataTaskForSmart is :: " + UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status));
         }
       }
     }
   }
 
   public static void generateAndLoadDataTask() throws SQLException {
-    UseCase6Client c = new UseCase6Client();
-    c.initialize();
-    if (c.ttgid == 0) {
-      c.generateAndLoadData();
-    }
-  }
-
-  protected void generateAndLoadDataAfterRebalanceDone() throws SQLException {
     UseCase6Client c = new UseCase6Client();
     c.initialize();
     if (c.ttgid == 0) {
@@ -357,6 +338,24 @@ public class UseCase6Client extends QueryPerfClient {
     }
 
     //executequery("SELECT * FROM OLTP_PNP_Subscriptions", this.connection);
+  }
+
+  public void generateAndLoadDataForSmart() throws SQLException {
+    // this will init DataGenerator, create CSVs for populate and create rows for inserts after dynamically adding the servers in test
+    String[] tableNames = UseCase6Prms.getTableNames();
+    ;
+    int[] rowCounts = UseCase6Prms.getInitialRowCountToPopulateTableForSmart();
+    String mapper = getMapperFileAbsolutePath();
+    DataGeneratorHelper.initDataGenerator(mapper, tableNames, rowCounts, this.connection);
+
+    int prevCount = SqlUtilityHelper.getRowsInTable(tableNames[0], this.connection);
+    populateTables(this.connection);
+    int newCount = SqlUtilityHelper.getRowsInTable(tableNames[0], this.connection);
+
+    DataGeneratorHelper.clearDataGenerator();
+    if ((newCount - prevCount) != rowCounts[0]) {
+      throw new TestException("Row count mismatch. Expected (" + newCount + " - " + prevCount + ") = " + rowCounts[0]);
+    }
   }
 
   public void populateTables(Connection gConn) {
@@ -502,65 +501,13 @@ public class UseCase6Client extends QueryPerfClient {
   public static void workLoadGeneratorTask() throws SQLException {
     String stringSize = (String) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.numThreadsInStartStoreTask);
     int size = Integer.parseInt(stringSize);
-    Log.getLogWriter().info("numThreadsinStartStoreTask ::" + size);
-    int totalServerThreadsExecuted = QueryPerfClient.getTotalThreds();
-    Log.getLogWriter().info("Total newStore Started retrieved from QueryPerfClient.getTotalThreds() are ::" + totalServerThreadsExecuted);
     if (QueryPerfClient.getTotalThreds() >= size) {
       return;
     }
     UseCase6Client c = new UseCase6Client();
-    //c.initialize();
     c.initialize(TRANSACTIONS);
-    //c.useCase6SelectAndUpdateTask();
-    c.useCase6workLoadGeneratorTask(c);
-  }
-
-  private void useCase6workLoadGeneratorTask(UseCase6Client c) throws SQLException {
-    PreparedStatement update = null;
-    PreparedStatement select = null;
-    final Connection connection = getConnection();
-    select = connection.prepareStatement(selstm);
-    update = connection.prepareStatement(updstm);
-    //Random rand = new Random();
-    //int val = rand.nextInt(paramValues[0].size() - 1);
-    //Log.getLogWriter().info("useCase6SelectAndUpdateTask - done loading " + paramValues[0] + " items");
-    for (int iter = 0; iter < paramValues[0].size(); ) {
-//      long start = this.useCase6stats.startTransaction();
-      select.setString(1, paramValues[0].get(iter));
-      select.setString(2, paramValues[1].get(iter));
-      ResultSet sel = select.executeQuery();
-      sel.next();
-      final String id = sel.getString(1);
-      sel.close();
-      update.clearParameters();
-      final long tpsBegin = System.currentTimeMillis();
-      final Timestamp ts = new Timestamp(tpsBegin);
-      update.setTimestamp(1, ts);
-      update.setString(2, id);
-      try {
-        update.executeUpdate();
-      } catch (SQLException txe) {
-        if ("X0Z02".equals(txe.getSQLState())) {
-//          this.useCase6stats.endTransaction(start, 0);
-          continue;
-        }
-        txe.printStackTrace();
-      }
-      //Log.getLogWriter().info("Updated table with id " + id);
-//        this.connection.commit();
-      connection.commit();
-//      this.useCase6stats.endTransaction(start, 0);
-      iter++;
-    }
-    if (select != null) {
-      select.close();
-      select = null;
-    }
-    if (update != null) {
-      update.close();
-      update = null;
-    }
-
+//    c.useCase6workLoadGeneratorTask(c);
+    c.useCase6SelectAndUpdate();
   }
 
 }

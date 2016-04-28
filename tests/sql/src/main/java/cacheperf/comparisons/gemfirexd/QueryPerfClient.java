@@ -18,7 +18,6 @@
 package cacheperf.comparisons.gemfirexd;
 
 import cacheperf.comparisons.gemfirexd.useCase6.UseCase6BB;
-import cacheperf.comparisons.gemfirexd.useCase6.UseCase6Client;
 import hydra.BasePrms;
 import hydra.BridgeHelper;
 import hydra.CacheHelper;
@@ -35,7 +34,6 @@ import hydra.MasterController;
 import hydra.PoolHelper;
 import hydra.RemoteTestModule;
 import hydra.StopSchedulingTaskOnClientOrder;
-import hydra.blackboard.SharedCounters;
 import hydra.gemfirexd.FabricServerDescription;
 import hydra.gemfirexd.FabricServerHelper;
 import hydra.gemfirexd.LonerHelper;
@@ -63,14 +61,12 @@ import objects.query.SQLQueryFactory;
 import cacheperf.CachePerfClient;
 
 import com.gemstone.gemfire.Statistics;
-import com.gemstone.gemfire.StatisticsType;
 import com.gemstone.gemfire.cache.Cache;
 import com.gemstone.gemfire.cache.CacheFactory;
 import com.gemstone.gemfire.cache.CacheTransactionManager;
 import com.gemstone.gemfire.cache.Region;
 import com.gemstone.gemfire.cache.TransactionException;
 import com.gemstone.gemfire.cache.control.RebalanceOperation;
-import com.gemstone.gemfire.cache.control.RebalanceResults;
 import com.gemstone.gemfire.cache.control.ResourceManager;
 import com.gemstone.gemfire.cache.partition.PartitionMemberInfo;
 import com.gemstone.gemfire.cache.partition.PartitionRegionHelper;
@@ -91,7 +87,7 @@ import com.gemstone.gemfire.internal.cache.PartitionedRegionDataStore;
 import com.pivotal.gemfirexd.internal.engine.Misc;
 import com.pivotal.gemfirexd.internal.shared.common.sanity.SanityManager;
 import com.pivotal.gemfirexd.tools.utils.ExecutionPlanUtils;
-import util.TestHelper;
+
 
 /**
  * Client used to measure cache query performance.
@@ -125,9 +121,7 @@ public class QueryPerfClient extends CachePerfClient {
   protected static final String CREATE_NAME = "creates";
   protected static final String DELETES_NAME = "deletes";
   public static String serverStatus = null;
-
   public static int numThredsInStartStoreTask = 0;
-  public static Set<Integer> startFabricServerTask_threadID = new LinkedHashSet<Integer>();
 
   public static void tmpTask() throws SQLException {
      FabricServerDescription fsd = GfxdTestConfig.getInstance().getFabricServerDescription("tester");
@@ -218,70 +212,54 @@ public class QueryPerfClient extends CachePerfClient {
     c.updateHydraThreadLocals();
   }
 
+  /**
+   * Init Task for the for getting data required for smart use case for dynamically adding servers
+   */
   public static synchronized void initDataForSmartUseCase() {
     numThredsInStartStoreTask = numThreads();
     String numThreads = numThredsInStartStoreTask + "";
-    Log.getLogWriter().info("numThredsInStartStoreTask are ::" + numThreads);
     UseCase6BB.getBB().getSharedMap().put(UseCase6BB.numThreadsInStartStoreTask, numThreads);
-    String numThreadsInBB = (String)UseCase6BB.getBB().getSharedMap().get(UseCase6BB.numThreadsInStartStoreTask);
     UseCase6BB.getBB().getSharedMap().put(UseCase6BB.startFabricServerTask_Status, "startServer");
-    Log.getLogWriter().info("numThreads put In BB in initDataForSmartUseCase::" + numThreadsInBB);
-    Log.getLogWriter().info("serverStatus put In BB in initDataForSmartUseCase::" + UseCase6BB.startFabricServerTask_Status);
   }
 
   /**
    * Starts fabric server as per smart use case.
    */
   public static void startFabricServerTaskForSmartUseCase() throws SQLException {
-      UseCase6BB.getBB().getSharedLock().lock();
-      int tid = RemoteTestModule.getCurrentThread().getThreadId();
+    UseCase6BB.getBB().getSharedLock().lock();
+    int tid = RemoteTestModule.getCurrentThread().getThreadId();
+    serverStatus = (String) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status);
+    String stringSize = (String) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.numThreadsInStartStoreTask);
+    int size = Integer.parseInt(stringSize);
+    if (getTotalThreds() >= size || UseCase6BB.getBB().getSharedMap().getMap().keySet().contains("Thread_" + tid)) {
+      UseCase6BB.getBB().getSharedLock().unlock();
+      return;
+    } else if (serverStatus.equalsIgnoreCase("startServer")) {
+      tid = RemoteTestModule.getCurrentThread().getThreadId();
+      QueryPerfClient c = new QueryPerfClient();
+      c.initialize();
+      c.startFabricServer();
+      UseCase6BB.getBB().getSharedMap().put(UseCase6BB.startFabricServerTask_Status, "DoneStartServer");
       serverStatus = (String) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status);
-      Log.getLogWriter().info("swati-- startFabricServerTask_Status at the start of startFabricServerTaskForSmartUseCase task is ::" + serverStatus);
-      Log.getLogWriter().info("swati-- UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status) is ::" + UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status));
-      String stringSize = (String) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.numThreadsInStartStoreTask);
-      int size = Integer.parseInt(stringSize);
-      Log.getLogWriter().info("size in startFabricServerTaskForSmartUseCase for numThreadsInStartStoreTask is ::" + size);
-      if (getTotalThreds() >= size || UseCase6BB.getBB().getSharedMap().getMap().keySet().contains("Thread_" + tid)) {
-        UseCase6BB.getBB().getSharedLock().unlock();
-        return;
-      }else if (serverStatus.equalsIgnoreCase("startServer")) {
-        Log.getLogWriter().info("swati--Entered into loop fo  r starting server");
-        tid = RemoteTestModule.getCurrentThread().getThreadId();
-        QueryPerfClient c = new QueryPerfClient();
-        c.initialize();
-        c.startFabricServer();
-        UseCase6BB.getBB().getSharedMap().put(UseCase6BB.startFabricServerTask_Status, "DoneStartServer");
-        serverStatus = (String) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status);
-        Log.getLogWriter().info("swati-- startFabricServerTask_Status after startFabricServer task is ::" + serverStatus);
-        UseCase6BB.getBB().getSharedLock().unlock();
-        UseCase6BB.getBB().getSharedCounters().increment(UseCase6BB.numServersStarted);
-        int numServersStarted = (int) UseCase6BB.getBB().getSharedCounters().read(UseCase6BB.numServersStarted);
-        Log.getLogWriter().info("UseCase6BB.numServersStarted value is::" + numServersStarted);
-        Log.getLogWriter().info("swati--startFabricServer executed...");
-        c.updateHydraThreadLocals();
-        startNetworkServerTask();
-        Log.getLogWriter().info("swati--startNetworkServerTask executed...");
-        connectPeerClientTask();
-        Log.getLogWriter().info("swati--connectPeerClientTask executed...");
-        openStatisticsTask();
-        Log.getLogWriter().info("swati--openStatisticsTask executed...");
-        UseCase6BB.getBB().getSharedMap().put(UseCase6BB.startFabricServerTask_Status, "Trigger_Rebalance");
-        serverStatus = (String) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status);
-        Log.getLogWriter().info("UseCase6BB.startFabricServerTask_Status after server start is ::" + serverStatus);
-        UseCase6BB.getBB().getSharedMap().put("Thread_" + tid, tid);
-        Log.getLogWriter().info("swati--done with starting server");
-        UseCase6BB.getBB().getSharedCounters().zero(UseCase6BB.serverStarted);
-      }
-    else UseCase6BB.getBB().getSharedLock().unlock();
+      UseCase6BB.getBB().getSharedLock().unlock();
+      UseCase6BB.getBB().getSharedCounters().increment(UseCase6BB.numServersStarted);
+      Log.getLogWriter().info("Dynamic startFabricServer executed.");
+      c.updateHydraThreadLocals();
+      startNetworkServerTask();
+      connectPeerClientTask();
+      openStatisticsTask();
+      UseCase6BB.getBB().getSharedMap().put(UseCase6BB.startFabricServerTask_Status, "Trigger_Rebalance");
+      serverStatus = (String) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status);
+      UseCase6BB.getBB().getSharedMap().put("Thread_" + tid, tid);
+      UseCase6BB.getBB().getSharedCounters().zero(UseCase6BB.serverStarted);
+    } else UseCase6BB.getBB().getSharedLock().unlock();
   }
 
-  protected static int getTotalThreds(){
-    Log.getLogWriter().info("BlackboradKeyset is ::" + UseCase6BB.getBB().getSharedMap().getMap().keySet());
+  protected static int getTotalThreds() {
     Set<String> keys = UseCase6BB.getBB().getSharedMap().getMap().keySet();
     int count = 0;
-
-    for (String key : keys ) {
-      if (key.startsWith("Thread_")){
+    for (String key : keys) {
+      if (key.startsWith("Thread_")) {
         count++;
       }
     }
@@ -676,7 +654,6 @@ public class QueryPerfClient extends CachePerfClient {
   public static void rebalanceBucketsTaskAfterServerStarted() throws InterruptedException, SQLException {
     QueryPerfClient c = new QueryPerfClient();
     c.initialize();
-    Log.getLogWriter().info("swati-- UseCase6BB.startFabricServerTask_Status in rebalanceBucketsAfterServerStarted is :: " + UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status));
     serverStatus = (String) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status);
     if (serverStatus.equalsIgnoreCase("Trigger_Rebalance")) {
       if (c.sttgid == 0) {
@@ -688,12 +665,8 @@ public class QueryPerfClient extends CachePerfClient {
         }
         Log.getLogWriter().info("Rebalanced buckets");
       }
-      Log.getLogWriter().info("swati--rebalanceBucketsAfterServerStarted executed...");
       UseCase6BB.getBB().getSharedMap().put(UseCase6BB.startFabricServerTask_Status, "Generate_Data");
-      serverStatus = (String) UseCase6BB.getBB().getSharedMap().get(UseCase6BB.startFabricServerTask_Status);
-      Log.getLogWriter().info("Server status after rebalanceBucketsAfterServerStarted task execution is ::" + serverStatus);
     }
-//    c.rebalanceBucketsAfterServerStarted();
   }
 
   public static void rebalanceBucketsTask()

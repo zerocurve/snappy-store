@@ -1,10 +1,9 @@
 include $JTESTS/hydraconfig/hydraparams1.inc;
 include $JTESTS/hydraconfig/gemfirexd/topology_3_locator.inc;
-//include $JTESTS/hydraconfig/topology_5_locator.inc;
 include $JTESTS/hydraconfig/gemfirexd/performance.inc;
 
-hydra.Prms-totalTaskTimeSec = 600   ; // time-based workload
-hydra.Prms-maxResultWaitSec = 900;
+hydra.Prms-totalTaskTimeSec = 3600000   ; // time-based workload
+hydra.Prms-maxResultWaitSec = 3600;
 
 hydra.VmPrms-extraVMArgs =
   fcn "hydra.TestConfigFcns.duplicate
@@ -119,3 +118,4 @@ sql.SQLPrms-insertInBB = false;
 cacheperf.comparisons.gemfirexd.useCase6.UseCase6Prms-dmlTables=
 "app.OLTP_PNP_Subscriptions";
 cacheperf.comparisons.gemfirexd.useCase6.UseCase6Prms-initialRowCount  = ${initialRowCount};
+cacheperf.comparisons.gemfirexd.useCase6.UseCase6Prms-initialRowCountForSmart  = ${initialRowCountForSmart};

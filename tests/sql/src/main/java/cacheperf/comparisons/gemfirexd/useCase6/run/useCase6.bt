@@ -1,5 +1,4 @@
-//cacheperf/comparisons/gemfirexd/useCase6/useCase6Thin.conf
-cacheperf/comparisons/gemfirexd/useCase6/useCase6Smart.conf
+cacheperf/comparisons/gemfirexd/useCase6/useCase6Thin.conf
 
 locatorHosts=1
 locatorVMsPerHost=1
@@ -22,7 +21,7 @@ newstoreThreadsPerVM=1
 
 api=GFXD
 
-txIsolation = none
+txIsolation = read_committed
 persist = true
 
 clientHeapMB = 2048
@@ -35,6 +34,43 @@ logQueries = false
 initialRowCount = 10000000
 perffmwk.comparisonKey = useCase6
 
+
+cacheperf/comparisons/gemfirexd/useCase6/useCase6Smart.conf
+
+locatorHosts=1
+locatorVMsPerHost=1
+locatorThreadsPerVM=1
+
+A=client
+clientHosts=4
+clientVMsPerHost=16
+clientThreadsPerVM=1
+
+B=server
+serverHosts=4
+serverVMsPerHost=1
+serverThreadsPerVM=1
+
+C=newstore
+newstoreHosts=5
+newstoreVMsPerHost=1
+newstoreThreadsPerVM=1
+
+api=GFXD
+
+txIsolation = none
+persist = true
+
+clientHeapMB = 2048
+serverHeapMB = 50000
+
+trimSeconds =  30
+workSeconds = 180
+ddlFile = useCase6.sql
+logQueries = false
+initialRowCount = 10000000
+initialRowCountForSmart = 2500000
+perffmwk.comparisonKey = useCase6
 
 /* cacheperf/comparisons/gemfirexd/useCase6/useCase6Thin.conf
   clientHosts = 5

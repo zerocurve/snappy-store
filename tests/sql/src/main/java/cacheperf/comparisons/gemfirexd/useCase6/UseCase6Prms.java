@@ -101,4 +101,28 @@ public class UseCase6Prms extends BasePrms {
     }
     return intArr;
   }
+
+  /** (int) initial row count for each table to be populated when new server is added dynamically in generic test framework
+   *
+   */
+
+  public static Long initialRowCountForSmart;
+  @SuppressWarnings("unchecked")
+  public static int[] getInitialRowCountToPopulateTableForSmart() {
+    Vector counts = tasktab().vecAt(UseCase6Prms.initialRowCountForSmart,  TestConfig.tab().vecAt(UseCase6Prms.initialRowCountForSmart, new HydraVector()));
+    int size = counts.size();
+    int defaultCountSize = 1000;
+    boolean useDefaultCount = false;
+    if (counts.size() == 0) {
+      Vector tables = tasktab().vecAt(UseCase6Prms.dmlTables,  TestConfig.tab().vecAt(UseCase6Prms.dmlTables, new HydraVector()));
+      size = tables.size();
+      useDefaultCount = true;
+    }
+
+    int[] intArr = new int[size];
+    for (int i = 0; i < size; i++) {
+      intArr[i] = useDefaultCount? defaultCountSize: Integer.parseInt((String)counts.elementAt(i));
+    }
+    return intArr;
+  }
 }
