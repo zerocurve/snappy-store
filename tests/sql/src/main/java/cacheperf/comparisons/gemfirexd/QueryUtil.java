@@ -47,7 +47,7 @@ public class QueryUtil
   throws SQLException {
     p.setProperty(Attribute.ENABLE_STATS, String.valueOf(QueryPerfPrms.enableStats()));
     p.setProperty(Attribute.ENABLE_TIMESTATS, String.valueOf(QueryPerfPrms.enableTimeStats()));
-    return getConnection(client, "jdbc:gemfirexd:",
+    return getConnection(client, "jdbc:snappydata:",
                          "com.pivotal.gemfirexd.jdbc.EmbeddedDriver", p);
   }
 
@@ -95,13 +95,16 @@ public class QueryUtil
 
   public static Connection gfxdClientLocatorSetup(QueryPerfClient client, List endpoints, Properties overrideProp)
   throws SQLException {
+
     if (endpoints.size() == 0) {
-      String s = "No network locator endpoints found";
-      throw new QueryPerfException(s);
+      // String s = "No network locator endpoints found";
+      // throw new QueryPerfException(s);
+      endpoints.add("localhost:1527");
     }
     Properties p = ThinClientHelper.getConnectionProperties();
     if (overrideProp != null) p.putAll(overrideProp);
-    String url = "jdbc:gemfirexd://" + endpoints.get(0);
+
+    String url = "jdbc:snappydata://" + endpoints.get(0);
     List secondaryLocators = endpoints.subList(1, endpoints.size());
     if (secondaryLocators.size() > 0) {
       String secondaries = "";
@@ -127,7 +130,7 @@ public class QueryUtil
     }
     Properties p = ThinClientHelper.getConnectionProperties();
     if (overrideProp != null) p.putAll(overrideProp);
-    String url = "jdbc:gemfirexd://" + endpoints.get(0);
+    String url = "jdbc:snappydata://" + endpoints.get(0);
     return getConnection(client, url, "com.pivotal.gemfirexd.jdbc.ClientDriver", p);
   }
 
