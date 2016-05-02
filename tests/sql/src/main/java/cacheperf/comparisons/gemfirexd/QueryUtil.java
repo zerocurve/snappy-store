@@ -262,6 +262,19 @@ public class QueryUtil
   }
 
   //--------------------------------------------------------------------------
+  // CASSANDRA
+  //--------------------------------------------------------------------------
+  public static Connection cassandraSetup(QueryPerfClient client)
+      throws SQLException {
+    loadDriver("org.apache.cassandra.cql.jdbc.CassandraDriver");
+    final String url = "jdbc:cassandra:" + QueryPerfPrms.getUser() + "/" + QueryPerfPrms.getPassword()
+        + "@" + QueryPerfPrms.getDatabaseServerHost()
+        + ":9160/" + QueryPerfPrms.getDatabaseName();
+    Connection conn = DriverManager.getConnection(url);
+    return conn;
+  }
+
+  //--------------------------------------------------------------------------
   // Connection configuration
   //--------------------------------------------------------------------------
 

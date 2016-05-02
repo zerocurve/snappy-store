@@ -477,6 +477,10 @@ public class QueryPerfClient extends CachePerfClient {
         LonerHelper.connect(); // for statistics
         this.connection = QueryUtil.rteSetup(this);
         break;
+      case QueryPrms.CASSANDRA:
+        LonerHelper.connect(); // for statistics
+        this.connection = QueryUtil.cassandraSetup(this);
+        break;
       case QueryPrms.GFXD:
         LonerHelper.connect(); // for statistics
         this.connection = QueryUtil.gfxdClientSetup(this);

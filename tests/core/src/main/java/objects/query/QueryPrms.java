@@ -39,6 +39,7 @@ public class QueryPrms extends BasePrms {
   public static final String ORACLE_API = "ORACLE";
   public static final String GPDB_API = "GPDB";
   public static final String RTE_API = "RTE";
+  public static final String CASSANDRA_API = "CASSANDRA";
 
   public static final int OQL = 0;
   public static final int GFXD = 1;
@@ -48,6 +49,7 @@ public class QueryPrms extends BasePrms {
   public static final int ORACLE = 5;
   public static final int RTE = 6;
   public static final int GPDB = 7;
+  public static final int CASSANDRA = 8;
   //these two api types are supposed to be temporary to help debug performance issues with gemfirexd
   public static final String GFE_GFK_DVD_API = "GFE_GFK_DVD";
   public static final String GFE_GFK_API = "GFE_GFK";
@@ -155,6 +157,9 @@ public class QueryPrms extends BasePrms {
     }
     else if (val.equalsIgnoreCase(RTE_API)) {
       return RTE;
+    }
+    else if (val.equalsIgnoreCase(CASSANDRA_API)) {
+      return CASSANDRA;
     }
     //temporary for gemfirexd performance debugging/analysis
     else if (val.equalsIgnoreCase(GFE_GFK_API)) {
