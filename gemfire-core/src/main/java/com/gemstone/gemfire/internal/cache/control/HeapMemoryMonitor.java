@@ -603,7 +603,8 @@ public void stopMonitoring() {
         }
         int maxLoop = MAX_DELAY * 1000 / RECHECK_INTERVAL;
         long startMillis = System.currentTimeMillis();
-        boolean interrupted = checkMemoryAndSendEvent(getBytesUsed(), maxLoop, RECHECK_INTERVAL);
+        boolean interrupted = checkMemoryAndSendEvent(
+            getBytesUsed(), maxLoop, RECHECK_INTERVAL);
         if (interrupted) {
           this.stopThread = true;
           this.interruptSamplerThread = true;
@@ -711,11 +712,11 @@ public void stopMonitoring() {
    */
   public void updateStateAndSendEvent(long bytesUsed) {
     this.stats.changeTenuredHeapUsed(bytesUsed);
-    if (!DELAY_MEMORY_EVENT) {
+    if (!DELAY_MEMORY_EVENT ||
+        testBytesUsedForThresholdSet != -1 || testDisableMemoryUpdates) {
       checkMemoryAndSendEvent(bytesUsed, 1, -1);
-    }
-    else {
-      if ( mes == null) {
+    } else {
+      if (mes == null) {
         mes = new MemoryEventSender();
         mes.start();
       }

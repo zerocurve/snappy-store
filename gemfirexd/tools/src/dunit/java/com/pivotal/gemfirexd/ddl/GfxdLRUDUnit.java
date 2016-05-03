@@ -30,6 +30,7 @@ import com.pivotal.gemfirexd.DistributedSQLTestBase;
 import com.pivotal.gemfirexd.TestUtil;
 import com.pivotal.gemfirexd.internal.engine.Misc;
 
+import com.pivotal.gemfirexd.internal.engine.distributed.query.HeapThresholdHelper;
 import io.snappydata.test.dunit.VM;
 
 @SuppressWarnings("serial")
@@ -297,6 +298,7 @@ public class GfxdLRUDUnit extends DistributedSQLTestBase {
     assertEquals(Float.valueOf(25), evictionHeapPercentage);
     VM servervm = this.serverVMs.get(0);
     servervm.invoke(GfxdLRUDUnit.class, "assertHeapPercentage", new Object[] {Float.valueOf(evictionHeapPercentage)});
+    servervm.invoke(GfxdLRUDUnit.class, "setDummytestBytes");
     PreparedStatement ps = conn.prepareStatement("insert into trade.bigcustomers values(?, ?)");
     
     insertNBigElements2(300, ps, 0);
@@ -327,6 +329,10 @@ public class GfxdLRUDUnit extends DistributedSQLTestBase {
       }
     };
     waitForCriterion(waitCond, 120000, 500, true);
+  }
+
+  public static void setDummytestBytes() {
+    HeapMemoryMonitor.setTestBytesUsedForThresholdSet(100);
   }
 
   public void testPRLRUHeapPercDestroy_1() throws Exception {
