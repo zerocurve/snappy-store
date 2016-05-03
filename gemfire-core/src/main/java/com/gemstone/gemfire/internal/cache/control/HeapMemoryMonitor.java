@@ -590,7 +590,9 @@ public void stopMonitoring() {
 
   class MemoryEventSender extends Thread {
     private volatile boolean stopThread;
+    private volatile boolean stopped;
     private volatile boolean interruptSamplerThread = false;
+
     @Override
     public void run() {
       while(!stopThread) {
@@ -618,6 +620,7 @@ public void stopMonitoring() {
           }
         }
       }
+      stopped = true;
     }
 
     public void startSender() {
@@ -628,8 +631,8 @@ public void stopMonitoring() {
       this.stopThread = true;
       try {
         int maxTry = 50;
-        while(this.isAlive() && maxTry-- > 0) {
-          wait(20);
+        while(!stopped && maxTry-- > 0) {
+          Thread.sleep(200);
         }
       } catch (InterruptedException e) {
         // ignore proper closing
