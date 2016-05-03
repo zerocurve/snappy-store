@@ -270,7 +270,7 @@ public class QueryUtil
     final String url = "jdbc:cassandra:" + QueryPerfPrms.getUser() + "/" + QueryPerfPrms.getPassword()
         + "@" + QueryPerfPrms.getDatabaseServerHost()
         + ":9160/" + QueryPerfPrms.getDatabaseName();
-    Connection conn = DriverManager.getConnection(url);
+    Connection conn = DriverManager.getConnection("jdbc:cassandra://localhost:9160/keyspace1");
     return conn;
   }
 
