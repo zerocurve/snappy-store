@@ -542,7 +542,8 @@ public class JSONBasicTestsDUnit extends DistributedSQLTestBase {
     assertTrue(i == 6);
   }
 
-  public void testUnsupportedClauses() throws Exception {
+  // This test should be removed as these restrictions have been removed
+  public void _testUnsupportedClauses() throws Exception {
     startVMs(1, 3, 0, null, null);
     Connection cxn = TestUtil.getConnection();
     Statement stmt = cxn.createStatement();
