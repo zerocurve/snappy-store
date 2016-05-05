@@ -17,6 +17,7 @@
 
 package cacheperf.comparisons.gemfirexd;
 
+import com.pivotal.gemfirexd.Attribute;
 import hydra.BasePrms;
 import hydra.BridgeHelper;
 import hydra.CacheHelper;
@@ -41,19 +42,8 @@ import hydra.gemfirexd.GfxdConfigPrms;
 import hydra.gemfirexd.GfxdTestConfig;
 
 import java.lang.reflect.Method;
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.sql.*;
+import java.util.*;
 
 import objects.query.BaseQueryFactory;
 import objects.query.GFEQueryFactory;
@@ -209,6 +199,13 @@ public class QueryPerfClient extends CachePerfClient {
    * Starts fabric server.
    */
   public static void startFabricServerTask() throws SQLException {
+    QueryPerfClient c = new QueryPerfClient();
+    c.initialize();
+    c.startFabricServer();
+    c.updateHydraThreadLocals();
+  }
+
+  public static void startFabricServerTask_snappy() throws SQLException {
     QueryPerfClient c = new QueryPerfClient();
     c.initialize();
     c.startFabricServer();
@@ -402,6 +399,20 @@ public class QueryPerfClient extends CachePerfClient {
     }
   }
 
+  public  static void connectPeerClientTask_snappy() throws SQLException {
+    QueryPerfClient c = new QueryPerfClient();
+    c.initialize();
+    c.connectPeerClient_snappy();
+    c.updateHydraThreadLocals();
+  }
+
+  private void connectPeerClient_snappy() throws SQLException {
+    Properties p = new Properties();
+    p.setProperty(Attribute.ENABLE_STATS, String.valueOf(QueryPerfPrms.enableStats()));
+    p.setProperty(Attribute.ENABLE_TIMESTATS, String.valueOf(QueryPerfPrms.enableTimeStats()));
+    QueryUtil.loadDriver("com.pivotal.gemfirexd.jdbc.EmbeddedDriver");
+    this.connection = DriverManager.getConnection( "jdbc:snappydata:", p);
+  }
   /**
    * Gets embedded connection for peer clients.
    */
