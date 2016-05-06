@@ -399,6 +399,13 @@ public class QueryPerfClient extends CachePerfClient {
     }
   }
 
+  public  static void closePeerClientTask_snappy() throws SQLException {
+    QueryPerfClient c = new QueryPerfClient();
+    c.initialize();
+    c.closeConnection();
+    c.updateHydraThreadLocals();
+  }
+  
   public  static void connectPeerClientTask_snappy() throws SQLException {
     QueryPerfClient c = new QueryPerfClient();
     c.initialize();

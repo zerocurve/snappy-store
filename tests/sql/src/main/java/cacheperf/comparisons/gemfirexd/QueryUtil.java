@@ -99,7 +99,8 @@ public class QueryUtil
     if (endpoints.size() == 0) {
       // String s = "No network locator endpoints found";
       // throw new QueryPerfException(s);
-      endpoints.add("localhost:1527");
+     // endpoints.add("localhost:1527");
+      endpoints.add("172.31.26.147:1527");
     }
     Properties p = ThinClientHelper.getConnectionProperties();
     if (overrideProp != null) p.putAll(overrideProp);
@@ -126,7 +127,8 @@ public class QueryUtil
   throws SQLException {
     if (endpoints.size() == 0) {
       String s = "No network server endpoints found";
-      throw new QueryPerfException(s);
+     throw new QueryPerfException(s);
+    //  endpoints.add("172.31.26.147:1527");
     }
     Properties p = ThinClientHelper.getConnectionProperties();
     if (overrideProp != null) p.putAll(overrideProp);
