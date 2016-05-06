@@ -802,6 +802,34 @@ public final class TXState implements TXStateInterface {
       firePendingCallbacks();
 
     } finally {
+      //create and insert cached batch
+
+      Runnable r1 = new Runnable(){
+
+
+        @Override
+        public void run() {
+          for (TXRegionState txr : finalizeRegions) {
+            LocalRegion owner = txr.region;
+            if (owner.isUsedForPartitionedRegionBucket()) {
+              if (((BucketRegion)owner).getPartitionedRegion().needsBatching() && owner.getRegionSizeNoLock() >=
+                  GemFireCacheImpl.getColumnBatchSize()) {
+                ((BucketRegion)owner).createAndInsertCachedBatch(false);
+              }
+            }
+          }
+
+        }
+      };
+
+      Thread t1 = new Thread(r1);
+      t1.start();
+      try {
+        t1.join();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+
       cleanup(commit, observer);
       if (observer != null) {
         observer.afterIndividualCommit(this.proxy, callbackArg);

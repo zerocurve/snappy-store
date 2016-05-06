@@ -4350,6 +4350,8 @@ RETRY_LOOP:
         cbEvent = new EntryEventImpl();
         cbEvent.setEntryLastModified(lastMod);
       }
+
+      String r1 = owner.getName();
       if (shouldCreateCBEvent(owner, false /* isInvalidate */, isRegionReady)) {
         cbEvent = createCBEvent(owner, putOp, key, newValue, txState, eventId,
             aCallbackArgument, filterRoutingInfo, bridgeContext, versionTag,
@@ -4363,6 +4365,12 @@ RETRY_LOOP:
           log.fine("txApplyPut::No callback event created");
         }
         cbEvent = null;
+      }
+
+      if (owner.isUsedForPartitionedRegionBucket()) {
+        if(((BucketRegion)owner).getPartitionedRegion().needsBatching()){
+          ((BucketRegion)owner).setTxBatchUUID();
+        }
       }
 
       if (owner.isUsedForPartitionedRegionBucket()) {

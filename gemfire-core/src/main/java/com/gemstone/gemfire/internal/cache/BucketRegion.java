@@ -741,7 +741,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
     // one more check for size to make sure that concurrent call doesn't succeed.
     // anyway batchUUID will be null in that case.
     if (this.batchUUID != null && this.getBucketAdvisor().isPrimary() &&
-        getRegionSize() >= batchSize) {
+        getRegionSizeNoLock() >= batchSize) {
       // need to flush the region
       if (getCache().getLoggerI18n().fineEnabled()) {
         getCache().getLoggerI18n().fine("createAndInsertCachedBatch: " +
@@ -757,6 +757,20 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       return false;
     }
   }
+
+  //TODO: Suranjan. it will change for tx operations, setting of batchID will be from commitPhase1
+  public void setTxBatchUUID() {
+    // we may have to use region.size so that no state
+    // has to be maintained
+    //TODO: Suranjan Will using region.size in synchronized be slower? or should maintain atomic variable per bucket?
+    // PUTALL
+    if (getBucketAdvisor().isPrimary()) {
+        generateAndSetBatchIDIfNULL();
+    } else {
+      //do nothing
+    }
+  }
+
 
   //TODO: Suranjan. it will change for tx operations, setting of batchID will be from commitPhase1
   public void setBatchUUID(EntryEventImpl event) {

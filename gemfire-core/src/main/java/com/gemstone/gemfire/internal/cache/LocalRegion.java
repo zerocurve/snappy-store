@@ -3165,7 +3165,7 @@ public class LocalRegion extends AbstractRegion
     }
   }
 
-  private int getRegionSizeNoLock() {
+  public int getRegionSizeNoLock() {
     int result = getRegionMap().size();
     // if this is a client with no tombstones then we subtract the number
     // of entries being affected by register-interest refresh
