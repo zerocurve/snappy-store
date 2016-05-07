@@ -502,8 +502,6 @@ public class QueryPerfClient extends CachePerfClient {
       case QueryPrms.GFXD:
         LonerHelper.connect(); // for statistics
         this.connection = QueryUtil.gfxdClientSetup(this);
-        this.connection2 = QueryUtil.gfxdClientSetup(this);
-        this.connection2.setTransactionIsolation(Connection.TRANSACTION_NONE);
         break;
       default:
         unsupported();
@@ -2528,7 +2526,6 @@ public class QueryPerfClient extends CachePerfClient {
   //----------------------------------------------------------------------------
 
   protected Connection connection;
-  protected Connection connection2;
   public QueryPerfStats querystats;
   private long lastQueryPlanTime;
 
