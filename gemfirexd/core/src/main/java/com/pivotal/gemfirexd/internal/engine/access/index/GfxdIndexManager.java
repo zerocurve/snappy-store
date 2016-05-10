@@ -63,6 +63,7 @@ import com.gemstone.gemfire.internal.cache.KeyInfo;
 import com.gemstone.gemfire.internal.cache.LocalRegion;
 import com.gemstone.gemfire.internal.cache.OperationReattemptException;
 import com.gemstone.gemfire.internal.cache.Oplog;
+import com.gemstone.gemfire.internal.cache.DiskRegion;
 import com.gemstone.gemfire.internal.cache.Oplog.DiskRegionInfo;
 import com.gemstone.gemfire.internal.cache.PartitionedRegion;
 import com.gemstone.gemfire.internal.cache.PartitionedRegionHelper;
@@ -438,8 +439,22 @@ public final class GfxdIndexManager implements Dependent, IndexUpdater,
               owner.getFullPath());
         }
 
+	boolean isRecovered = false;
+	// There is a case where a suspect entry is sent for
+	// further processing if the entry is already present in the map
+	// In that case, if the re is not recovered then we need to 
+	// check for EntryExistsException Bug#49878
+        if (!owner.isInitialized() && !this.isPartitionedRegion) {
+          DiskRegion dr = owner.getDiskRegion();
+          if (dr != null) {
+            isRecovered = dr.testIsRecovered(entry, false);
+          }
+        }
+	
         boolean throwEEE = false;
-        if (!posDup && owner.isInitialized()) {
+	// Bug49878: if the region is not initialized and an entry has come for update
+	// check for EntryExistsException
+        if (!posDup && (owner.isInitialized() || (!owner.isInitialized() && !isRecovered))) {
           if (!event.getOperation().isPutAll() && (lastModifiedFromOrigin == -1
                || lastModifiedFromOrigin != entry.getLastModified())) {
             throwEEE = true;
@@ -516,7 +531,7 @@ public final class GfxdIndexManager implements Dependent, IndexUpdater,
             }
             throw new EntryExistsException(event.getKey().toString(), OffHeapHelper.getHeapForm(oldValue));
           }
-        } else if (posDup && !owner.isInitialized()) {
+        } else {
           // for the case of posDup or dup during GII just ignore and return
           if (this.logFineEnabled) {
             traceIndex("GfxdIndexManager#onEvent: ignored "
