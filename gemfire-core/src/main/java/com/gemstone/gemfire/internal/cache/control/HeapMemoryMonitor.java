@@ -93,8 +93,6 @@ public final class HeapMemoryMonitor implements NotificationListener,
 
   private ScheduledExecutorService pollerExecutor;
 
-  private MemoryEventSender mes;
-
   // Listener for heap memory usage as reported by the Cache stats.
   private final LocalStatListener statListener = new LocalHeapStatListener();
 
@@ -392,11 +390,6 @@ public void stopMonitoring() {
       if (sampler != null) {
         sampler.removeLocalStatListener(this.statListener);
       }
-
-      // Stop the memory event sender
-      if (this.mes != null) {
-        this.mes.stopSender();
-      }
     }
   }
   
@@ -586,144 +579,87 @@ public void stopMonitoring() {
       "delay_memory_event", true);
   public static final int MAX_DELAY = sysProps.getInteger(
       "delay_memory_event", 5);
-  private static int RECHECK_INTERVAL = 100;
 
-  class MemoryEventSender extends Thread {
-    private volatile boolean stopThread;
-    private volatile boolean stopped;
-    private volatile boolean interruptSamplerThread = false;
-
-    @Override
-    public void run() {
-      while(!stopThread) {
-        SystemFailure.checkFailure();
-        if (Thread.currentThread().isInterrupted()) {
-          this.interruptSamplerThread = true;
-          break;
-        }
-        int maxLoop = MAX_DELAY * 1000 / RECHECK_INTERVAL;
-        long startMillis = System.currentTimeMillis();
-        boolean interrupted = checkMemoryAndSendEvent(
-            getBytesUsed(), maxLoop, RECHECK_INTERVAL);
-        if (interrupted) {
-          this.stopThread = true;
-          this.interruptSamplerThread = true;
-          break;
-        }
-        long timeTaken = System.currentTimeMillis() - startMillis;
-        // don't run this method very frequently in case everything is normal
-        long toSleep = 1000 - timeTaken;
-        if(toSleep > 0) {
-          try {
-            sleep(toSleep);
-          } catch (InterruptedException e) {
-            interruptSamplerThread = true;
-          }
-        }
-      }
-      stopped = true;
-    }
-
-    public void startSender() {
-      this.start();
-    }
-
-    public void stopSender() {
-      this.stopThread = true;
-      try {
-        int maxTry = 50;
-        while(!stopped && maxTry-- > 0) {
-          Thread.sleep(200);
-        }
-      } catch (InterruptedException e) {
-        // ignore proper closing
-      }
-    }
-
-    public boolean interruptSampler() {
-      return this.interruptSamplerThread;
-    }
-  }
-
-  // If the thread is interrupted return true else false
-  public boolean checkMemoryAndSendEvent(long bytesUsed, int maxLoop, int recheckInterval) {
-    synchronized (this) {
-      int cnt = 0;
-      while (cnt < maxLoop) {
-        if (cnt > 0) {
-          try {
-            Thread.sleep(recheckInterval);
-          } catch (InterruptedException ignored) {
-            return true;
-          }
-          bytesUsed = getBytesUsed();
-        }
-
-        MemoryState oldState = this.mostRecentEvent.getState();
-        MemoryState newState = this.thresholds.computeNextState(oldState, bytesUsed);
-        if (oldState != newState) {
-          setUsageThresholdOnMXBean(bytesUsed);
-
-          if (!skipEventDueToToleranceLimits(oldState, newState)) {
-            this.currentState = newState;
-
-            if (!newState.isNormal() && testBytesUsedForThresholdSet == -1 && cnt < maxLoop) {
-              cnt++;
-              continue;
-            }
-            MemoryEvent event = new MemoryEvent(ResourceType.HEAP_MEMORY, oldState, newState, this.cache.getMyId(), bytesUsed, true,
-                this.thresholds);
-
-            this.upcomingEvent.set(event);
-            processLocalEvent(event);
-            updateStatsFromEvent(event);
-          }
-          break;
-
-          // The state didn't change.  However, if the state isn't normal and the
-          // number of bytes used changed, then go ahead and send the event
-          // again with an updated number of bytes used.
-        } else if (!oldState.isNormal() && bytesUsed != this.mostRecentEvent.getBytesUsed()) {
-          cnt++;
-          if (testBytesUsedForThresholdSet == -1 || cnt == maxLoop-1) {
-            MemoryEvent event = new MemoryEvent(ResourceType.HEAP_MEMORY, oldState, newState, this.cache.getMyId(), bytesUsed, true,
-                this.thresholds);
-            this.upcomingEvent.set(event);
-            processLocalEvent(event);
-            break;
-          }
-          else {
-            continue;
-          }
-        }
-        break;
-      }
-    }
-    return false;
-  }
+  private long prevBytesUsed = 0;
+  private int countSinceUpsurge = 0;
 
   /**
    * Compare the number of bytes used to the thresholds.  If necessary, change the state
    * and send an event for the state change.
-   * 
+   *
    * Public for testing.
-   * 
+   *
    * @param bytesUsed Number of bytes of heap memory currently used.
    */
   public void updateStateAndSendEvent(long bytesUsed) {
+    boolean delayMemoryEvent = !DELAY_MEMORY_EVENT ||
+        (testBytesUsedForThresholdSet != -1) || testDisableMemoryUpdates;
     this.stats.changeTenuredHeapUsed(bytesUsed);
-    if (!DELAY_MEMORY_EVENT ||
-        testBytesUsedForThresholdSet != -1 || testDisableMemoryUpdates) {
-      checkMemoryAndSendEvent(bytesUsed, 1, -1);
-    } else {
-      if (mes == null) {
-        mes = new MemoryEventSender();
-        mes.start();
-      }
-      if (mes.interruptSampler()) {
-        Thread.currentThread().interrupt();
+    synchronized (this) {
+      MemoryState oldState = this.mostRecentEvent.getState();
+      MemoryState newState = this.thresholds.computeNextState(oldState, bytesUsed);
+      if (oldState != newState) {
+        setUsageThresholdOnMXBean(bytesUsed);
+
+        if (!skipEventDueToToleranceLimits(oldState, newState)) {
+          this.currentState = newState;
+
+          if (shouldDelayMemoryEvent(delayMemoryEvent, newState, bytesUsed)) {
+            return;
+          }
+          MemoryEvent event = new MemoryEvent(ResourceType.HEAP_MEMORY, oldState, newState, this.cache.getMyId(), bytesUsed, true,
+              this.thresholds);
+
+          this.upcomingEvent.set(event);
+          processLocalEvent(event);
+          updateStatsFromEvent(event);
+        }
+
+        // The state didn't change.  However, if the state isn't normal and the
+        // number of bytes used changed, then go ahead and send the event
+        // again with an updated number of bytes used.
+      } else if (!oldState.isNormal() && bytesUsed != this.mostRecentEvent.getBytesUsed()) {
+        if (shouldDelayMemoryEvent(delayMemoryEvent, oldState, bytesUsed)) {
+          return;
+        }
+        MemoryEvent event = new MemoryEvent(ResourceType.HEAP_MEMORY, oldState, newState, this.cache.getMyId(), bytesUsed, true,
+            this.thresholds);
+        this.upcomingEvent.set(event);
+        processLocalEvent(event);
       }
     }
+  }
+
+  private boolean shouldDelayMemoryEvent(boolean delayMemoryEvent, MemoryState state, long bytesUsed) {
+    if (delayMemoryEvent && (state != null && state.isCritical())) {
+      // if still critical up but memory used has come down by 10% then reset the counters
+      long delta = bytesUsed - prevBytesUsed;
+      boolean isDownBy10percentOrMore = false;
+      if ( delta < 0) {
+        long percent = (-delta/prevBytesUsed) * 100;
+        isDownBy10percentOrMore = percent < 10 ? false : true;
+      }
+      if (isDownBy10percentOrMore) {
+        // reset
+        prevBytesUsed = 0;
+        countSinceUpsurge = 0;
+        return true;
+      }
+      countSinceUpsurge++;
+      if ( countSinceUpsurge * 1000 < MAX_DELAY * 1000) {
+        prevBytesUsed = bytesUsed;
+        return true;
+      }
+      else {
+        // reset as we are going to generate a critical up memory event.
+        countSinceUpsurge = 0;
+        prevBytesUsed = 0;
+        return false;
+      }
+    }
+    prevBytesUsed = 0;
+    countSinceUpsurge = 0;
+    return false;
   }
 
   /**
