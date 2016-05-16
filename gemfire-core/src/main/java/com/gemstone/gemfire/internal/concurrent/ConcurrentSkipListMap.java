@@ -797,11 +797,6 @@ public class ConcurrentSkipListMap<K, V> extends AbstractMap<K, V> implements
         return null;
       }
     }
-
-    @Override
-    public final void clear() {
-      // nothing to be done since the entire node object will be discarded
-    }
   }
 
   // GemStoneAddition
@@ -1299,10 +1294,8 @@ public class ConcurrentSkipListMap<K, V> extends AbstractMap<K, V> implements
         }
 
         final SkipListNode<K, V> z = this.nodeFactory.newNode(key, value, n);
-        if (!b.casNext(n, z)) {
-          z.clear();
+        if (!b.casNext(n, z))
           break; // restart if lost race to append to b
-        }
         final int level = randomLevel();
         if (level > 0)
           insertIndex(z, level, numNodesCompared /* GemStoneAddition */);
@@ -1393,7 +1386,6 @@ public class ConcurrentSkipListMap<K, V> extends AbstractMap<K, V> implements
         final SkipListNode<K, V> z = this.nodeFactory.newNode(key,
             creator.newValue(key, context, params, null), n);
         if (!b.casNext(n, z)) {
-          z.clear();
           break; // restart if lost race to append to b
         }
         final int level = randomLevel();

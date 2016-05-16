@@ -128,9 +128,4 @@ public interface SkipListNode<K, V> {
    * @return new entry or null
    */
   public AbstractMap.SimpleImmutableEntry<K, V> createSnapshot();
-
-  /**
-   * Invoked when a node fails to get inserted in the map.
-   */
-  public void clear();
 }

@@ -452,7 +452,7 @@ public class CompactCompositeIndexKey extends CompactCompositeKey implements
    * {@inheritDoc}
    */
   @Override
-  public final boolean appendMarker(SkipListNode<Object, Object> f) {
+  public boolean appendMarker(SkipListNode<Object, Object> f) {
     return casNext(f, new CompactCompositeIndexKey(f));
   }
 
@@ -460,7 +460,7 @@ public class CompactCompositeIndexKey extends CompactCompositeKey implements
    * {@inheritDoc}
    */
   @Override
-  public final void helpDelete(SkipListNode<Object, Object> bi,
+  public void helpDelete(SkipListNode<Object, Object> bi,
       SkipListNode<Object, Object> fi) {
     final CompactCompositeIndexKey b = (CompactCompositeIndexKey)bi;
     final CompactCompositeIndexKey f = (CompactCompositeIndexKey)fi;
@@ -483,7 +483,7 @@ public class CompactCompositeIndexKey extends CompactCompositeKey implements
    * {@inheritDoc}
    */
   @Override
-  public final SimpleImmutableEntry<Object, Object> createSnapshot() {
+  public SimpleImmutableEntry<Object, Object> createSnapshot() {
     final Object v = getValidValue();
     if (v != null) {
       // [sumedh] the next link can keep a large region of map alive via the key
@@ -500,16 +500,7 @@ public class CompactCompositeIndexKey extends CompactCompositeKey implements
    * {@inheritDoc}
    */
   @Override
-  public final void clear() {
-    // clear mapValue to indicate that the key is no longer a node
-    this.mapValue = null;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public final void setTransientValue(Object value) {
+  public void setTransientValue(Object value) {
     this.mapValue = value;
   }
 
@@ -517,7 +508,7 @@ public class CompactCompositeIndexKey extends CompactCompositeKey implements
    * {@inheritDoc}
    */
   @Override
-  public final Object getTransientValue() {
+  public Object getTransientValue() {
     return this.mapValue;
   }
 
@@ -542,7 +533,7 @@ public class CompactCompositeIndexKey extends CompactCompositeKey implements
         ccik = (CompactCompositeIndexKey)key;
       }
       else {
-        ccik = new CompactCompositeIndexKey((Object)null, null);
+        ccik = new CompactCompositeIndexKey((Object)null, (ExtraIndexInfo)null);
       }
       ccik.mapValue = value;
       ccik.next = (CompactCompositeIndexKey)next;

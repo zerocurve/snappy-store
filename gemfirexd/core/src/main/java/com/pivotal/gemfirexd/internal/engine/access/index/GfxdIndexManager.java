@@ -440,8 +440,8 @@ public final class GfxdIndexManager implements Dependent, IndexUpdater,
 
         boolean throwEEE = false;
         if (!posDup && owner.isInitialized()) {
-          if (!event.getOperation().isPutAll() && (lastModifiedFromOrigin == -1
-               || lastModifiedFromOrigin != entry.getLastModified())) {
+          if (lastModifiedFromOrigin == -1
+              || lastModifiedFromOrigin != entry.getLastModified()) {
             throwEEE = true;
           }
           else {
@@ -516,7 +516,8 @@ public final class GfxdIndexManager implements Dependent, IndexUpdater,
             }
             throw new EntryExistsException(event.getKey().toString(), OffHeapHelper.getHeapForm(oldValue));
           }
-        } else if (posDup && !owner.isInitialized()) {
+        }
+        else {
           // for the case of posDup or dup during GII just ignore and return
           if (this.logFineEnabled) {
             traceIndex("GfxdIndexManager#onEvent: ignored "
