@@ -592,8 +592,8 @@ public void stopMonitoring() {
    * @param bytesUsed Number of bytes of heap memory currently used.
    */
   public void updateStateAndSendEvent(long bytesUsed) {
-    boolean delayMemoryEvent = !DELAY_MEMORY_EVENT ||
-        (testBytesUsedForThresholdSet != -1) || testDisableMemoryUpdates;
+    boolean delayMemoryEvent = DELAY_MEMORY_EVENT &&
+        !((testBytesUsedForThresholdSet != -1) || testDisableMemoryUpdates);
     this.stats.changeTenuredHeapUsed(bytesUsed);
     synchronized (this) {
       MemoryState oldState = this.mostRecentEvent.getState();
