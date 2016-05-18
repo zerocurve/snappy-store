@@ -100,7 +100,7 @@ public class QueryUtil
       // String s = "No network locator endpoints found";
       // throw new QueryPerfException(s);
      // endpoints.add("localhost:1527");
-      endpoints.add("172.31.26.147:1527");
+      endpoints.add("172.31.19.173:1527");
     }
     Properties p = ThinClientHelper.getConnectionProperties();
     if (overrideProp != null) p.putAll(overrideProp);
