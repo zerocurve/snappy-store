@@ -49,8 +49,8 @@ public class RegionSizeCalculatorFunction implements Function , Declarable {
     Set<PartitionedRegion> partitionedRegions = Misc.getGemFireCache().getPartitionedRegions();
     for (PartitionedRegion pr : partitionedRegions) {
       long valueSizeOfRegion = getSizeForAllPrimaryBucketsOfRegion(pr);
-      String regionName = pr.getFullPath().replaceFirst("/", "").replaceAll("/", ".");
-      regionSizeInfo.put(regionName, valueSizeOfRegion);
+      String qualifiedTableName =  Misc.getFullTableNameFromRegionPath(pr.getFullPath());
+      regionSizeInfo.put(qualifiedTableName, valueSizeOfRegion);
     }
     context.getResultSender().lastResult(regionSizeInfo);
   }
@@ -62,7 +62,7 @@ public class RegionSizeCalculatorFunction implements Function , Declarable {
 
   @Override
   public boolean optimizeForWrite() {
-    return false;
+    return true;
   }
 
   @Override
