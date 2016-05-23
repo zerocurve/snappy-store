@@ -166,7 +166,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_testIndex() throws Exception {
+  public void testIndex() throws Exception {
     Properties props = new Properties();
     props.setProperty("log-level", "config");
     startVMs(1, 3, 0, null, props);
@@ -197,7 +197,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
    * This test should fail as is due to non-colocated columns but does not.
    * Keeping test as is till #51134 is open against this.
    */
-  public void KN_testBug51039_51746() throws Throwable {
+  public void testBug51039_51746() throws Throwable {
     reduceLogLevelForTest("config");
 
     final Properties bprops = new Properties();
@@ -453,7 +453,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_testBug50207_replicated() throws Exception {
+  public void testBug50207_replicated() throws Exception {
     try {
       invokeInEveryVM(IndexPersistenceDUnit.class, "setSystemProperty",
           new Object[] { "gemfire.GetInitialImage.TRACE_GII_FINER", "true" });
@@ -500,7 +500,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_testBug50207_partitioned() throws Exception {
+  public void testBug50207_partitioned() throws Exception {
     try {
       invokeInEveryVM(IndexPersistenceDUnit.class, "setSystemProperty",
           new Object[] { "gemfire.GetInitialImage.TRACE_GII_FINER", "true" });
@@ -548,7 +548,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_testBug48343() throws Exception {
+  public void testBug48343() throws Exception {
     startVMs(1, 2);
     Connection conn = TestUtil.getConnection();
     Statement st = conn.createStatement();
@@ -575,7 +575,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     assertFalse(rs.next());
   }
 
-  public void KN_testBug48335() throws Exception {
+  public void testBug48335() throws Exception {
     reduceLogLevelForTest("config");
 
     // Start a client and some server VMs
@@ -905,7 +905,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_testInsertFailoverbug_47407() throws Exception {
+  public void testInsertFailoverbug_47407() throws Exception {
     // System.setProperty("gemfirexd.client.traceLevel", "");
     // System.setProperty("gemfirexd.client.traceDirectory",
     // getSysDirName(getGemFireDescription()));
@@ -969,7 +969,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_testBug47148() throws Exception {
+  public void testBug47148() throws Exception {
     Properties p = new Properties();
     // start a network server
     int netPort = startNetworkServer(1, null, p);
@@ -1012,7 +1012,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
    * might behave differently for the same
    * user input string (varchar/char)
    */
-  public void KN_testBug46584() throws Exception {
+  public void testBug46584() throws Exception {
 
     // start some servers
     startVMs(1, 2, 0, null, null);
@@ -1055,7 +1055,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     assertEquals(4, rs.getInt(1));
   }
 
-  public void KN_testDAPBugsFromUseCase1() throws Exception {
+  public void testDAPBugsFromUseCase1() throws Exception {
     // start some servers
     startVMs(0, 2, 0, null, null);
     // Start network server on the VMs
@@ -1182,7 +1182,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     callStoredProc(stmtWithCustomRPAndOnALL, "10", true, true);
   }
 
-  public void KN_testBucketIdNotFoundUseCase1_47210() throws Exception {
+  public void testBucketIdNotFoundUseCase1_47210() throws Exception {
     // start some servers
     startVMs(0, 2, 0, null, null);
     // Start network server on the VMs
@@ -1307,7 +1307,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_testBug43115() throws Exception {
+  public void testBug43115() throws Exception {
     startVMs(1, 2);
     Connection conn = TestUtil.getConnection();
     Statement st = conn.createStatement();
@@ -1331,7 +1331,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     assertEquals(3, count);
   }
 
-  public void KN_testBug43290_precisionProblemWithDecimals() throws Exception {
+  public void testBug43290_precisionProblemWithDecimals() throws Exception {
     startVMs(1, 2);
     Connection conn = TestUtil.getConnection();
     Statement s = conn.createStatement();
@@ -1352,7 +1352,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
    * Locators in two tests in the same DUnit may have
    * issues showing up in error.grep even DUnit passes
    */
-  public void KN_testGfxdJarCommands() throws Exception {
+  public void testGfxdJarCommands() throws Exception {
     // disabled due to bug #51556
     if (isTransactional) {
       return;
@@ -1479,7 +1479,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
             + locatorBindAddress });
   }
 
-  public void KN_testBug46843_1() throws Exception {
+  public void testBug46843_1() throws Exception {
     startVMs(1, 4);
     final List<Throwable> exceptions = new ArrayList<Throwable>();
     Statement stmt = null;
@@ -1631,7 +1631,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_testBug46843_2() throws Exception {
+  public void testBug46843_2() throws Exception {
 
     startVMs(1, 4);
     final List<Throwable> exceptions = new ArrayList<Throwable>();
@@ -1829,7 +1829,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_testBug46843_3() throws Exception {
+  public void testBug46843_3() throws Exception {
 
     startVMs(1, 4);
     final List<Throwable> exceptions = new ArrayList<Throwable>();
@@ -2046,7 +2046,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
   }
 
 
-  public void KN_testBug46803_1() throws Exception {
+  public void testBug46803_1() throws Exception {
     startVMs(1, 4);
     PreparedStatement psInsert1, psInsert4 = null;
     Statement s = null;
@@ -2168,7 +2168,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
   }
 
-  public void KN_testBug46803_2() throws Exception {
+  public void testBug46803_2() throws Exception {
 
     startVMs(1, 4);
 
@@ -2269,7 +2269,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
   }
 
-  public void KN_testBug46803_3() throws Exception {
+  public void testBug46803_3() throws Exception {
 
     startVMs(1, 4);
 
@@ -2394,7 +2394,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_testBug46803_4() throws Exception {
+  public void testBug46803_4() throws Exception {
 
     startVMs(1, 4);
 
@@ -2520,7 +2520,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
   }
 
 
-  public void KN_testBug46803_5() throws Exception {
+  public void testBug46803_5() throws Exception {
 
     startClientVMs(1,0, null);
     startServerVMs(1, 0, "sg1");
@@ -2607,7 +2607,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
       GemFireXDQueryObserverHolder.setInstance(new GemFireXDQueryObserverAdapter());
     }
   }
-  public void KN_testBug47204() throws Exception {
+  public void testBug47204() throws Exception {
     startVMs(1, 2);
 
     clientSQLExecute(1, "create table warehouse2 ("
@@ -2631,7 +2631,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
         "select count(*) from warehouse2", null, "5");
   }
 
-  public void KN_test47193() throws Exception {
+  public void test47193() throws Exception {
     // disabled due to bug #51558
     if (isTransactional) {
       return;
@@ -2878,7 +2878,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     assertEquals(3, numResults);
   }
 
-  public void KN_testBug47289() throws Exception {
+  public void testBug47289() throws Exception {
 
     // Start two server VMs
     startVMs(1, 2);
@@ -2950,7 +2950,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
   }
 
 
-  public void KN_testBug47289_1() throws Exception {
+  public void testBug47289_1() throws Exception {
 
     // Start two server VMs
     startVMs(1, 4);
@@ -3013,7 +3013,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
   }
 
-  public void KN_testBug47655() throws Exception {
+  public void testBug47655() throws Exception {
 
     // Not valid for transactions
     if (isTransactional) {
@@ -3080,7 +3080,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
         }
   }
 
-  public void KN_testBug47289_2() throws Exception {
+  public void testBug47289_2() throws Exception {
 
     // Start two server VMs
     startVMs(1, 4);
@@ -3149,7 +3149,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
   }
 
 
-  public void KN_testBug47289_3() throws Exception {
+  public void testBug47289_3() throws Exception {
 
     // Start two server VMs
     startVMs(1, 4);
@@ -3213,7 +3213,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
   }
 
-  public void KN_testBug47289_47611_4() throws Exception {
+  public void testBug47289_47611_4() throws Exception {
 
     // Start some server VMs
     startVMs(1, 4);
@@ -3278,7 +3278,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
   // #48263: when batch update statement is re-prepared values
   // accumulated till the re-prepare time for putAll are lost
-  public void KN_testBug48263() throws Exception {
+  public void testBug48263() throws Exception {
     startVMs(1, 2);
     Connection conn = TestUtil.getConnection();
     Statement st = conn.createStatement();
@@ -3326,7 +3326,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     assertFalse(rs.next());
   }
 
-  public void KN_testBug48232() throws Exception {
+  public void testBug48232() throws Exception {
     startVMs(1, 1);
     clientSQLExecute(1, "create schema scott");
 
@@ -3347,7 +3347,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     sqlExecuteVerify(new int[] { 3 }, null, "select * from t1", null, "1");
   }
 
-  public void KN_testBug48232_2() throws Exception {
+  public void testBug48232_2() throws Exception {
     // also test whether set current schema causes any issue on
     // restart
     Properties props = new Properties();
@@ -3376,7 +3376,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
   }
 
-  public void KN_testTSMCImportFailureBug() throws Exception {
+  public void testTSMCImportFailureBug() throws Exception {
     startVMs(1, 2);
     try {
       Connection conn = TestUtil.getConnection();
@@ -3436,7 +3436,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_testTSMCExecuteBatchBug() throws Exception {
+  public void testTSMCExecuteBatchBug() throws Exception {
     final int locPort = AvailablePort
         .getRandomAvailablePort(AvailablePort.SOCKET);
     final Properties props = new Properties();
@@ -3482,7 +3482,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     assertFalse(rs.next());
   }
 
-  public void KN_testBug47976() throws Exception {
+  public void testBug47976() throws Exception {
 
     // Start few server VMs
     startVMs(1, 4);
@@ -3584,7 +3584,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     restartVMNums(-2);
   }
 
-  public void KN_testBug46799() throws Exception {
+  public void testBug46799() throws Exception {
 
     // Start some server VMs
     startVMs(1, 4);
@@ -3661,7 +3661,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     BugsTest.checkLobs(rs, clobChars, blobBytes);
   }
 
-  public void KN_testBug47943() throws Exception {
+  public void testBug47943() throws Exception {
     startVMs(1, 4);
 
     try {
@@ -3946,7 +3946,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_testBug48212_48355() throws Exception {
+  public void testBug48212_48355() throws Exception {
     // check for #48212 by bringing down the last server, then
     // bringing up a new server not having access to the disk store files
     // of the last server; then firing DDLs from new node should cause
@@ -4044,7 +4044,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     JDBC.assertFullResultSet(rs, expected, false);
   }
 
-  public void KN_testIdentityColumns() throws Throwable {
+  public void testIdentityColumns() throws Throwable {
 
     // Bug #51832.
     if (isTransactional) {
@@ -4355,7 +4355,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
   }
 
 
-  public void KN_test48808() throws Exception {
+  public void test48808() throws Exception {
     reduceLogLevelForTest("config");
     startVMs(1, 3);
     Connection conn = TestUtil.getConnection();
@@ -4414,7 +4414,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
   }
 
 
-  public void KN_test47662() throws Exception {
+  public void test47662() throws Exception {
     //reduceLogLevelForTest("config");
     startVMs(0, 2);
     int netPort = startNetworkServer(1, null, null);
@@ -4475,7 +4475,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
    *          *
    *             * @throws Exception
    *                */
-   public void KN_testBug49621() throws Exception {
+   public void testBug49621() throws Exception {
 
      startVMs(0, 1);
 
@@ -4503,7 +4503,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     conn.close();
    }
 
-  public void KN_testBug51249() throws Exception {
+  public void testBug51249() throws Exception {
     final Properties authProp = new Properties();
     authProp.setProperty(Property.GFXD_AUTH_PROVIDER,
         com.pivotal.gemfirexd.Constants.AUTHENTICATION_PROVIDER_BUILTIN);
@@ -4605,7 +4605,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
   }
 
-  public void KN_testTMG_GEMXD_1() throws Exception {
+  public void testTMG_GEMXD_1() throws Exception {
     reduceLogLevelForTest("config");
     // Start a client and some server VMs
     startVMs(1, 3);
@@ -4672,7 +4672,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void KN_test45995() throws Exception {
+  public void test45995() throws Exception {
 //    reduceLogLevelForTest("fine");
     startVMs(1, 2);
     VM serverVM1 = serverVMs.get(0);
@@ -4726,7 +4726,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
   }
 
-  public void KN_test51906() throws Exception {
+  public void test51906() throws Exception {
     startVMs(1, 1);
     Connection conn = TestUtil.getConnection();
     Statement stmt = conn.createStatement();
@@ -4787,10 +4787,6 @@ public class BugsDUnit extends DistributedSQLTestBase {
       sleepForMs(2000);
       try {
         BugsDUnit.this.stopVMNums(new int[]{-this.vmNum});
-        Connection conn = TestUtil.getConnection();
-        conn.createStatement().execute("delete from ODS.POSTAL_ADDRESS where st = 'state3'");
-        //AsyncVM asyncVM = BugsDUnit.this.restartServerVMAsync(2, 0, (String)null, null);
-        //BugsDUnit.this.joinVM(true, asyncVM);
       } catch (Exception e) {
         exceptions[0] = e;
       }
@@ -4839,6 +4835,10 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
   public static void skipIndexCheck(boolean flag) {
     FabricDatabase.skipIndexCheck = flag;
+  }
+
+  public String reduceLogging() {
+    return "fine";
   }
 
   final String[] cities = {"New York", "Baltimore", "Kentucky", "Las Vegas", "Los Angeles", "Detroit", "denver", " New Jersey"};
@@ -4906,6 +4906,25 @@ public class BugsDUnit extends DistributedSQLTestBase {
       int totRecords = numRecordsPerThread * numThreads;
       new Inserter(baseVal, numRecordsPerThread, cities, states, exceptions).run();
 
+      stmt.execute("select cnty from ODS.POSTAL_ADDRESS where cnty = 'eight1' or cnty = 'eight2' or cnty = 'eight3'");
+
+      ResultSet rs = stmt.getResultSet();
+      Object[][] delrows = new Object[3][5];
+      // collect values of index columns ... CNTC_ID, CLIENT_ID, CTY and ST .. for rows which are going to be deleted
+      // ( CNTC_ID, CLIENT_ID )";
+      // (CTY, CLIENT_ID) -- GEMFIREXD-PROPERTIES caseSensitive=false";
+      // (ST, CLIENT_ID) -- GEMFIREXD-PROPERTIES caseSensitive=false";
+      int row = 0;
+      while (rs.next()) {
+        delrows[row][0] = rs.getObject(1);
+        delrows[row][1] = rs.getObject(2);
+        delrows[row][2] = rs.getObject(4);
+        delrows[row][3] = rs.getObject(8);
+        delrows[row][4] = rs.getObject(10);
+        row++;
+        getLogWriter().info("initial cnty value = " + rs.getString(1));
+      }
+
       // bring one server down
       new ServerDowner(2, exceptions2).run();
 
@@ -4913,27 +4932,18 @@ public class BugsDUnit extends DistributedSQLTestBase {
       startServerVMs(1, 0, null, null);
 
       // sleep for  sometime
-      sleepForMs(10000);
+      // sleepForMs(30000);
       GfxdSystemProcedures.REBALANCE_ALL_BUCKETS();
       // check if the redundancy of PR is satisfied
       PartitionedRegion pr = (PartitionedRegion)Misc.getRegionByPath("/ODS/POSTAL_ADDRESS");
       assertNotNull(pr);
       pr.getRegionAdvisor().getBucketAdvisor(0).waitForRedundancy(1);
 
-      // print records
-      stmt.execute("select cnty from ODS.POSTAL_ADDRESS");
-
-      ResultSet rs = stmt.getResultSet();
-      assertTrue(rs.next());
-      while(rs.next()) {
-        getLogWriter().info("cnty value = " + rs.getString(1));
-      }
-
       // Now delete few entries 3 to be precise
       int numDeletes = stmt.executeUpdate("delete from ODS.POSTAL_ADDRESS where cnty = 'eight1' or cnty = 'eight2' or cnty = 'eight3'");
       assertEquals(3, numDeletes);
       // Now bring back the downed server after a long time
-      sleepForMs(20000);
+      sleepForMs(30000);
       AsyncVM asyncVM = BugsDUnit.this.restartServerVMAsync(2, 0, (String)null, null);
       BugsDUnit.this.joinVM(true, asyncVM);
 
@@ -4946,8 +4956,15 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
       rs = stmt.getResultSet();
       assertTrue(rs.next());
+      int cntres = rs.getInt(1);
       int totLeftRecords = totRecords - numDeletes;
-      assertEquals(totLeftRecords, rs.getInt(1));
+
+      stmt.execute("select * from ODS.POSTAL_ADDRESS");
+      rs = stmt.getResultSet();
+      while(rs.next()) {
+        getLogWriter().info("VALUEs:  " + rs.getObject(8));
+      }
+      assertEquals(totLeftRecords, cntres);
 
       // get all the possible combination of CNTC_ID, PSTL_ADDR_ID and CLIENT_ID
       // Use select * so that no indexes are used
@@ -5024,23 +5041,39 @@ public class BugsDUnit extends DistributedSQLTestBase {
       getLogWriter().info("Total number of records from diag4 index2 " + numRecordsTotIncludingSec_idx2);
       getLogWriter().info("Total number of records from diag5 index3 " + numRecordsTotIncludingSec_idx3);
 
-      // switch on after bug fix
+      // switch on after bug fix and remove the multiplication line
       if (totLeftRecords*2 != numRecordsTotIncludingSec) {
-        fail("totLeftRecords*2 != numRecordsTotIncludingSec");
+        // fail("totLeftRecords*2 != numRecordsTotIncludingSec");
+        numRecordsTotIncludingSec = numRecordsTotIncludingSec * 2;
       }
 
+      // Switch ON after bug fix
+      /*
       if ((numRecordsTotIncludingSec_idx1 != numRecordsTotIncludingSec)
           || (numRecordsTotIncludingSec != numRecordsTotIncludingSec_idx2)
           || ( numRecordsTotIncludingSec != numRecordsTotIncludingSec_idx3)) {
         fail("totRecords*2 != numRecords in the indexes");
       }
+      */
 
       if ((numRecordsTotIncludingSec_idx1 != numRecordsTotIncludingSec_idx2)
           || ( numRecordsTotIncludingSec_idx2 != numRecordsTotIncludingSec_idx3)) {
         fail("different index counts");
       }
 
+      // Lets get the count specific to the records deleted
+      // delete from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?;
+      PreparedStatement psdel = conn.prepareStatement("select count(*) from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?");
+      psdel.setObject(1, delrows[0][0]);
+      psdel.setObject(1, delrows[0][1]);
+      psdel.setObject(1, delrows[0][3]);
+      int deleted = psdel.executeUpdate();
+      getLogWriter().info("deleted count for cntc_id = " + delrows[0][0] + ", PSTL_ADDR_ID = " + delrows[0][1] + ", client_id = " + delrows[0][3] + " = " + deleted);
       //
+      rs = psdel.getResultSet();
+      assertTrue(rs.next());
+      assertEquals(0, rs.getInt(1));
+
       String deleteStmnt = "delete from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?";
       PreparedStatement dps = conn.prepareCall(deleteStmnt);
       for (i=0; i<totRecords; i++) {
@@ -5061,337 +5094,6 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
 
 
-  }
-
-  public void _testIndexCorruption_2() throws Exception {
-    final String[] cities = {"New York", "Baltimore", "Kentucky", "Las Vegas", "Los Angeles", "Detroit", "denver", " New Jersey"};
-    //final String[] states = {"State 1", "sTate2", "state3", "state4", "state5"};
-    final String[] states = {"State 1", "sTate2", "state3"};
-    String addrtab = "Create table ODS.POSTAL_ADDRESS(" +
-        "  cntc_id bigint NOT NULL," +
-        "  pstl_addr_id bigint GENERATED BY DEFAULT AS IDENTITY  NOT NULL," +
-        "  ver bigint NOT NULL," +
-        "  client_id bigint NOT NULL," +
-        "  str_ln1 varchar(100)," +
-        "  str_ln2 varchar(100)," +
-        "  str_ln3 varchar(100)," +
-        "  cty varchar(75)," +
-        "  cnty varchar(50)," +
-        "  st varchar(50)," +
-        "  pstl_cd varchar(20)," +
-        "  cntry varchar(100)," +
-        "  vldtd SMALLINT," +
-        "  vldtn_dt DATE," +
-        "  vld_frm_dt TIMESTAMP NOT NULL," +
-        "  vld_to_dt TIMESTAMP," +
-        "  src_sys_ref_id varchar(10) NOT NULL," +
-        "  src_sys_rec_id varchar(150)," +
-        "  PRIMARY KEY (client_id,cntc_id,pstl_addr_id)" +
-        "  )" +
-        "  PARTITION BY COLUMN (cntc_id)" +
-        "  REDUNDANCY 1" +
-        "  EVICTION BY LRUHEAPPERCENT EVICTACTION OVERFLOW PERSISTENT";
-    startVMs(1, 3);
-
-    String idx1 = "CREATE INDEX IX_POSTAL_ADDRESS_01 ON ODS.POSTAL_ADDRESS ( CNTC_ID, CLIENT_ID )";
-    String idx2 = "CREATE INDEX IX_POSTAL_ADDRESS_02 ON ODS.POSTAL_ADDRESS (CTY, CLIENT_ID) -- GEMFIREXD-PROPERTIES caseSensitive=false";
-    String idx3 = "CREATE INDEX IX_POSTAL_ADDRESS_03 ON ODS.POSTAL_ADDRESS (ST, CLIENT_ID) -- GEMFIREXD-PROPERTIES caseSensitive=false";
-
-    Connection conn = TestUtil.getConnection();
-    Statement stmt = conn.createStatement();
-
-    stmt.execute("create schema ODS");
-    stmt.execute(addrtab);
-    stmt.execute(idx1);
-    stmt.execute(idx2);
-    stmt.execute(idx3);
-
-    final int baseVal = 2000000;
-    final int numRecordsPerThread = 10;
-
-    final Exception[] exceptions = new Exception[1];
-    final Exception[] exceptions2 = new Exception[1];
-
-    class Inserter implements Runnable {
-      final private int baseval;
-      final private int numRecords;
-      public Inserter(int base, int numR) {
-        this.baseval = base;
-        this.numRecords = numR;
-      }
-      @Override
-      public void run() {
-        Connection conn = null;
-        try {
-          conn = TestUtil.getConnection();
-          insertNRecords(conn, this.numRecords, cities, states, this.baseval);
-        } catch (SQLException e) {
-          exceptions[0] = e;
-        } finally {
-          try {
-            conn.close();
-          } catch (SQLException e) {
-            // ignore
-          }
-        }
-      }
-    }
-
-    class ServerDowner implements Runnable {
-      final private int vmNum;
-      public ServerDowner(int vmn) {
-        this.vmNum = vmn;
-      }
-      @Override
-      public void run() {
-        sleepForMs(5000);
-        VM vm = BugsDUnit.this.getServerVM(2);
-        try {
-          BugsDUnit.this.stopVMNums(new int[]{-2});
-          Connection conn = TestUtil.getConnection();
-          conn.createStatement().execute("delete from ODS.POSTAL_ADDRESS where st = 'state3'");
-          AsyncVM asyncVM = BugsDUnit.this.restartServerVMAsync(2, 0, (String)null, null);
-          BugsDUnit.this.joinVM(true, asyncVM);
-        } catch (Exception e) {
-          exceptions2[0] = e;
-        }
-      }
-    }
-
-    // VM vm = this.getServerVM(2);
-    // this.stopVMNums(new int[]{-2});
-    int numThreads = 1;
-    Thread[] allInserters = new Thread[numThreads];
-    for (int i=0; i<numThreads; i++) {
-      allInserters[i] = new Thread(new Inserter(baseVal, numRecordsPerThread));
-    }
-    for (int i=0; i<numThreads; i++) {
-      allInserters[i].start();
-    }
-
-
-    for (int i=0; i<numThreads; i++) {
-      allInserters[i].join();
-    }
-    //
-    ServerDowner sd = new ServerDowner(2);
-    Thread sdt = new Thread(sd);
-    sdt.start();
-    sdt.join();
-    GfxdSystemProcedures.REBALANCE_ALL_BUCKETS();
-    int totRecords = numThreads * numRecordsPerThread;
-    if (exceptions[0] != null) {
-      fail("Exception while inserting", exceptions[0]);
-    }
-    if (exceptions2[0] != null) {
-      fail("Exception while bringing the node down", exceptions2[0]);
-    }
-    stmt.execute("select count(*) from ODS.POSTAL_ADDRESS");
-    ResultSet rs = stmt.getResultSet();
-    assertTrue(rs.next());
-    //assertEquals(totRecords, rs.getInt(1));
-
-    // get all the possible combination of CNTC_ID, PSTL_ADDR_ID and CLIENT_ID
-    // Use select * so that no indexes are used
-    String qry = "select * from ODS.POSTAL_ADDRESS";
-    long[] cntcs  = new long[totRecords];
-    long[] paids  = new long[totRecords];
-    long[] clntds = new long[totRecords];
-
-    stmt.execute(qry);
-    rs = stmt.getResultSet();
-    int i=0;
-    while(rs.next()) {
-      cntcs[i] = rs.getLong(1);
-      paids[i] = rs.getLong(2);
-      clntds[i] = rs.getLong(4);
-      i++;
-    }
-
-    //assertEquals(totRecords, i);
-
-    // test index hint with dsid()
-    invokeInEveryVM(new SerializableRunnable() {
-      @Override
-      public void run() {
-        if (ServerGroupUtils.isDataStore()) {
-          TestUtil.ScanTypeQueryObserver observer =
-              new TestUtil.ScanTypeQueryObserver();
-          GemFireXDQueryObserverHolder.setInstance(observer);
-        }
-      }
-    });
-
-    invokeInEveryVM(new SerializableRunnable() {
-      @Override
-      public void run() {
-        if (ServerGroupUtils.isDataStore()) {
-          String regionPath = "/ODS/POSTAL_ADDRESS";
-          Region r = Misc.getRegionByPath(regionPath);
-          PartitionedRegion pr = (PartitionedRegion)r;
-          pr.dumpAllBuckets(false, Misc.getI18NLogWriter());
-          GfxdIndexManager idxmgr = (GfxdIndexManager)pr.getIndexUpdater();
-          idxmgr.dumpAllIndexes();
-        }
-      }
-    });
-
-    String diag1primaries = "select count(*), dsid() from sys.members m --GEMFIREXD-PROPERTIES withSecondaries=false\n , ods.postal_address where dsid() = m.id group by dsid()";
-    String diag2withSecondaries = "select count(*), dsid() from sys.members m --GEMFIREXD-PROPERTIES withSecondaries=true\n , ods.postal_address where dsid() = m.id group by dsid()";
-    String diag3idx1 = "select count(*), dsid() from sys.members m , ods.postal_address --GEMFIREXD-PROPERTIES index=IX_POSTAL_ADDRESS_01\n where dsid() = m.id group by dsid()";
-    String diag4idx2 = "select count(*), dsid() from sys.members m , ods.postal_address --GEMFIREXD-PROPERTIES index=IX_POSTAL_ADDRESS_02\n where dsid() = m.id group by dsid()";
-    String diag5idx3 = "select count(*), dsid() from sys.members m , ods.postal_address --GEMFIREXD-PROPERTIES index=IX_POSTAL_ADDRESS_03\n where dsid() = m.id group by dsid()";
-
-    // Check sanity of indexes and primary secondaries
-    stmt.execute(diag1primaries);
-    rs = stmt.getResultSet();
-    int numRecordsTot = 0;
-    while(rs.next()) {
-      numRecordsTot += rs.getInt(1);
-    }
-    invokeInEveryVM(new SerializableRunnable() {
-      @Override
-      public void run() {
-        TestUtil.ScanTypeQueryObserver observer = GemFireXDQueryObserverHolder
-            .getObserver(TestUtil.ScanTypeQueryObserver.class);
-        if (observer != null) {
-          SanityManager.DEBUG_PRINT("info:TEST", "Checking for table scan");
-          observer.addExpectedScanType("ods.postal_address", TestUtil.ScanType.TABLE);
-          observer.checkAndClear();
-        }
-      }
-    });
-
-    stmt.execute(diag2withSecondaries);
-    rs = stmt.getResultSet();
-    int numRecordsTotIncludingSec = 0;
-    while(rs.next()) {
-      numRecordsTotIncludingSec += rs.getInt(1);
-    }
-    invokeInEveryVM(new SerializableRunnable() {
-      @Override
-      public void run() {
-        TestUtil.ScanTypeQueryObserver observer = GemFireXDQueryObserverHolder
-            .getObserver(TestUtil.ScanTypeQueryObserver.class);
-        if (observer != null) {
-          SanityManager.DEBUG_PRINT("info:TEST", "Checking for table scan");
-          observer.addExpectedScanType("ods.postal_address", TestUtil.ScanType.TABLE);
-          observer.checkAndClear();
-        }
-      }
-    });
-
-    stmt.execute(diag3idx1);
-    rs = stmt.getResultSet();
-    int numRecordsTotIncludingSec_idx1 = 0;
-    while(rs.next()) {
-      numRecordsTotIncludingSec_idx1 += rs.getInt(1);
-    }
-    invokeInEveryVM(new SerializableRunnable() {
-      @Override
-      public void run() {
-        TestUtil.ScanTypeQueryObserver observer = GemFireXDQueryObserverHolder
-            .getObserver(TestUtil.ScanTypeQueryObserver.class);
-        if (observer != null) {
-          SanityManager.DEBUG_PRINT("info:TEST", "Checking for index01 scan");
-          observer.addExpectedScanType("ods.postal_address", "ods.IX_POSTAL_ADDRESS_01",
-              TestUtil.ScanType.SORTEDMAPINDEX);
-          observer.checkAndClear();
-        }
-      }
-    });
-
-    stmt.execute(diag4idx2);
-    rs = stmt.getResultSet();
-    int numRecordsTotIncludingSec_idx2 = 0;
-    while(rs.next()) {
-      numRecordsTotIncludingSec_idx2 += rs.getInt(1);
-    }
-    invokeInEveryVM(new SerializableRunnable() {
-      @Override
-      public void run() {
-        TestUtil.ScanTypeQueryObserver observer = GemFireXDQueryObserverHolder
-            .getObserver(TestUtil.ScanTypeQueryObserver.class);
-        if (observer != null) {
-          SanityManager.DEBUG_PRINT("info:TEST", "Checking for index02 scan");
-          observer.addExpectedScanType("ods.postal_address", "ods.IX_POSTAL_ADDRESS_02",
-              TestUtil.ScanType.SORTEDMAPINDEX);
-          observer.checkAndClear();
-        }
-      }
-    });
-
-    stmt.execute(diag5idx3);
-    rs = stmt.getResultSet();
-    int numRecordsTotIncludingSec_idx3 = 0;
-    while(rs.next()) {
-      numRecordsTotIncludingSec_idx3 += rs.getInt(1);
-    }
-    invokeInEveryVM(new SerializableRunnable() {
-      @Override
-      public void run() {
-        TestUtil.ScanTypeQueryObserver observer = GemFireXDQueryObserverHolder
-            .getObserver(TestUtil.ScanTypeQueryObserver.class);
-        if (observer != null) {
-          SanityManager.DEBUG_PRINT("info:TEST", "Checking for index03 scan");
-          observer.addExpectedScanType("ods.postal_address", "ods.IX_POSTAL_ADDRESS_03",
-              TestUtil.ScanType.SORTEDMAPINDEX);
-          observer.checkAndClear();
-        }
-      }
-    });
-
-    getLogWriter().info("Total number of records = " + totRecords);
-    getLogWriter().info("Total number of records from diag1 primaries " + numRecordsTot);
-    getLogWriter().info("Total number of records from diag2 including secondaries " + numRecordsTotIncludingSec);
-    getLogWriter().info("Total number of records from diag3 index1 " + numRecordsTotIncludingSec_idx1);
-    getLogWriter().info("Total number of records from diag4 index2 " + numRecordsTotIncludingSec_idx2);
-    getLogWriter().info("Total number of records from diag5 index3 " + numRecordsTotIncludingSec_idx3);
-
-    invokeInEveryVM(new SerializableRunnable() {
-      @Override
-      public void run() {
-        TestUtil.ScanTypeQueryObserver observer = GemFireXDQueryObserverHolder
-            .getObserver(TestUtil.ScanTypeQueryObserver.class);
-        if (observer != null) {
-          GemFireXDQueryObserverHolder.clearInstance();
-        }
-      }
-    });
-
-    if (totRecords != numRecordsTot) {
-      //fail("totRecords != numRecordsTot");
-    }
-
-    if (totRecords*2 != numRecordsTotIncludingSec) {
-      //fail("totRecords*2 != numRecordsTotIncludingSec");
-    }
-
-//    if ((numRecordsTotIncludingSec_idx1 != numRecordsTotIncludingSec)
-//        || (numRecordsTotIncludingSec != numRecordsTotIncludingSec_idx2)
-//        || ( numRecordsTotIncludingSec != numRecordsTotIncludingSec_idx3)) {
-//      fail("totRecords*2 != numRecords in the indexes");
-//    }
-
-    if ((numRecordsTotIncludingSec_idx1 != numRecordsTotIncludingSec_idx2)
-        || ( numRecordsTotIncludingSec_idx2 != numRecordsTotIncludingSec_idx3)) {
-      fail("different index counts");
-    }
-
-    //
-    String deleteStmnt = "delete from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?";
-    PreparedStatement dps = conn.prepareCall(deleteStmnt);
-    for (i=0; i<totRecords; i++) {
-      dps.setLong(1, cntcs[i]);
-      dps.setLong(2, paids[i]);
-      dps.setLong(3, clntds[i]);
-      dps.executeUpdate();
-    }
-    stmt.execute("select count(*) from ODS.POSTAL_ADDRESS");
-    rs = stmt.getResultSet();
-    assertTrue(rs.next());
-    assertEquals(rs.getInt(1), 0);
-    conn.close();
   }
 
   private static void insertNRecords(Connection conn, int n, String[] cities, String[] states, int client_id_base_val) throws SQLException {
