@@ -35,6 +35,7 @@ import javax.management.NotificationEmitter;
 import javax.management.NotificationListener;
 
 import com.gemstone.gemfire.CancelException;
+import com.gemstone.gemfire.LogWriter;
 import com.gemstone.gemfire.SystemFailure;
 import com.gemstone.gemfire.cache.CacheClosedException;
 import com.gemstone.gemfire.cache.query.internal.QueryMonitor;
@@ -591,8 +592,14 @@ public void stopMonitoring() {
    * @param bytesUsed Number of bytes of heap memory currently used.
    */
   public void updateStateAndSendEvent(long bytesUsed) {
+    LogWriter logger = this.cache.getLogger();
     boolean delayMemoryEvent = DELAY_MEMORY_EVENT &&
         !((testBytesUsedForThresholdSet != -1) || testDisableMemoryUpdates);
+    logger.info("KN: delayMemoryEvent = " + delayMemoryEvent);
+    if (!delayMemoryEvent) {
+      logger.info("KN: DELAY_MEMORY_EVENT = " + DELAY_MEMORY_EVENT + ", testBytesUsedForThresholdSet = " + testBytesUsedForThresholdSet
+      + ", testDisableMemoryUpdates = " + testDisableMemoryUpdates);
+    }
     this.stats.changeTenuredHeapUsed(bytesUsed);
     synchronized (this) {
       MemoryState oldState = this.mostRecentEvent.getState();
@@ -630,6 +637,8 @@ public void stopMonitoring() {
   }
 
   private boolean shouldDelayMemoryEvent(boolean delayMemoryEvent, MemoryState state, long bytesUsed) {
+    LogWriter logger = this.cache.getLogger();
+    logger.info("KN: shouldDelayMemoryEvent called");
     if (delayMemoryEvent && (state != null && state.isCritical())) {
       // if still critical up but memory used has come down by 10% then reset the counters
       long delta = bytesUsed - prevBytesUsed;
@@ -639,18 +648,22 @@ public void stopMonitoring() {
         isDownBy10percentOrMore = percent > 10 ? true : false;
       }
       if (isDownBy10percentOrMore) {
+        logger.info("KN: shouldDelayMemoryEvent isDownBy10Percent = true ... resetting ... delaying");
         // reset
         prevBytesUsed = 0;
         countSinceUpsurge = 0;
         return true;
       }
       countSinceUpsurge++;
+      logger.info("KN: shouldDelayMemoryEvent isDownBy10Percent count since upsurge = " + countSinceUpsurge);
       if ( countSinceUpsurge * 1000 < MAX_DELAY_COUNT * 1000) {
         prevBytesUsed = bytesUsed;
+        logger.info("KN: shouldDelayMemoryEvent delaying");
         return true;
       }
       else {
         // reset as we are going to generate a critical up memory event.
+        logger.info("KN: shouldDelayMemoryEvent Not delaying countSinceUpsurge = " + countSinceUpsurge);
         countSinceUpsurge = 0;
         prevBytesUsed = 0;
         return false;
@@ -658,6 +671,7 @@ public void stopMonitoring() {
     }
     prevBytesUsed = 0;
     countSinceUpsurge = 0;
+    logger.info("KN: shouldDelayMemoryEvent delaying = false outer");
     return false;
   }
 
