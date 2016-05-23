@@ -244,7 +244,11 @@ public final class FabricDatabase implements ModuleControl,
   /** to allow for initial DDL replay even with failures */
   private final boolean allowBootWithFailures = Boolean.getBoolean(
       com.pivotal.gemfirexd.Property.DDLREPLAY_ALLOW_RESTART_WITH_ERRORS);
-  
+
+  /** to allow skipping of index sanity check on restart */
+  public static boolean skipIndexCheck = Boolean.getBoolean(
+      com.pivotal.gemfirexd.Property.DDLREPLAY_NO_INDEX_CHECK);
+
   /**
    * Creates a new FabricDatabase object.
    */
@@ -960,7 +964,7 @@ public final class FabricDatabase implements ModuleControl,
       // pre-initialize so before fully initializing the container and hence the
       // underlying region let's do a sanity check on the index size and region size
       // for sorted indexes.
-      if (this.memStore.isPersistIndexes() &&
+      if (!skipIndexCheck && this.memStore.isPersistIndexes() &&
           this.memStore.getMyVMKind() == GemFireStore.VMKind.DATASTORE) {
         try {
           checkRecoveredIndex(uninitializedContainers, logger, false);
