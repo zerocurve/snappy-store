@@ -28,7 +28,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.management.ListenerNotFoundException;
 import javax.management.Notification;
@@ -577,7 +576,7 @@ public void stopMonitoring() {
       .getServerInstance();
   public static boolean DELAY_MEMORY_EVENT = sysProps.getBoolean(
       "delay_memory_event", true);
-  public static final int MAX_DELAY = sysProps.getInteger(
+  public static final int MAX_DELAY_COUNT = sysProps.getInteger(
       "delay_memory_event", 5);
 
   private long prevBytesUsed = 0;
@@ -635,9 +634,9 @@ public void stopMonitoring() {
       // if still critical up but memory used has come down by 10% then reset the counters
       long delta = bytesUsed - prevBytesUsed;
       boolean isDownBy10percentOrMore = false;
-      if ( delta < 0) {
+      if ( prevBytesUsed != 0 && delta < 0) {
         long percent = (-delta/prevBytesUsed) * 100;
-        isDownBy10percentOrMore = percent < 10 ? false : true;
+        isDownBy10percentOrMore = percent > 10 ? true : false;
       }
       if (isDownBy10percentOrMore) {
         // reset
@@ -646,7 +645,7 @@ public void stopMonitoring() {
         return true;
       }
       countSinceUpsurge++;
-      if ( countSinceUpsurge * 1000 < MAX_DELAY * 1000) {
+      if ( countSinceUpsurge * 1000 < MAX_DELAY_COUNT * 1000) {
         prevBytesUsed = bytesUsed;
         return true;
       }
