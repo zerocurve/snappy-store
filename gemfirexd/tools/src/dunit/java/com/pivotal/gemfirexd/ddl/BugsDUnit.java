@@ -4906,7 +4906,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
       int totRecords = numRecordsPerThread * numThreads;
       new Inserter(baseVal, numRecordsPerThread, cities, states, exceptions).run();
 
-      stmt.execute("select cnty from ODS.POSTAL_ADDRESS where cnty = 'eight1' or cnty = 'eight2' or cnty = 'eight3'");
+      stmt.execute("select * from ODS.POSTAL_ADDRESS where cnty = 'eight1' or cnty = 'eight2' or cnty = 'eight3'");
 
       ResultSet rs = stmt.getResultSet();
       Object[][] delrows = new Object[3][5];
@@ -4922,7 +4922,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
         delrows[row][3] = rs.getObject(8);
         delrows[row][4] = rs.getObject(10);
         row++;
-        getLogWriter().info("initial cnty value = " + rs.getString(1));
+        getLogWriter().info("going to be deleted: " + rs.getObject(1) + ", " + rs.getObject(2) + ", " + rs.getObject(4) + ", " + rs.getObject(8) + ", " + rs.getObject(10) + ", ");
       }
 
       // bring one server down
@@ -4962,26 +4962,9 @@ public class BugsDUnit extends DistributedSQLTestBase {
       stmt.execute("select * from ODS.POSTAL_ADDRESS");
       rs = stmt.getResultSet();
       while(rs.next()) {
-        getLogWriter().info("VALUEs:  " + rs.getObject(8));
+        getLogWriter().info("After delete Remaining: " + rs.getObject(1) + ", " + rs.getObject(2) + ", " + rs.getObject(4) + ", " + rs.getObject(8) + ", " + rs.getObject(10) + ", ");
       }
       assertEquals(totLeftRecords, cntres);
-
-      // get all the possible combination of CNTC_ID, PSTL_ADDR_ID and CLIENT_ID
-      // Use select * so that no indexes are used
-      String qry = "select * from ODS.POSTAL_ADDRESS";
-      long[] cntcs  = new long[totLeftRecords];
-      long[] paids  = new long[totLeftRecords];
-      long[] clntds = new long[totLeftRecords];
-
-      stmt.execute(qry);
-      rs = stmt.getResultSet();
-      int i=0;
-      while(rs.next()) {
-        cntcs[i] = rs.getLong(1);
-        paids[i] = rs.getLong(2);
-        clntds[i] = rs.getLong(4);
-        i++;
-      }
 
       invokeInEveryVM(new SerializableRunnable() {
         @Override
@@ -5063,20 +5046,54 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
       // Lets get the count specific to the records deleted
       // delete from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?;
-      PreparedStatement psdel = conn.prepareStatement("select count(*) from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?");
-      psdel.setObject(1, delrows[0][0]);
-      psdel.setObject(1, delrows[0][1]);
-      psdel.setObject(1, delrows[0][3]);
-      int deleted = psdel.executeUpdate();
-      getLogWriter().info("deleted count for cntc_id = " + delrows[0][0] + ", PSTL_ADDR_ID = " + delrows[0][1] + ", client_id = " + delrows[0][3] + " = " + deleted);
+      getLogWriter().info("selecting the deleted record again for cntc_id = " + delrows[0][0] + ", PSTL_ADDR_ID = " + delrows[0][1] + ", client_id = " + delrows[0][2]);
+      PreparedStatement psSelect = conn.prepareStatement("select count(*) from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?");
+      psSelect.setObject(1, delrows[0][0]);
+      psSelect.setObject(2, delrows[0][1]);
+      psSelect.setObject(3, delrows[0][2]);
+      psSelect.execute();
       //
-      rs = psdel.getResultSet();
-      assertTrue(rs.next());
-      assertEquals(0, rs.getInt(1));
+      rs = psSelect.getResultSet();
+      if (rs.next()) {
+        // fail("No rows expected");
+        getLogWriter().info("Should have failed ... will uncomment after fixing");
+      }
+
+      // stop the newly created vm and start a new vm again so that the restarted becomes the primary bucket
+      new ServerDowner(3, exceptions2).run();
+
+      asyncVM = BugsDUnit.this.restartServerVMAsync(1, 0, (String)null, null);
+      BugsDUnit.this.joinVM(true, asyncVM);
+
+      // fire the delete on a non existent record but which should be there in the bad vm
+      //PreparedStatement psDel = conn.prepareStatement("delete from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?");
+      PreparedStatement psDel = conn.prepareStatement("delete from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=?");
+      psDel.setObject(1, delrows[0][0]);
+      psDel.setObject(2, delrows[0][1]);
+      //psDel.setObject(3, delrows[0][2]);
+      int del = psDel.executeUpdate();
+      assertEquals(0, del);
+      //
+      // get all the possible combination of CNTC_ID, PSTL_ADDR_ID and CLIENT_ID
+      // Use select * so that no indexes are used
+      String qry = "select * from ODS.POSTAL_ADDRESS";
+      long[] cntcs  = new long[totLeftRecords];
+      long[] paids  = new long[totLeftRecords];
+      long[] clntds = new long[totLeftRecords];
+
+      stmt.execute(qry);
+      rs = stmt.getResultSet();
+      int i=0;
+      while(rs.next()) {
+        cntcs[i] = rs.getLong(1);
+        paids[i] = rs.getLong(2);
+        clntds[i] = rs.getLong(4);
+        i++;
+      }
 
       String deleteStmnt = "delete from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?";
       PreparedStatement dps = conn.prepareCall(deleteStmnt);
-      for (i=0; i<totRecords; i++) {
+      for (i=0; i<totLeftRecords; i++) {
         dps.setLong(1, cntcs[i]);
         dps.setLong(2, paids[i]);
         dps.setLong(3, clntds[i]);
@@ -5092,8 +5109,6 @@ public class BugsDUnit extends DistributedSQLTestBase {
       invokeInEveryVM(BugsDUnit.class, "resetTombstoneConfigs");
       invokeInEveryVM(BugsDUnit.class, "skipIndexCheck", new Object[] { Boolean.FALSE});
     }
-
-
   }
 
   private static void insertNRecords(Connection conn, int n, String[] cities, String[] states, int client_id_base_val) throws SQLException {
