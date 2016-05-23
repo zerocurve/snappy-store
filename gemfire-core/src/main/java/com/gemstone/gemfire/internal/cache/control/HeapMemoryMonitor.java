@@ -582,6 +582,7 @@ public void stopMonitoring() {
 
   private long prevBytesUsed = 0;
   private int countSinceUpsurge = 0;
+  private long upsurgeStartTime = 0;
 
   /**
    * Compare the number of bytes used to the thresholds.  If necessary, change the state
@@ -655,19 +656,26 @@ public void stopMonitoring() {
         return true;
       }
       countSinceUpsurge++;
+      if (countSinceUpsurge == 1) {
+        upsurgeStartTime = System.currentTimeMillis();
+      }
       logger.info("KN: shouldDelayMemoryEvent isDownBy10Percent count since upsurge = " + countSinceUpsurge);
-      if ( countSinceUpsurge * 1000 < MAX_DELAY_COUNT * 1000) {
-        prevBytesUsed = bytesUsed;
-        logger.info("KN: shouldDelayMemoryEvent delaying");
-        return true;
+      long currTimeMillis = 0;
+      if ( countSinceUpsurge % 5 == 0 ) {
+        currTimeMillis = System.currentTimeMillis();
       }
-      else {
-        // reset as we are going to generate a critical up memory event.
-        logger.info("KN: shouldDelayMemoryEvent Not delaying countSinceUpsurge = " + countSinceUpsurge);
-        countSinceUpsurge = 0;
-        prevBytesUsed = 0;
-        return false;
-      }
+      if ( currTimeMillis != 0 && (currTimeMillis -  upsurgeStartTime < 5000)) { // less than five seconds
+          prevBytesUsed = bytesUsed;
+          logger.info("KN: shouldDelayMemoryEvent delaying true");
+          return true;
+        } else {
+          // reset as we are going to generate a critical up memory event.
+          logger.info("KN: shouldDelayMemoryEvent Not delaying countSinceUpsurge = " + countSinceUpsurge);
+          countSinceUpsurge = 0;
+          prevBytesUsed = 0;
+          upsurgeStartTime = 0;
+          return false;
+        }
     }
     prevBytesUsed = 0;
     countSinceUpsurge = 0;
