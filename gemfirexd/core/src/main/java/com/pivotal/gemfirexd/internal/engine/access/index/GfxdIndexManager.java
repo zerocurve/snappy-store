@@ -4366,7 +4366,7 @@ public final class GfxdIndexManager implements Dependent, IndexUpdater,
 
   @Override
   public boolean clearIndexes(LocalRegion region, boolean lockForGII,
-      boolean holdIndexLock,List<?> bucketEntries) {
+      boolean holdIndexLock, Iterator<?> bucketEntriesIter) {
     EmbedConnection conn = null;
     GemFireContainer gfc = null;
     LanguageConnectionContext lcc = null;
@@ -4426,7 +4426,6 @@ public final class GfxdIndexManager implements Dependent, IndexUpdater,
       RegionEntry entry;
       boolean isOffHeapEnabled = region.getEnableOffHeapMemory();
       if (isOffHeapEnabled || indexes != null) {
-        Iterator<?> bucketEntriesIter = bucketEntries.iterator();
         while (bucketEntriesIter.hasNext()) {
           entry = (RegionEntry) bucketEntriesIter.next();
           try {

@@ -526,12 +526,26 @@ public final class ProxyBucketRegion implements Bucket {
     Map<InternalDistributedMember, PersistentMemberID> onlineMembers = advisor.adviseInitializedPersistentMembers();
     persistenceAdvisor.checkMyStateOnMembers(onlineMembers.keySet());
     diskRegion.beginDestroyDataStorage();
-    persistenceAdvisor.finishPendingDestroy();
     // TODO: SW: also need to clear indexes loaded from persisted data to free
+    clearIndexes(logger);
+    persistenceAdvisor.finishPendingDestroy();
     // up memory (queries won't show the problem since they will skip this
     // bucket ID)
     if(logger.fineEnabled()) {
       logger.fine("destroyed persistent data for " + getFullPath());
+    }
+  }
+
+  private void clearIndexes(LogWriterI18n logger) {
+    IndexUpdater iup = this.partitionedRegion.getIndexUpdater();
+    if(logger.fineEnabled()) {
+      logger.fine("clearing index for diskregion: " + this.diskRegion);
+    }
+    if (iup != null) {
+      RegionMap rmap = diskRegion.getRecoveredEntryMap();
+      if (rmap != null && rmap.regionEntries() != null) {
+        iup.clearIndexes(this.partitionedRegion, true, false, rmap.regionEntries().iterator());
+      }
     }
   }
 

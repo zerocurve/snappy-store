@@ -4837,10 +4837,6 @@ public class BugsDUnit extends DistributedSQLTestBase {
     FabricDatabase.skipIndexCheck = flag;
   }
 
-  public String reduceLogging() {
-    return "fine";
-  }
-
   final String[] cities = {"New York", "Baltimore", "Kentucky", "Las Vegas", "Los Angeles", "Detroit", "denver", " New Jersey"};
   final String[] states = {"State 1", "sTate2", "state3", "state4", "state5"};
   String addrtab = "Create table ODS.POSTAL_ADDRESS(" +
@@ -5026,41 +5022,41 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
       // switch on after bug fix and remove the multiplication line
       if (totLeftRecords*2 != numRecordsTotIncludingSec) {
-        // fail("totLeftRecords*2 != numRecordsTotIncludingSec");
+        //fail("totLeftRecords*2 != numRecordsTotIncludingSec");
         numRecordsTotIncludingSec = numRecordsTotIncludingSec * 2;
       }
 
       // Switch ON after bug fix
-      /*
+
       if ((numRecordsTotIncludingSec_idx1 != numRecordsTotIncludingSec)
           || (numRecordsTotIncludingSec != numRecordsTotIncludingSec_idx2)
           || ( numRecordsTotIncludingSec != numRecordsTotIncludingSec_idx3)) {
         fail("totRecords*2 != numRecords in the indexes");
       }
-      */
+      
 
       if ((numRecordsTotIncludingSec_idx1 != numRecordsTotIncludingSec_idx2)
           || ( numRecordsTotIncludingSec_idx2 != numRecordsTotIncludingSec_idx3)) {
         fail("different index counts");
       }
 
+      new ServerDowner(3, exceptions2).run();
+      // The only node to which the count query can go now is the restarted faulty node
       // Lets get the count specific to the records deleted
       // delete from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?;
       getLogWriter().info("selecting the deleted record again for cntc_id = " + delrows[0][0] + ", PSTL_ADDR_ID = " + delrows[0][1] + ", client_id = " + delrows[0][2]);
-      PreparedStatement psSelect = conn.prepareStatement("select count(*) from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?");
+
+      PreparedStatement psSelect = conn.prepareStatement("select count(*) from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and CLIENT_ID=?");
       psSelect.setObject(1, delrows[0][0]);
-      psSelect.setObject(2, delrows[0][1]);
-      psSelect.setObject(3, delrows[0][2]);
+      psSelect.setObject(2, delrows[0][2]);
       psSelect.execute();
       //
       rs = psSelect.getResultSet();
-      if (rs.next()) {
-        // fail("No rows expected");
-        getLogWriter().info("Should have failed ... will uncomment after fixing");
-      }
+      assertTrue(rs.next());
+      assertEquals(0, rs.getInt(1));
 
       // stop the newly created vm and start a new vm again so that the restarted becomes the primary bucket
-      new ServerDowner(3, exceptions2).run();
+      //new ServerDowner(3, exceptions2).run();
 
       asyncVM = BugsDUnit.this.restartServerVMAsync(1, 0, (String)null, null);
       BugsDUnit.this.joinVM(true, asyncVM);
@@ -5125,7 +5121,8 @@ public class BugsDUnit extends DistributedSQLTestBase {
       int ctyidx = rand.nextInt(citylen);
       int stateidx = rand.nextInt(statelen);
       int offset = rand.nextInt(10);
-      ps.setLong(1, client_id_base_val+offset );
+      //ps.setLong(1, client_id_base_val+offset );
+      ps.setLong(1, client_id_base_val+i );
       ps.setLong(2, offset+2);
       ps.setLong(3, offset+3);
       ps.setString(4, "four"+i);
