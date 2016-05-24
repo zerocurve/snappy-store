@@ -424,7 +424,8 @@ public final class GfxdIndexManager implements Dependent, IndexUpdater,
           }
         }
         boolean throwEEE = false;
-        if (!posDup && (owner.isInitialized() || (!owner.isInitialized() && !isRecovered))) {
+        if (!posDup && (owner.isInitialized() || (!this.isPartitionedRegion && !owner.isInitialized()
+            && !isRecovered))) {
           if (lastModifiedFromOrigin == -1
               || lastModifiedFromOrigin != entry.getLastModified()) {
             throwEEE = true;
