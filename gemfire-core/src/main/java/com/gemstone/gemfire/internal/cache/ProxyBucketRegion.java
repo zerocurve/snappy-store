@@ -526,7 +526,6 @@ public final class ProxyBucketRegion implements Bucket {
     Map<InternalDistributedMember, PersistentMemberID> onlineMembers = advisor.adviseInitializedPersistentMembers();
     persistenceAdvisor.checkMyStateOnMembers(onlineMembers.keySet());
     diskRegion.beginDestroyDataStorage();
-    // TODO: SW: also need to clear indexes loaded from persisted data to free
     clearIndexes(logger);
     persistenceAdvisor.finishPendingDestroy();
     // up memory (queries won't show the problem since they will skip this

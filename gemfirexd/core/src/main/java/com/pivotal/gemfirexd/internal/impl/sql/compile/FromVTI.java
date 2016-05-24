@@ -512,8 +512,8 @@ public class FromVTI extends FromTable implements VTIEnvironment
                     }
             }
             else if (key.equals(Constants.QueryHints.withSecondaries.name())) {
-							explicitSecondaryBucketSet = true;
-							includeSecondaryBuckets = Misc.parseBoolean(value);
+              explicitSecondaryBucketSet = true;
+              includeSecondaryBuckets = Misc.parseBoolean(value);
               final CompilerContext cc = getCompilerContext();
               cc.setOptimizeForWrite(!includeSecondaryBuckets);
               cc.setWithSecondaries(includeSecondaryBuckets);

@@ -4865,15 +4865,25 @@ public class BugsDUnit extends DistributedSQLTestBase {
       "  BUCKETS 1" +
       "  EVICTION BY LRUHEAPPERCENT EVICTACTION OVERFLOW PERSISTENT";
 
-  final String idx1 = "CREATE INDEX IX_POSTAL_ADDRESS_01 ON ODS.POSTAL_ADDRESS ( CNTC_ID, CLIENT_ID )";
-  final String idx2 = "CREATE INDEX IX_POSTAL_ADDRESS_02 ON ODS.POSTAL_ADDRESS (CTY, CLIENT_ID) -- GEMFIREXD-PROPERTIES caseSensitive=false";
-  final String idx3 = "CREATE INDEX IX_POSTAL_ADDRESS_03 ON ODS.POSTAL_ADDRESS (ST, CLIENT_ID) -- GEMFIREXD-PROPERTIES caseSensitive=false";
+  final String idx1 =
+      "CREATE INDEX IX_POSTAL_ADDRESS_01 ON ODS.POSTAL_ADDRESS ( CNTC_ID, CLIENT_ID )";
+  final String idx2 =
+      "CREATE INDEX IX_POSTAL_ADDRESS_02 ON ODS.POSTAL_ADDRESS (CTY, CLIENT_ID) " +
+          "-- GEMFIREXD-PROPERTIES caseSensitive=false";
+  final String idx3 =
+      "CREATE INDEX IX_POSTAL_ADDRESS_03 ON ODS.POSTAL_ADDRESS (ST, CLIENT_ID) " +
+          "-- GEMFIREXD-PROPERTIES caseSensitive=false";
 
-  final String diag1primaries = "select count(*), dsid() from sys.members m --GEMFIREXD-PROPERTIES withSecondaries=false\n , ods.postal_address where dsid() = m.id group by dsid()";
-  final String diag2withSecondaries = "select count(*), dsid() from sys.members m --GEMFIREXD-PROPERTIES withSecondaries=true\n , ods.postal_address where dsid() = m.id group by dsid()";
-  final String diag3idx1 = "select count(*), dsid() from sys.members m , ods.postal_address --GEMFIREXD-PROPERTIES index=IX_POSTAL_ADDRESS_01\n where dsid() = m.id group by dsid()";
-  final String diag4idx2 = "select count(*), dsid() from sys.members m , ods.postal_address --GEMFIREXD-PROPERTIES index=IX_POSTAL_ADDRESS_02\n where dsid() = m.id group by dsid()";
-  final String diag5idx3 = "select count(*), dsid() from sys.members m , ods.postal_address --GEMFIREXD-PROPERTIES index=IX_POSTAL_ADDRESS_03\n where dsid() = m.id group by dsid()";
+  final String diag1primaries = "select count(*), dsid() from sys.members m " +
+      "--GEMFIREXD-PROPERTIES withSecondaries=false\n , ods.postal_address where dsid() = m.id group by dsid()";
+  final String diag2withSecondaries = "select count(*), dsid() from sys.members m " +
+      "--GEMFIREXD-PROPERTIES withSecondaries=true\n , ods.postal_address where dsid() = m.id group by dsid()";
+  final String diag3idx1 = "select count(*), dsid() from sys.members m , ods.postal_address " +
+      "--GEMFIREXD-PROPERTIES index=IX_POSTAL_ADDRESS_01\n where dsid() = m.id group by dsid()";
+  final String diag4idx2 = "select count(*), dsid() from sys.members m , ods.postal_address " +
+      "--GEMFIREXD-PROPERTIES index=IX_POSTAL_ADDRESS_02\n where dsid() = m.id group by dsid()";
+  final String diag5idx3 = "select count(*), dsid() from sys.members m , ods.postal_address " +
+      "--GEMFIREXD-PROPERTIES index=IX_POSTAL_ADDRESS_03\n where dsid() = m.id group by dsid()";
 
 
   public void testLongTimeOfflineIndexCorruption() throws Exception {
@@ -4918,7 +4928,8 @@ public class BugsDUnit extends DistributedSQLTestBase {
         delrows[row][3] = rs.getObject(8);
         delrows[row][4] = rs.getObject(10);
         row++;
-        getLogWriter().info("going to be deleted: " + rs.getObject(1) + ", " + rs.getObject(2) + ", " + rs.getObject(4) + ", " + rs.getObject(8) + ", " + rs.getObject(10) + ", ");
+        getLogWriter().info("going to be deleted: " + rs.getObject(1) + ", " + rs.getObject(2) +
+            ", " + rs.getObject(4) + ", " + rs.getObject(8) + ", " + rs.getObject(10) + ", ");
       }
 
       // bring one server down
@@ -4936,7 +4947,8 @@ public class BugsDUnit extends DistributedSQLTestBase {
       pr.getRegionAdvisor().getBucketAdvisor(0).waitForRedundancy(1);
 
       // Now delete few entries 3 to be precise
-      int numDeletes = stmt.executeUpdate("delete from ODS.POSTAL_ADDRESS where cnty = 'eight1' or cnty = 'eight2' or cnty = 'eight3'");
+      int numDeletes = stmt.executeUpdate("delete from ODS.POSTAL_ADDRESS where " +
+          "cnty = 'eight1' or cnty = 'eight2' or cnty = 'eight3'");
       assertEquals(3, numDeletes);
       // Now bring back the downed server after a long time
       sleepForMs(30000);
@@ -4958,7 +4970,8 @@ public class BugsDUnit extends DistributedSQLTestBase {
       stmt.execute("select * from ODS.POSTAL_ADDRESS");
       rs = stmt.getResultSet();
       while(rs.next()) {
-        getLogWriter().info("After delete Remaining: " + rs.getObject(1) + ", " + rs.getObject(2) + ", " + rs.getObject(4) + ", " + rs.getObject(8) + ", " + rs.getObject(10) + ", ");
+        getLogWriter().info("After delete Remaining: " + rs.getObject(1) +
+            ", " + rs.getObject(2) + ", " + rs.getObject(4) + ", " + rs.getObject(8) + ", " + rs.getObject(10) + ", ");
       }
       assertEquals(totLeftRecords, cntres);
 
@@ -5022,8 +5035,7 @@ public class BugsDUnit extends DistributedSQLTestBase {
 
       // switch on after bug fix and remove the multiplication line
       if (totLeftRecords*2 != numRecordsTotIncludingSec) {
-        //fail("totLeftRecords*2 != numRecordsTotIncludingSec");
-        numRecordsTotIncludingSec = numRecordsTotIncludingSec * 2;
+        fail("totLeftRecords*2 != numRecordsTotIncludingSec");
       }
 
       // Switch ON after bug fix
@@ -5044,9 +5056,11 @@ public class BugsDUnit extends DistributedSQLTestBase {
       // The only node to which the count query can go now is the restarted faulty node
       // Lets get the count specific to the records deleted
       // delete from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?;
-      getLogWriter().info("selecting the deleted record again for cntc_id = " + delrows[0][0] + ", PSTL_ADDR_ID = " + delrows[0][1] + ", client_id = " + delrows[0][2]);
+      getLogWriter().info("selecting the deleted record again for cntc_id = "
+          + delrows[0][0] + ", PSTL_ADDR_ID = " + delrows[0][1] + ", client_id = " + delrows[0][2]);
 
-      PreparedStatement psSelect = conn.prepareStatement("select count(*) from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and CLIENT_ID=?");
+      PreparedStatement psSelect = conn.prepareStatement
+          ("select count(*) from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and CLIENT_ID=?");
       psSelect.setObject(1, delrows[0][0]);
       psSelect.setObject(2, delrows[0][2]);
       psSelect.execute();
@@ -5062,8 +5076,8 @@ public class BugsDUnit extends DistributedSQLTestBase {
       BugsDUnit.this.joinVM(true, asyncVM);
 
       // fire the delete on a non existent record but which should be there in the bad vm
-      //PreparedStatement psDel = conn.prepareStatement("delete from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=? and CLIENT_ID=?");
-      PreparedStatement psDel = conn.prepareStatement("delete from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=?");
+      PreparedStatement psDel = conn.prepareStatement
+          ("delete from ODS.POSTAL_ADDRESS WHERE CNTC_ID=? and PSTL_ADDR_ID=?");
       psDel.setObject(1, delrows[0][0]);
       psDel.setObject(2, delrows[0][1]);
       //psDel.setObject(3, delrows[0][2]);
@@ -5107,15 +5121,16 @@ public class BugsDUnit extends DistributedSQLTestBase {
     }
   }
 
-  private static void insertNRecords(Connection conn, int n, String[] cities, String[] states, int client_id_base_val) throws SQLException {
+  private static void insertNRecords(Connection conn, int n,
+      String[] cities, String[] states, int client_id_base_val) throws SQLException {
     long randStart = client_id_base_val;
     long randEnd = client_id_base_val + 2 * n;
     Random rand = new Random();
     int citylen = cities.length;
     int statelen = states.length;
-    //PreparedStatement ps = conn.prepareStatement("insert into ODS.POSTAL_ADDRESS values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
     PreparedStatement ps = conn.prepareStatement("insert into ODS.POSTAL_ADDRESS " +
-        "(cntc_id ,ver ,client_id ,str_ln1,str_ln2,str_ln3, cty ,cnty , st, pstl_cd, cntry, vldtd, vldtn_dt, vld_frm_dt, vld_to_dt, src_sys_ref_id, src_sys_rec_id)" +
+        "(cntc_id ,ver ,client_id ,str_ln1,str_ln2,str_ln3, cty ,cnty , st, pstl_cd, " +
+        "cntry, vldtd, vldtn_dt, vld_frm_dt, vld_to_dt, src_sys_ref_id, src_sys_rec_id)" +
         " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
     for (int i=0; i<n ; i++) {
       int ctyidx = rand.nextInt(citylen);

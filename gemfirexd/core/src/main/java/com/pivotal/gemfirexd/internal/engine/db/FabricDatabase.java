@@ -242,12 +242,12 @@ public final class FabricDatabase implements ModuleControl,
       .getServerInstance().getBoolean("gemfirexd.SKIP_SPS_PRECOMPILE", false);
 
   /** to allow for initial DDL replay even with failures */
-  private final boolean allowBootWithFailures = Boolean.getBoolean(
-      com.pivotal.gemfirexd.Property.DDLREPLAY_ALLOW_RESTART_WITH_ERRORS);
+  private final boolean allowBootWithFailures = SystemProperties.getServerInstance().getBoolean(
+      com.pivotal.gemfirexd.Property.DDLREPLAY_ALLOW_RESTART_WITH_ERRORS, false);
 
   /** to allow skipping of index sanity check on restart */
-  public static boolean skipIndexCheck = Boolean.getBoolean(
-      com.pivotal.gemfirexd.Property.DDLREPLAY_NO_INDEX_CHECK);
+  public static boolean skipIndexCheck = SystemProperties.getServerInstance().getBoolean(
+      com.pivotal.gemfirexd.Property.DDLREPLAY_NO_INDEX_CHECK, false);
 
   /**
    * Creates a new FabricDatabase object.

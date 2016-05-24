@@ -364,7 +364,6 @@ public final class GfxdIndexManager implements Dependent, IndexUpdater,
       traceIndex("GfxdIndexManager#onEvent: invoked for container %s with "
           + "index descriptors [%s] with entry %s, for event: %s",
           this.container, getObjectString(indexes), entry, event);
-      Misc.getCacheLogWriter().info("onEvent stack trace ", new Exception());
     }
 
     // null the context just in case next calls throw exceptions
