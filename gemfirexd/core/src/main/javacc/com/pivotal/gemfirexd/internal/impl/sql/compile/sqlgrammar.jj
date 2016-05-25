@@ -427,12 +427,12 @@ public class SQLParser
 	    afact.setDataPolicy(DataPolicy.PERSISTENT_PARTITION);
 	    distributionNode.setPersistence(true);
 	    // [sjigyasu] Create versioned region entries for persistent partitioned tables
-      if (callback.haveRegisteredExternalStore(tableName.getFullTableName())){
-        afact.setConcurrencyChecksEnabled(false);
-       }
-       else if (concChecksFlag) {
-         afact.setConcurrencyChecksEnabled(true);
-       }
+           if (callback.haveRegisteredExternalStore(tableName.getFullTableName())){
+              afact.setConcurrencyChecksEnabled(false);
+           }
+           else if (concChecksFlag) {
+              afact.setConcurrencyChecksEnabled(true);
+           }
 	  }
         if (repPartPersFlags[0]) {
           if (repPartPersFlags[2]) {

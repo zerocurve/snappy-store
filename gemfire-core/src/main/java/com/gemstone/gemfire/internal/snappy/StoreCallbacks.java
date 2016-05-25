@@ -32,5 +32,5 @@ public interface StoreCallbacks {
   List<String> getInternalTableSchemas();
   public int getHashCodeSnappy(Object dvd);
   public int getHashCodeSnappy(Object dvds[]);
-  public Boolean haveRegisteredExternalStore(String tableName);
+  public boolean haveRegisteredExternalStore(String tableName);
 }
