@@ -50,6 +50,13 @@ public abstract class CallbackFactoryProvider {
       throw new UnsupportedOperationException("unexpected invocation for "
           + toString());
     }
+
+    @Override
+    public Boolean haveRegisteredExternalStore(String tableName) {
+      throw new UnsupportedOperationException("unexpected invocation for "
+          + toString());
+    }
+
   };
 
   public static void setStoreCallbacks(StoreCallbacks cb) {
