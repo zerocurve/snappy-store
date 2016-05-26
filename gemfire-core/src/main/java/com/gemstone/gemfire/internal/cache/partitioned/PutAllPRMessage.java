@@ -432,10 +432,13 @@ public final class PutAllPRMessage extends PartitionMessageWithDirectReply {
       baseEvent.setLockingPolicy(getLockingPolicy());
       baseEvent.setFetchFromHDFS(this.fetchFromHDFS);
       baseEvent.setPutDML(this.isPutDML);
+
       if (logFineEnabled) {
         logger.fine("PutAllPRMessage.doLocalPutAll: eventSender is "
             + eventSender + ", baseEvent is " + baseEvent + ", msg is " + this);
       }
+      lastModified = baseEvent.getEventTime(lastModified);
+      baseEvent.setEntryLastModified(lastModified);
       dpao = new DistributedPutAllOperation(r, baseEvent, putAllPRDataSize,
           false, this.putAllPRData);
     }
@@ -520,7 +523,8 @@ public final class PutAllPRMessage extends PartitionMessageWithDirectReply {
               // make sure a local update inserts a cache de-serializable
               ev.makeSerializedNewValue();
 //            ev.setLocalFilterInfo(r.getFilterProfile().getLocalFilterRouting(ev));
-
+              if (tx == null)
+                ev.setEntryLastModified(lastModified);
               // ev will be added into dpao in putLocally()
               // oldValue and real operation will be modified into ev in putLocally()
               // then in basicPutPart3(), the ev is added into dpao
