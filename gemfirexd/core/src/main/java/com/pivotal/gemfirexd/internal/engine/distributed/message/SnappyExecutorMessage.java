@@ -18,14 +18,24 @@ import com.pivotal.gemfirexd.internal.snappy.CallbackFactoryProvider;
  */
 public class SnappyExecutorMessage extends MemberExecutorMessage<Object> {
 
+  public static final short UPDATE_BLOCKMAP_ENTRY = 0x01;
+  public static final short REMOVE_BLOCKMAP_ENTRY = (UPDATE_BLOCKMAP_ENTRY << 1);
+
   private DistributedMember dm;
 
   private Externalizable blockManagerId;
 
+  private short flags = 0x0;
+
   public SnappyExecutorMessage(Externalizable blockId) {
     super(new DefaultResultCollector(), null, false, true);
     this.dm = Misc.getMyId();
-    this.blockManagerId = blockId;
+    if (blockId == null) {
+      this.flags |= REMOVE_BLOCKMAP_ENTRY;
+    } else {
+      this.flags |= UPDATE_BLOCKMAP_ENTRY;
+      this.blockManagerId = blockId;
+    }
   }
 
   /**
@@ -58,8 +68,8 @@ public class SnappyExecutorMessage extends MemberExecutorMessage<Object> {
   protected void execute() throws Exception {
     InternalDistributedMember m = this.getSenderForReply();
     CallbackFactoryProvider.getClusterCallbacks().updateBlockMap(this.dm, this.blockManagerId);
+    this.lastResult(null);
     this.lastResultSent = true;
-    this.endMessage();
   }
 
   @Override
@@ -76,15 +86,21 @@ public class SnappyExecutorMessage extends MemberExecutorMessage<Object> {
   @Override
   public void fromData(DataInput in) throws IOException, ClassNotFoundException {
     super.fromData(in);
+    this.flags = DataSerializer.readShort(in);
     this.dm = DataSerializer.readObject(in);
-    this.blockManagerId = DataSerializer.readObject(in);
+    if ((this.flags & UPDATE_BLOCKMAP_ENTRY) == UPDATE_BLOCKMAP_ENTRY) {
+      this.blockManagerId = DataSerializer.readObject(in);
+    }
   }
 
   @Override
   public void toData(final DataOutput out) throws IOException {
     super.toData(out);
+    DataSerializer.writeShort(this.flags, out);
     DataSerializer.writeObject(this.dm, out);
-    DataSerializer.writeObject(this.blockManagerId, out);
+    if ((this.flags & UPDATE_BLOCKMAP_ENTRY) == UPDATE_BLOCKMAP_ENTRY) {
+      DataSerializer.writeObject(this.blockManagerId, out);
+    }
   }
 
 }
