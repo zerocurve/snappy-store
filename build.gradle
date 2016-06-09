@@ -43,7 +43,7 @@ allprojects {
     antVersion = '1.8.4'
     pxfVersion = '2.5.1.0'
     osgiVersion = '6.0.0'
-    jettyVersion = '8.1.14.v20131031'
+    jettyVersion = '9.2.16.v20160414'
     hadoopVersion = '2.4.1'
     protobufVersion = '2.6.1'
     jerseyVersion = '1.9'
