@@ -30,7 +30,7 @@ public interface StoreCallbacks {
   Set createCachedBatch(BucketRegion region, UUID batchID, int bucketID);
 
   List<String> getInternalTableSchemas();
-  public int getHashCodeSnappy(Object dvd);
-  public int getHashCodeSnappy(Object dvds[]);
+  public int getHashCodeSnappy(Object dvd, int numPartitions);
+  public int getHashCodeSnappy(Object dvds[], int numPartitions);
   public boolean haveRegisteredExternalStore(String tableName);
 }
