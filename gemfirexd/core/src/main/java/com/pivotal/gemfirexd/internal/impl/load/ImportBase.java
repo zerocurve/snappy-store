@@ -215,6 +215,7 @@ public class ImportBase extends ImportAbstract{
 // GemsTone changes END
 		throws SQLException {
 
+		columnDelimiter = ( columnDelimiter == null ?  "," : columnDelimiter);
 
 		performImport(connection,  schemaName,  null, //No columnList 
 					  null , //No column indexes
