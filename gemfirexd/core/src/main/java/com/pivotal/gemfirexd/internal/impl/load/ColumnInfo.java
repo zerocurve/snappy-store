@@ -127,7 +127,7 @@ class ColumnInfo {
 		this.tableName =  tName;
 		
 		// GemStone changes BEGIN
-		
+		columnDelimiter = columnDelimiter == null ? "," : columnDelimiter;
 		//First, read column names from file. 
 		//If data file has no column name specified, then readColumnListFromFile returns null
 		String insertColumnListFromFile = readColumnListFromFile(inputFileName, columnDelimiter);
