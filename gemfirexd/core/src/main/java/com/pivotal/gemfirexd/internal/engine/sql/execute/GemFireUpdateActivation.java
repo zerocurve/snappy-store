@@ -32,6 +32,7 @@ import com.gemstone.gemfire.internal.cache.delta.Delta;
 import com.gemstone.gemfire.internal.cache.tier.sockets.VersionedObjectList;
 import com.pivotal.gemfirexd.internal.engine.Misc;
 import com.pivotal.gemfirexd.internal.engine.access.GemFireTransaction;
+import com.pivotal.gemfirexd.internal.engine.distributed.metadata.AbstractConditionQueryInfo;
 import com.pivotal.gemfirexd.internal.engine.distributed.metadata.DMLQueryInfo;
 import com.pivotal.gemfirexd.internal.engine.distributed.metadata.DynamicKey;
 import com.pivotal.gemfirexd.internal.engine.distributed.metadata.UpdateQueryInfo;
@@ -44,6 +45,7 @@ import com.pivotal.gemfirexd.internal.iapi.services.io.FormatableBitSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.ExecPreparedStatement;
 import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
+import com.pivotal.gemfirexd.internal.impl.sql.compile.ValueNode;
 import com.pivotal.gemfirexd.internal.impl.sql.execute.ValueRow;
 
 /**
@@ -79,6 +81,8 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
     // Asif: Obtain the Primary Key. If it is dynamic then we need to compute
     // now If it is static use it as it is
     Object pk = this.qInfo.getPrimaryKey();
+    ValueNode whereClause = ((UpdateQueryInfo)this.qInfo).getWhereExpression();
+
     Object[] gfKeys = null;
     // TODO:Asif: We need to find out a cleaner
     // way to detect bulk get / bulk put conditions
@@ -147,7 +151,7 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
         }
         this.container.replacePartialRow(gfKeys[i],
             (FormatableBitSet)tmpResult[1], dvds, null, tran, tx, lcc,
-            this.mkvh, flush);
+            this.mkvh, flush, whereClause);
         if (flush) {
           this.mkvh = null;
         }

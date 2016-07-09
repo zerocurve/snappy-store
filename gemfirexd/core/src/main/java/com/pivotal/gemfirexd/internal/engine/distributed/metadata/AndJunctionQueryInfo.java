@@ -274,6 +274,8 @@ public class AndJunctionQueryInfo extends JunctionQueryInfo {
     return retType;
   }
 
+
+
   /*
    * (non-Javadoc)
    * @see isConvertibleToGet(...)
@@ -289,15 +291,15 @@ public class AndJunctionQueryInfo extends JunctionQueryInfo {
       Map<String, ComparisonQueryInfo> unameToCondition = this.equalityConditions
           .values().iterator().next();
       int opsLen = unameToCondition.size();
-      if (fkColumns.length == opsLen) {
+      if (fkColumns.length <= opsLen) {
         AbstractConditionQueryInfo conditions[] = new AbstractConditionQueryInfo[opsLen];
         unameToCondition.values().toArray(conditions);
         if (opsLen > 2) {
           sortOperandInIncreasingColumnPosition(conditions);
         }
         pks = this.isWhereClauseDynamic() || this.hasINPredicate() ? new Object[opsLen]
-            : new DataValueDescriptor[opsLen];
-        for (int index = 0; index < opsLen; ++index) {
+            : new DataValueDescriptor[fkColumns.length];
+        for (int index = 0; index < fkColumns.length; ++index) {
           AbstractConditionQueryInfo aqi = conditions[index];
           Object temp = aqi.isConvertibleToGet(fkColumns[index][0], tqi);
           if (temp == null) {
@@ -330,6 +332,8 @@ public class AndJunctionQueryInfo extends JunctionQueryInfo {
     }
     return retType;
   }
+
+
 
   private Object[] generateCompositeKeysForBulkOp(Object[] baseKeys, TableQueryInfo tqi)
       throws StandardException {
