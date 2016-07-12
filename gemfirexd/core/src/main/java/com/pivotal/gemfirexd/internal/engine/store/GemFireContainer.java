@@ -121,6 +121,7 @@ import com.pivotal.gemfirexd.internal.iapi.services.io.FormatableBitSet;
 import com.pivotal.gemfirexd.internal.iapi.services.io.LimitObjectInput;
 import com.pivotal.gemfirexd.internal.iapi.sql.Activation;
 import com.pivotal.gemfirexd.internal.iapi.sql.PreparedStatement;
+import com.pivotal.gemfirexd.internal.iapi.sql.compile.C_NodeTypes;
 import com.pivotal.gemfirexd.internal.iapi.sql.compile.CompilerContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.ColumnDescriptor;
@@ -145,6 +146,8 @@ import com.pivotal.gemfirexd.internal.iapi.types.*;
 import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedConnection;
 import com.pivotal.gemfirexd.internal.impl.sql.catalog.GfxdDataDictionary;
 import com.pivotal.gemfirexd.internal.impl.sql.catalog.SYSTABLESRowFactory;
+import com.pivotal.gemfirexd.internal.impl.sql.compile.FromList;
+import com.pivotal.gemfirexd.internal.impl.sql.compile.SubqueryList;
 import com.pivotal.gemfirexd.internal.impl.sql.compile.ValueNode;
 import com.pivotal.gemfirexd.internal.impl.sql.execute.ValueRow;
 import com.pivotal.gemfirexd.internal.shared.common.SharedUtils;
@@ -3982,7 +3985,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
       throws StandardException {
     if (tran == null || !tran.needLogging()) {
       return replacePartialRow(key, callbackArg, true /* isPkBased */,
-          validColumns, changedRow, true, tx, lcc, mkvh, flushBatch, null);
+          validColumns, changedRow, true, tx, lcc, mkvh, flushBatch, null, null);
     }
     else {
       MemUpdateOperation op = new MemUpdateOperation(this, changedRow, null,
@@ -4002,11 +4005,11 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
       DataValueDescriptor[] changedRow, Object callbackArg,
       GemFireTransaction tran, final TXStateInterface tx,
       LanguageConnectionContext lcc, MultipleKeyValueHolder mkvh, boolean flushBatch, ValueNode
-      whereClause)
+      whereClause, FromList fromList)
       throws StandardException {
     if (tran == null || !tran.needLogging()) {
       return replacePartialRow(key, callbackArg, true /* isPkBased */,
-          validColumns, changedRow, true, tx, lcc, mkvh, flushBatch, whereClause);
+          validColumns, changedRow, true, tx, lcc, mkvh, flushBatch, whereClause, fromList);
     }
     else {
       MemUpdateOperation op = new MemUpdateOperation(this, changedRow, null,
@@ -4064,7 +4067,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
       DataValueDescriptor[] changedRow, boolean typeResolution,
       final TXStateInterface tx, LanguageConnectionContext lcc,
       MultipleKeyValueHolder mkvh, boolean flushBatch, ValueNode
-      whereClause) throws StandardException {
+      whereClause, FromList fromList) throws StandardException {
 
     assert (key instanceof Long) || (key instanceof RegionKey): key.getClass()
         .getName();
@@ -4116,8 +4119,9 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
 
 
       if(whereClause != null){
-        System.out.println(" Where clause = "+ whereClause.getClass());
+        System.out.println(" fromList clause = "+ fromList);
         final ValidUpdateOperation vop = new ValidUpdateOperation(whereClause);
+        vop.bindExpression(fromList, lcc);
         vop.initialize(this,lcc );
       }
 
@@ -4371,7 +4375,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
     }
     // for derby code path, type resolution will not be required
     return replacePartialRow(key, routingObject, false /* isPkBased */,
-        validColumns, changedRow, false, tx, lcc, null, false, null);
+        validColumns, changedRow, false, tx, lcc, null, false, null, null);
   }
 
   private StandardException processRuntimeException(final RuntimeException e,
@@ -6118,7 +6122,34 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
           lcc);
     }
 
-    public ValidUpdateOperation(ValueNode predicate) {
+    public void bindExpression(FromList fromList, LanguageConnectionContext lcc)
+        throws StandardException {
+
+      // Check for no aggregates in EVICTION BY CRITERIA
+      Vector<?> aggregates = new Vector<>();
+      SubqueryList subqueries = (SubqueryList)lcc.getLanguageConnectionFactory()
+          .getNodeFactory()
+          .getNode(C_NodeTypes.SUBQUERY_LIST, lcc.getContextManager());
+      final String[] exprCols = this.predicateCompiler.bindExpression(fromList,
+          subqueries, aggregates);
+      if (exprCols == null || exprCols.length == 0) {
+        throw StandardException
+            .newException(SQLState.LANG_TABLE_REQUIRES_COLUMN_NAMES);
+      }
+      if (aggregates.size() > 0) {
+        throw StandardException
+            .newException(SQLState.LANG_NO_AGGREGATES_IN_WHERE_CLAUSE);
+      }
+      // TODO: HDFS: should subqueries (EXISTS) be allowed? if we should allow
+      // then expression compiler will need to be generalized to handle that
+      if (subqueries.size() > 0) {
+        throw StandardException.newException(
+            SQLState.LANG_NO_SUBQUERIES_IN_WHERE_CLAUSE, "EVICTION BY CRITERIA");
+      }
+      this.predicateCompiler.normalizeExpression(true);
+    }
+
+      public ValidUpdateOperation(ValueNode predicate) {
       this.predicateCompiler = new ExpressionCompiler(predicate,
           new HashMap<String, Integer>(), "EVICTION BY CRITERIA");
 

@@ -1255,6 +1255,8 @@ public class SQLParser
 							tableName,
 							resultSet,
 							whereClause,
+							fromList,
+							statementSQLText,
 							getContextManager());
 
 		setUpAndLinkParameters();

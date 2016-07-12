@@ -45,6 +45,7 @@ import com.pivotal.gemfirexd.internal.iapi.services.io.FormatableBitSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.ExecPreparedStatement;
 import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
+import com.pivotal.gemfirexd.internal.impl.sql.compile.FromList;
 import com.pivotal.gemfirexd.internal.impl.sql.compile.ValueNode;
 import com.pivotal.gemfirexd.internal.impl.sql.execute.ValueRow;
 
@@ -82,6 +83,7 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
     // now If it is static use it as it is
     Object pk = this.qInfo.getPrimaryKey();
     ValueNode whereClause = ((UpdateQueryInfo)this.qInfo).getWhereExpression();
+    FromList fromList = ((UpdateQueryInfo)this.qInfo).fromList;
 
     Object[] gfKeys = null;
     // TODO:Asif: We need to find out a cleaner
@@ -151,7 +153,7 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
         }
         this.container.replacePartialRow(gfKeys[i],
             (FormatableBitSet)tmpResult[1], dvds, null, tran, tx, lcc,
-            this.mkvh, flush, whereClause);
+            this.mkvh, flush, whereClause, fromList);
         if (flush) {
           this.mkvh = null;
         }
