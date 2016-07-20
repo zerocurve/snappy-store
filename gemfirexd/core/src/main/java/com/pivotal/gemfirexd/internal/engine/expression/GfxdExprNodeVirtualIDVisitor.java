@@ -81,7 +81,6 @@ public final class GfxdExprNodeVirtualIDVisitor extends VisitorAdaptor {
 
   @Override
   public Visitable visit(Visitable node) throws StandardException {
-    System.out.println(" Node "+ node + " and class  "+ node.getClass());
     if (node instanceof ColumnReference) {
       final ColumnReference colRef = (ColumnReference)node;
       if (this.columnToIndexMap != null) {

@@ -48,12 +48,7 @@ public class UpdateQueryInfo extends DMLQueryInfo {
   
   //Create by default the number of rows to be updated as equal to the number of columns in the ResultsColumnList
   private QueryInfo[][] updateCols = null;
-  private ValueNode whereExpression;
-  public FromList fromList;
   public String statementSQLText;
-  public ValueNode getWhereExpression(){
-    return whereExpression;
-  }
   private int currentColumnIndex = 0;
   //private ValueQueryInfo[] foreignKeyVals = null;
   //private ForeignKeyConstraintDescriptor fcd = null;
@@ -219,8 +214,6 @@ public class UpdateQueryInfo extends DMLQueryInfo {
     if (node instanceof UpdateNode) {
       final UpdateNode updNode = (UpdateNode)node;
       this.updateTargetTableNum = updNode.getTargetTableID();
-      this.whereExpression = updNode.whereClause;
-      this.fromList = updNode.getResultSetNode().getFromList();
       this.statementSQLText = updNode.statementSQLText;
       if (updNode.targetVTI != null) {
         updNode.targetVTI.computeQueryInfo(this.qic);
@@ -315,7 +308,7 @@ public class UpdateQueryInfo extends DMLQueryInfo {
         
       }
 
-  } 
+  }
 
   public LocalRegion getTargetRegion() {
     return this.tableQueryInfoList.get(this.updateTargetTableNum).getRegion();

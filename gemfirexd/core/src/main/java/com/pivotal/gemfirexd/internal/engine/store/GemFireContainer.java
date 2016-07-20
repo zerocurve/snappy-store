@@ -31,7 +31,6 @@ import com.gemstone.gemfire.InternalGemFireError;
 import com.gemstone.gemfire.cache.*;
 import com.gemstone.gemfire.cache.asyncqueue.AsyncEventQueue;
 import com.gemstone.gemfire.cache.asyncqueue.internal.AsyncEventQueueImpl;
-import com.gemstone.gemfire.cache.execute.internal.ValidOperation;
 import com.gemstone.gemfire.cache.query.IndexMaintenanceException;
 import com.gemstone.gemfire.cache.wan.GatewaySender;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
@@ -98,7 +97,6 @@ import com.pivotal.gemfirexd.internal.engine.distributed.message.ContainsUniqueK
 import com.pivotal.gemfirexd.internal.engine.distributed.message.GfxdFunctionMessage;
 import com.pivotal.gemfirexd.internal.engine.distributed.metadata.ColumnQueryInfo;
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.GemFireXDUtils;
-import com.pivotal.gemfirexd.internal.engine.expression.ExpressionCompiler;
 import com.pivotal.gemfirexd.internal.engine.jdbc.GemFireXDRuntimeException;
 import com.pivotal.gemfirexd.internal.engine.locks.AbstractGfxdLockable;
 import com.pivotal.gemfirexd.internal.engine.locks.DefaultGfxdLockable;
@@ -120,8 +118,6 @@ import com.pivotal.gemfirexd.internal.iapi.reference.SQLState;
 import com.pivotal.gemfirexd.internal.iapi.services.io.FormatableBitSet;
 import com.pivotal.gemfirexd.internal.iapi.services.io.LimitObjectInput;
 import com.pivotal.gemfirexd.internal.iapi.sql.Activation;
-import com.pivotal.gemfirexd.internal.iapi.sql.PreparedStatement;
-import com.pivotal.gemfirexd.internal.iapi.sql.compile.C_NodeTypes;
 import com.pivotal.gemfirexd.internal.iapi.sql.compile.CompilerContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.ColumnDescriptor;
@@ -143,12 +139,8 @@ import com.pivotal.gemfirexd.internal.iapi.store.raw.RecordHandle;
 import com.pivotal.gemfirexd.internal.iapi.store.raw.Transaction;
 import com.pivotal.gemfirexd.internal.iapi.store.raw.log.LogInstant;
 import com.pivotal.gemfirexd.internal.iapi.types.*;
-import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedConnection;
 import com.pivotal.gemfirexd.internal.impl.sql.catalog.GfxdDataDictionary;
 import com.pivotal.gemfirexd.internal.impl.sql.catalog.SYSTABLESRowFactory;
-import com.pivotal.gemfirexd.internal.impl.sql.compile.FromList;
-import com.pivotal.gemfirexd.internal.impl.sql.compile.SubqueryList;
-import com.pivotal.gemfirexd.internal.impl.sql.compile.ValueNode;
 import com.pivotal.gemfirexd.internal.impl.sql.execute.ValueRow;
 import com.pivotal.gemfirexd.internal.shared.common.SharedUtils;
 import com.pivotal.gemfirexd.internal.shared.common.StoredFormatIds;
@@ -3985,7 +3977,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
       throws StandardException {
     if (tran == null || !tran.needLogging()) {
       return replacePartialRow(key, callbackArg, true /* isPkBased */,
-          validColumns, changedRow, true, tx, lcc, mkvh, flushBatch, null, null);
+          validColumns, changedRow, true, tx, lcc, mkvh, flushBatch, null);
     }
     else {
       MemUpdateOperation op = new MemUpdateOperation(this, changedRow, null,
@@ -4004,12 +3996,12 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
   public Object replacePartialRow(Object key, FormatableBitSet validColumns,
       DataValueDescriptor[] changedRow, Object callbackArg,
       GemFireTransaction tran, final TXStateInterface tx,
-      LanguageConnectionContext lcc, MultipleKeyValueHolder mkvh, boolean flushBatch, ValueNode
-      whereClause, FromList fromList)
+      LanguageConnectionContext lcc, MultipleKeyValueHolder mkvh, boolean flushBatch, String
+      predicate)
       throws StandardException {
     if (tran == null || !tran.needLogging()) {
       return replacePartialRow(key, callbackArg, true /* isPkBased */,
-          validColumns, changedRow, true, tx, lcc, mkvh, flushBatch, whereClause, fromList);
+          validColumns, changedRow, true, tx, lcc, mkvh, flushBatch, predicate);
     }
     else {
       MemUpdateOperation op = new MemUpdateOperation(this, changedRow, null,
@@ -4066,8 +4058,8 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
       boolean isPkBased, FormatableBitSet validColumns,
       DataValueDescriptor[] changedRow, boolean typeResolution,
       final TXStateInterface tx, LanguageConnectionContext lcc,
-      MultipleKeyValueHolder mkvh, boolean flushBatch, ValueNode
-      whereClause, FromList fromList) throws StandardException {
+      MultipleKeyValueHolder mkvh, boolean flushBatch, String
+      predicate) throws StandardException {
 
     assert (key instanceof Long) || (key instanceof RegionKey): key.getClass()
         .getName();
@@ -4116,14 +4108,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
       }
       final SerializableDelta delta = new SerializableDelta(changedRow,
           validColumns);
-
-
-      if(whereClause != null){
-        System.out.println(" fromList clause = "+ fromList);
-        final ValidUpdateOperation vop = new ValidUpdateOperation(whereClause);
-        vop.bindExpression(fromList, lcc);
-        vop.initialize(this,lcc );
-      }
+      delta.setPredicate(predicate);
 
       if (mkvh != null && this.region.getDataPolicy().withPartitioning()) {
         try {
@@ -4184,6 +4169,9 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
           event.setTXState(tx);
           oldValue = this.region.validatedPut(event, startPut);
           // TODO OFFHEAP validatedPut calls freeOffHeapResources
+          if(oldValue == null){
+            throw new EntryNotFoundException("Entry not found for "+ predicate);
+          }
         }
         else {
           mkvh.addKeyValueAndCallbackArg(key, delta, sca);
@@ -4375,7 +4363,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
     }
     // for derby code path, type resolution will not be required
     return replacePartialRow(key, routingObject, false /* isPkBased */,
-        validColumns, changedRow, false, tx, lcc, null, false, null, null);
+        validColumns, changedRow, false, tx, lcc, null, false, null);
   }
 
   private StandardException processRuntimeException(final RuntimeException e,
@@ -5757,6 +5745,12 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
 
     private FormatableBitSet validColumns;
 
+    private String predicate;
+
+    public void setPredicate(String predicate){
+      this.predicate = predicate;
+    }
+
     private transient int deltaSize = -1;
 
     private transient VersionTag<?> versionTag;
@@ -5790,6 +5784,15 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
         throw new EntryDestroyedException("Update on key=" + key
             + " could not be done as row (" + rowObject
             + ") is already destroyed");
+      }
+      try {
+        if(this.predicate != null && !ValidUpdateOperation.isValid(region, this.predicate)){
+          throw new EntryNotFoundException("Update on key=" + key
+              + " could not be done as row (" + rowObject
+              + ") is already changed");
+        }
+      } catch (StandardException e) {
+        e.printStackTrace();
       }
 
       final GemFireContainer container = (GemFireContainer)region
@@ -6031,6 +6034,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
             out.writeByte(DSCODE.NULL);
             out.writeByte(DSCODE.NULL);
           }
+          InternalDataSerializer.writeString(predicate, out);
         }
       }
       else {
@@ -6056,6 +6060,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
         for (int pos = fbs.anySetBit(); pos >= 0; pos = fbs.anySetBit(pos)) {
           this.changedRow[pos] = DataType.readDVD(in);
         }
+        this.predicate = InternalDataSerializer.readString(in);
       }
       else {
         DataType.readDVDArray(in);
@@ -6111,122 +6116,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
     }
   }
 
-  static final class ValidUpdateOperation implements ValidOperation{
 
-    private final ExpressionCompiler predicateCompiler;
-
-
-    public void initialize(GemFireContainer container,
-        LanguageConnectionContext lcc) throws StandardException {
-      this.predicateCompiler.compileExpression(container.getTableDescriptor(),
-          lcc);
-    }
-
-    public void bindExpression(FromList fromList, LanguageConnectionContext lcc)
-        throws StandardException {
-
-      // Check for no aggregates in EVICTION BY CRITERIA
-      Vector<?> aggregates = new Vector<>();
-      SubqueryList subqueries = (SubqueryList)lcc.getLanguageConnectionFactory()
-          .getNodeFactory()
-          .getNode(C_NodeTypes.SUBQUERY_LIST, lcc.getContextManager());
-      final String[] exprCols = this.predicateCompiler.bindExpression(fromList,
-          subqueries, aggregates);
-      if (exprCols == null || exprCols.length == 0) {
-        throw StandardException
-            .newException(SQLState.LANG_TABLE_REQUIRES_COLUMN_NAMES);
-      }
-      if (aggregates.size() > 0) {
-        throw StandardException
-            .newException(SQLState.LANG_NO_AGGREGATES_IN_WHERE_CLAUSE);
-      }
-      // TODO: HDFS: should subqueries (EXISTS) be allowed? if we should allow
-      // then expression compiler will need to be generalized to handle that
-      if (subqueries.size() > 0) {
-        throw StandardException.newException(
-            SQLState.LANG_NO_SUBQUERIES_IN_WHERE_CLAUSE, "EVICTION BY CRITERIA");
-      }
-      this.predicateCompiler.normalizeExpression(true);
-    }
-
-      public ValidUpdateOperation(ValueNode predicate) {
-      this.predicateCompiler = new ExpressionCompiler(predicate,
-          new HashMap<String, Integer>(), "EVICTION BY CRITERIA");
-
-    }
-    @Override
-    public boolean isValid(EntryEvent event) {
-      final EntryEventImpl ev = (EntryEventImpl)event;
-      final RegionEntry re = ev.getRegionEntry();
-      LocalRegion region = ev.getRegion();
-      CachePerfStats stats;
-      if (region instanceof BucketRegion) {
-        stats = region.getPartitionedRegion().getCachePerfStats();
-      } else {
-        stats = region.getCachePerfStats();
-      }
-      long startTime = stats.startEvaluation();
-      try {
-        if (region.getLogWriterI18n().fineEnabled()) {
-          region.getLogWriterI18n().fine(
-              " The entry is " + re + " and the event is " + event
-                  + " re marked for eviction " + re.isMarkedForEviction());
-        }
-
-        if (re != null) {
-          if (ev.getTXState() == null && re.hasAnyLock()) {
-            return false;
-          }
-          if (re.isMarkedForEviction()) {
-            return true;
-          }
-          else {
-            final RowLocation rl = (RowLocation)re;
-            final GemFireContainer container = (GemFireContainer)ev.getRegion()
-                .getUserAttribute();
-            EmbedConnection conn = null;
-            boolean contextSet = false;
-            LanguageConnectionContext lcc = Misc.getLanguageConnectionContext();
-            try {
-              if (lcc == null) {
-                conn = GemFireXDUtils.getTSSConnection(true, true, false);
-                conn.getTR().setupContextStack();
-                contextSet = true;
-                lcc = conn.getLanguageConnectionContext();
-                // lcc can be null if the node has started to go down.
-                if (lcc == null) {
-                  Misc.getGemFireCache().getCancelCriterion()
-                      .checkCancelInProgress(null);
-                }
-              }
-              DataValueDescriptor res = this.predicateCompiler
-                  .evaluateExpression(ev.getKey(), rl, container, lcc);
-              if (res != null) {
-                assert res instanceof SQLBoolean: "unexpected DVD type="
-                    + res.getClass() + ": " + res.toString();
-                return ((SQLBoolean)res).getBoolean();
-              }
-            }
-            catch (StandardException se) {
-              // skip eviction for an exception
-            }
-            finally {
-              if (contextSet) {
-                conn.getTR().restoreContextStack();
-              }
-
-            }
-          }
-        }
-        return false;
-      }
-      finally {
-        region.getLogWriterI18n().fine("Getting called finally");
-        stats.incEvaluations();
-        stats.endEvaluation(startTime, 0);
-      }
-    }
-  }
   /**
    * Implements container locking for user tables, indices, schemas to
    * synchronize concurrent DDL and DML executions. This deviates from the
