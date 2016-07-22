@@ -297,7 +297,7 @@ public class AndJunctionQueryInfo extends JunctionQueryInfo {
         if (opsLen > 2) {
           sortOperandInIncreasingColumnPosition(conditions);
         }
-        pks = this.isWhereClauseDynamic() || this.hasINPredicate() ? new Object[opsLen]
+        pks = this.isWhereClauseDynamic() || this.hasINPredicate() ? new Object[fkColumns.length]
             : new DataValueDescriptor[fkColumns.length];
         for (int index = 0; index < fkColumns.length; ++index) {
           AbstractConditionQueryInfo aqi = conditions[index];

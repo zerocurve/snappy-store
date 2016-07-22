@@ -118,6 +118,7 @@ import com.pivotal.gemfirexd.internal.iapi.reference.SQLState;
 import com.pivotal.gemfirexd.internal.iapi.services.io.FormatableBitSet;
 import com.pivotal.gemfirexd.internal.iapi.services.io.LimitObjectInput;
 import com.pivotal.gemfirexd.internal.iapi.sql.Activation;
+import com.pivotal.gemfirexd.internal.iapi.sql.ParameterValueSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.compile.CompilerContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.ColumnDescriptor;
@@ -3977,7 +3978,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
       throws StandardException {
     if (tran == null || !tran.needLogging()) {
       return replacePartialRow(key, callbackArg, true /* isPkBased */,
-          validColumns, changedRow, true, tx, lcc, mkvh, flushBatch, null);
+          validColumns, changedRow, true, tx, lcc, mkvh, flushBatch, null, null);
     }
     else {
       MemUpdateOperation op = new MemUpdateOperation(this, changedRow, null,
@@ -3997,11 +3998,11 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
       DataValueDescriptor[] changedRow, Object callbackArg,
       GemFireTransaction tran, final TXStateInterface tx,
       LanguageConnectionContext lcc, MultipleKeyValueHolder mkvh, boolean flushBatch, String
-      predicate)
+      predicate, ParameterValueSet valueSet)
       throws StandardException {
     if (tran == null || !tran.needLogging()) {
       return replacePartialRow(key, callbackArg, true /* isPkBased */,
-          validColumns, changedRow, true, tx, lcc, mkvh, flushBatch, predicate);
+          validColumns, changedRow, true, tx, lcc, mkvh, flushBatch, predicate, valueSet);
     }
     else {
       MemUpdateOperation op = new MemUpdateOperation(this, changedRow, null,
@@ -4059,7 +4060,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
       DataValueDescriptor[] changedRow, boolean typeResolution,
       final TXStateInterface tx, LanguageConnectionContext lcc,
       MultipleKeyValueHolder mkvh, boolean flushBatch, String
-      predicate) throws StandardException {
+      predicate, ParameterValueSet valueSet) throws StandardException {
 
     assert (key instanceof Long) || (key instanceof RegionKey): key.getClass()
         .getName();
@@ -4109,6 +4110,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
       final SerializableDelta delta = new SerializableDelta(changedRow,
           validColumns);
       delta.setPredicate(predicate);
+      delta.setParameterValueSet(valueSet);
 
       if (mkvh != null && this.region.getDataPolicy().withPartitioning()) {
         try {
@@ -4363,7 +4365,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
     }
     // for derby code path, type resolution will not be required
     return replacePartialRow(key, routingObject, false /* isPkBased */,
-        validColumns, changedRow, false, tx, lcc, null, false, null);
+        validColumns, changedRow, false, tx, lcc, null, false, null, null);
   }
 
   private StandardException processRuntimeException(final RuntimeException e,
@@ -5747,10 +5749,14 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
 
     private String predicate;
 
+    private ParameterValueSet valueSet;
+
     public void setPredicate(String predicate){
       this.predicate = predicate;
     }
-
+    public void setParameterValueSet(ParameterValueSet valueSet){
+      this.valueSet = valueSet;
+    }
     private transient int deltaSize = -1;
 
     private transient VersionTag<?> versionTag;
@@ -5786,7 +5792,8 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
             + ") is already destroyed");
       }
       try {
-        if(this.predicate != null && !ValidUpdateOperation.isValid(region, this.predicate)){
+        if(this.predicate != null
+            && !ValidUpdateOperation.isValid(region, this.predicate, this.valueSet)){
           throw new EntryNotFoundException("Update on key=" + key
               + " could not be done as row (" + rowObject
               + ") is already changed");
@@ -6035,6 +6042,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
             out.writeByte(DSCODE.NULL);
           }
           InternalDataSerializer.writeString(predicate, out);
+          InternalDataSerializer.writeObject(valueSet, out);
         }
       }
       else {
@@ -6061,6 +6069,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
           this.changedRow[pos] = DataType.readDVD(in);
         }
         this.predicate = InternalDataSerializer.readString(in);
+        this.valueSet = InternalDataSerializer.readObject(in);
       }
       else {
         DataType.readDVDArray(in);

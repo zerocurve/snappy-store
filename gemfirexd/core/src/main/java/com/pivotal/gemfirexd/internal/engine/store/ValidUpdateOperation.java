@@ -23,6 +23,8 @@ import com.pivotal.gemfirexd.internal.engine.expression.ExpressionCompiler;
 import com.pivotal.gemfirexd.internal.iapi.error.StandardException;
 import com.pivotal.gemfirexd.internal.iapi.reference.SQLState;
 import com.pivotal.gemfirexd.internal.iapi.services.context.ContextService;
+import com.pivotal.gemfirexd.internal.iapi.sql.Activation;
+import com.pivotal.gemfirexd.internal.iapi.sql.ParameterValueSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.PreparedStatement;
 import com.pivotal.gemfirexd.internal.iapi.sql.compile.C_NodeTypes;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
@@ -43,7 +45,7 @@ public class ValidUpdateOperation {
 
   public static String TEST_SQL_COMMENT = "--THREAD_WAITS_FOR_SOME_TIME";
 
-  public static boolean isValid(Region<?, ?> region, String predicateString) throws
+  public static boolean isValid(Region<?, ?> region, String predicateString, ParameterValueSet valueSet) throws
       StandardException {
     System.out.println(" Cheking valid for  " + predicateString);
    /* if (predicateString.toUpperCase().endsWith(TEST_SQL_COMMENT)) {
@@ -59,6 +61,11 @@ public class ValidUpdateOperation {
     PreparedStatement queryStatement = lcc.prepareInternalStatement("SELECT 1 FROM "
             + container.getQualifiedTableName() + " WHERE " + predicateString,
         (short)0);
+
+    Activation childActivation = queryStatement.getActivation(lcc, false, null);
+
+    childActivation.setParameters(valueSet, queryStatement.getParameterTypes());
+
 
 
     EmbedConnection conn = null;

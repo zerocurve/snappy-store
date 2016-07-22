@@ -38,10 +38,12 @@ import com.pivotal.gemfirexd.internal.engine.store.GemFireContainer;
 import com.pivotal.gemfirexd.internal.engine.store.GemFireContainer.SerializableDelta;
 import com.pivotal.gemfirexd.internal.iapi.error.StandardException;
 import com.pivotal.gemfirexd.internal.iapi.services.io.FormatableBitSet;
+import com.pivotal.gemfirexd.internal.iapi.sql.ParameterValueSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.ExecPreparedStatement;
 import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
 import com.pivotal.gemfirexd.internal.impl.sql.execute.ValueRow;
+
 
 /**
  * Activation object used to execute update as region.put
@@ -79,6 +81,8 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
     String whereStatement = ((UpdateQueryInfo)this.qInfo).statementSQLText.toLowerCase();
     String predicate = whereStatement.substring(whereStatement.indexOf("where") + 6,
         whereStatement.length());
+
+    ParameterValueSet valueSet = this.getParameterValueSet();
 
     Object[] gfKeys = null;
     // TODO:Asif: We need to find out a cleaner
@@ -148,7 +152,7 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
         }
         this.container.replacePartialRow(gfKeys[i],
             (FormatableBitSet)tmpResult[1], dvds, null, tran, tx, lcc,
-            this.mkvh, flush, predicate);
+            this.mkvh, flush, predicate, valueSet);
         if (flush) {
           this.mkvh = null;
         }
