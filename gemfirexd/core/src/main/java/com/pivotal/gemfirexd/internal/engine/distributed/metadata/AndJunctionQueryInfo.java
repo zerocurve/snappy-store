@@ -275,6 +275,34 @@ public class AndJunctionQueryInfo extends JunctionQueryInfo {
   }
 
 
+  @Override
+  Object getOtherConditions(int[][] fkColumns, TableQueryInfo tqi)
+      throws StandardException {
+    Object[][] otherColumns = null;
+
+    if (!this.isStaticallyNotGetConvertible()) {
+      assert this.equalityConditions.size() == 1;
+      Map<String, ComparisonQueryInfo> unameToCondition = this.equalityConditions
+          .values().iterator().next();
+      int opsLen = unameToCondition.size();
+      ComparisonQueryInfo conditions[] = new ComparisonQueryInfo[opsLen];
+      unameToCondition.values().toArray(conditions);
+      if (opsLen > 2) {
+        sortOperandInIncreasingColumnPosition(conditions);
+      }
+      otherColumns = new Object[opsLen][2];
+      for (int index = 0; index < opsLen; ++index) {
+        ComparisonQueryInfo aqi = conditions[index];
+        QueryInfo[] temp = aqi.getOperands();
+        if (temp == null) {
+          break;
+        } else {
+          otherColumns[index] = temp;
+        }
+      }
+    }
+    return otherColumns;
+  }
 
   /*
    * (non-Javadoc)
@@ -291,7 +319,8 @@ public class AndJunctionQueryInfo extends JunctionQueryInfo {
       Map<String, ComparisonQueryInfo> unameToCondition = this.equalityConditions
           .values().iterator().next();
       int opsLen = unameToCondition.size();
-      if (fkColumns.length <= opsLen) {
+      if (fkColumns.length <= opsLen) {// There is a primary key and is
+        // part of the where clause
         AbstractConditionQueryInfo conditions[] = new AbstractConditionQueryInfo[opsLen];
         unameToCondition.values().toArray(conditions);
         if (opsLen > 2) {
@@ -332,6 +361,8 @@ public class AndJunctionQueryInfo extends JunctionQueryInfo {
     }
     return retType;
   }
+
+
 
 
 

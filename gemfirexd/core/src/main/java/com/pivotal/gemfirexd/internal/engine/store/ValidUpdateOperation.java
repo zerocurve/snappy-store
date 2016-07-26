@@ -34,6 +34,8 @@ import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.types.RowLocation;
 import com.pivotal.gemfirexd.internal.iapi.types.SQLBoolean;
 import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedConnection;
+import com.pivotal.gemfirexd.internal.impl.sql.GenericParameterValueSet;
+import com.pivotal.gemfirexd.internal.impl.sql.GenericPreparedStatement;
 import com.pivotal.gemfirexd.internal.impl.sql.compile.FromList;
 import com.pivotal.gemfirexd.internal.impl.sql.compile.SubqueryList;
 import com.pivotal.gemfirexd.internal.impl.sql.compile.ValueNode;
@@ -45,14 +47,11 @@ public class ValidUpdateOperation {
 
   public static String TEST_SQL_COMMENT = "--THREAD_WAITS_FOR_SOME_TIME";
 
-  public static boolean isValid(Region<?, ?> region, String predicateString, ParameterValueSet valueSet) throws
+  public static boolean isValid(Region<?, ?> region, String predicateString,
+      ParameterValueSet valueSet, DataValueDescriptor[] otherKeyValues) throws
       StandardException {
     System.out.println(" Cheking valid for  " + predicateString);
-   /* if (predicateString.toUpperCase().endsWith(TEST_SQL_COMMENT)) {
-      System.out.println(" Yielding thread " + Thread.currentThread());
-      Thread.currentThread().yield();
-      System.out.println(" Waking thread " + Thread.currentThread());
-    }*/
+
     // setup LCC and get the ResultSet
     LanguageConnectionContext lcc = Misc.getLanguageConnectionContext();
     final GemFireContainer container = (GemFireContainer)region
@@ -64,8 +63,19 @@ public class ValidUpdateOperation {
 
     Activation childActivation = queryStatement.getActivation(lcc, false, null);
 
-    childActivation.setParameters(valueSet, queryStatement.getParameterTypes());
-
+    GenericParameterValueSet gpvs = (GenericParameterValueSet)childActivation
+        .getParameterValueSet();
+    if (gpvs != null && gpvs.getParameterCount() > 0) {
+      childActivation.setParameters(gpvs, queryStatement.getParameterTypes());
+    }
+    ((GenericPreparedStatement)queryStatement).setFlags(true, true);
+    if (otherKeyValues != null) {
+      for (int i = 0; i < otherKeyValues.length; i++ ) {
+        Object value = otherKeyValues[i].getObject();
+        System.out.println("value for index " + i + " = " + value);
+        gpvs.setParameterAsObject(i, value, false);
+      }
+    }
 
 
     EmbedConnection conn = null;
@@ -109,6 +119,7 @@ public class ValidUpdateOperation {
         }
       }
     } catch (Exception e) {
+      e.printStackTrace();
       t = e;
       LogWriter logger = Misc.getCacheLogWriterNoThrow();
       if (logger != null) {

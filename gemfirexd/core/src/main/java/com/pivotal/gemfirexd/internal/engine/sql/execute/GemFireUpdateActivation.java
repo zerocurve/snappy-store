@@ -29,9 +29,12 @@ import com.gemstone.gemfire.internal.cache.TXStateInterface;
 import com.gemstone.gemfire.internal.cache.tier.sockets.VersionedObjectList;
 import com.pivotal.gemfirexd.internal.engine.Misc;
 import com.pivotal.gemfirexd.internal.engine.access.GemFireTransaction;
+import com.pivotal.gemfirexd.internal.engine.distributed.metadata.ColumnQueryInfo;
 import com.pivotal.gemfirexd.internal.engine.distributed.metadata.DMLQueryInfo;
 import com.pivotal.gemfirexd.internal.engine.distributed.metadata.DynamicKey;
+import com.pivotal.gemfirexd.internal.engine.distributed.metadata.QueryInfo;
 import com.pivotal.gemfirexd.internal.engine.distributed.metadata.UpdateQueryInfo;
+import com.pivotal.gemfirexd.internal.engine.distributed.metadata.ValueQueryInfo;
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.GemFireXDUtils;
 import com.pivotal.gemfirexd.internal.engine.reflect.GemFireActivationClass;
 import com.pivotal.gemfirexd.internal.engine.store.GemFireContainer;
@@ -78,6 +81,7 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
     // Asif: Obtain the Primary Key. If it is dynamic then we need to compute
     // now If it is static use it as it is
     Object pk = this.qInfo.getPrimaryKey();
+    Object[][] otherKeys = (Object[][])this.qInfo.getOtherKeys();
     String whereStatement = ((UpdateQueryInfo)this.qInfo).statementSQLText.toLowerCase();
     String predicate = whereStatement.substring(whereStatement.indexOf("where") + 6,
         whereStatement.length());
@@ -120,6 +124,20 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
       observer.beforeGemFireResultSetExecuteOnActivation(this);
     }
 
+
+    DataValueDescriptor[] otherKeyValues = null;
+    if (otherKeys != null) {
+      otherKeyValues = new DataValueDescriptor[otherKeys.length];
+      for (int i = 0; i < otherKeys.length; i++) {
+        QueryInfo[] qif = (QueryInfo[])otherKeys[i];
+        ColumnQueryInfo cqi = (ColumnQueryInfo)qif[0];
+        if (cqi != null) {
+          ValueQueryInfo vqi = (ValueQueryInfo)qif[1];
+          otherKeyValues[i] = vqi
+              .evaluateToGetDataValueDescriptor(this);
+        }
+      }
+    }
     //TODO:Asif : what happens if the update is only partially successful ?
     int numRowsModified = 0;
     Object[] tmpResult = new Object[2];
@@ -150,9 +168,10 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
             this.batchSize = 0;
           }
         }
+
         this.container.replacePartialRow(gfKeys[i],
             (FormatableBitSet)tmpResult[1], dvds, null, tran, tx, lcc,
-            this.mkvh, flush, predicate, valueSet);
+            this.mkvh, flush, predicate, valueSet, otherKeyValues);
         if (flush) {
           this.mkvh = null;
         }
