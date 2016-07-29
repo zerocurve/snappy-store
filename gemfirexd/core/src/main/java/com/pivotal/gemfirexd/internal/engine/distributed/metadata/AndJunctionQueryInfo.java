@@ -280,7 +280,7 @@ public class AndJunctionQueryInfo extends JunctionQueryInfo {
       throws StandardException {
     Object[][] otherColumns = null;
 
-    if (!this.isStaticallyNotGetConvertible()) {
+    if (!this.isStaticallyNotGetConvertible()) { // What does this mean ?
       assert this.equalityConditions.size() == 1;
       Map<String, ComparisonQueryInfo> unameToCondition = this.equalityConditions
           .values().iterator().next();

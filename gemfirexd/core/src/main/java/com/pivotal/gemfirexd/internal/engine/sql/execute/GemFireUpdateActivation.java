@@ -29,19 +29,13 @@ import com.gemstone.gemfire.internal.cache.TXStateInterface;
 import com.gemstone.gemfire.internal.cache.tier.sockets.VersionedObjectList;
 import com.pivotal.gemfirexd.internal.engine.Misc;
 import com.pivotal.gemfirexd.internal.engine.access.GemFireTransaction;
-import com.pivotal.gemfirexd.internal.engine.distributed.metadata.ColumnQueryInfo;
-import com.pivotal.gemfirexd.internal.engine.distributed.metadata.DMLQueryInfo;
-import com.pivotal.gemfirexd.internal.engine.distributed.metadata.DynamicKey;
-import com.pivotal.gemfirexd.internal.engine.distributed.metadata.QueryInfo;
-import com.pivotal.gemfirexd.internal.engine.distributed.metadata.UpdateQueryInfo;
-import com.pivotal.gemfirexd.internal.engine.distributed.metadata.ValueQueryInfo;
+import com.pivotal.gemfirexd.internal.engine.distributed.metadata.*;
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.GemFireXDUtils;
 import com.pivotal.gemfirexd.internal.engine.reflect.GemFireActivationClass;
 import com.pivotal.gemfirexd.internal.engine.store.GemFireContainer;
 import com.pivotal.gemfirexd.internal.engine.store.GemFireContainer.SerializableDelta;
 import com.pivotal.gemfirexd.internal.iapi.error.StandardException;
 import com.pivotal.gemfirexd.internal.iapi.services.io.FormatableBitSet;
-import com.pivotal.gemfirexd.internal.iapi.sql.ParameterValueSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.ExecPreparedStatement;
 import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
@@ -82,11 +76,12 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
     // now If it is static use it as it is
     Object pk = this.qInfo.getPrimaryKey();
     Object[][] otherKeys = (Object[][])this.qInfo.getOtherKeys();
+
     String whereStatement = ((UpdateQueryInfo)this.qInfo).statementSQLText.toLowerCase();
     String predicate = whereStatement.substring(whereStatement.indexOf("where") + 6,
         whereStatement.length());
 
-    ParameterValueSet valueSet = this.getParameterValueSet();
+    System.out.println("Evaluating for " + predicate);
 
     Object[] gfKeys = null;
     // TODO:Asif: We need to find out a cleaner
@@ -124,16 +119,27 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
       observer.beforeGemFireResultSetExecuteOnActivation(this);
     }
 
-
+    int primaryKeyLength =
+        this.container.getExtraTableInfo().getPrimaryKeyColumnNames().length;
+    if(primaryKeyLength == otherKeys.length){// Pure PK based update
+      predicate = null;
+    }
     DataValueDescriptor[] otherKeyValues = null;
-    if (otherKeys != null) {
+    if (otherKeys != null && predicate != null ) {
       otherKeyValues = new DataValueDescriptor[otherKeys.length];
       for (int i = 0; i < otherKeys.length; i++) {
         QueryInfo[] qif = (QueryInfo[])otherKeys[i];
         ColumnQueryInfo cqi = (ColumnQueryInfo)qif[0];
+        int index = 0;
         if (cqi != null) {
           ValueQueryInfo vqi = (ValueQueryInfo)qif[1];
-          otherKeyValues[i] = vqi
+          if(vqi instanceof ParameterQueryInfo){
+            index = ((ParameterQueryInfo)vqi).getParamIndex();
+          }
+          if(vqi instanceof ConstantQueryInfo){
+            continue;
+          }
+          otherKeyValues[index -1] = vqi
               .evaluateToGetDataValueDescriptor(this);
         }
       }
@@ -171,7 +177,7 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
 
         this.container.replacePartialRow(gfKeys[i],
             (FormatableBitSet)tmpResult[1], dvds, null, tran, tx, lcc,
-            this.mkvh, flush, predicate, valueSet, otherKeyValues);
+            this.mkvh, flush, predicate, otherKeyValues);
         if (flush) {
           this.mkvh = null;
         }
