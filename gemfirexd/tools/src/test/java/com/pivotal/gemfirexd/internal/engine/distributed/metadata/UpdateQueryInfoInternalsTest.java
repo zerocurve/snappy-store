@@ -599,7 +599,63 @@ public class UpdateQueryInfoInternalsTest extends JdbcTestBase{
     }
 
   }
-  
+
+  /**
+   * Tests if the where clause containing multiple fields with primary keys and extra
+   * conditions
+   */
+  public void testUpdatePutConvertibleExtraAnds() throws Exception {
+    Connection conn = getConnection();
+    Statement s = conn.createStatement();
+    s.execute("create table src_tab (col1 varchar(10), col2 int , " +
+        "col3 int, col4 int, PRIMARY KEY (col1, col2)) partition by column (col1)");
+    String query = "update src_tab set col3=? where col2=? and col1=? and col3=?";
+    GemFireXDQueryObserver old = null;
+    try {
+      old = GemFireXDQueryObserverHolder
+          .setInstance(new GemFireXDQueryObserverAdapter() {
+            @Override
+            public void queryInfoObjectFromOptmizedParsedTree(QueryInfo qInfo, GenericPreparedStatement gps, LanguageConnectionContext lcc) {
+              if (qInfo instanceof UpdateQueryInfo) {
+                callbackInvoked = true;
+                UpdateQueryInfo uqi = (UpdateQueryInfo)qInfo;
+                assertTrue(uqi.isPrimaryKeyBased());
+              }
+
+            }
+
+          });
+      // Now insert some data
+      this.callbackInvoked = false;
+      s.executeUpdate("insert into src_tab values('y', 1, 11, 10)");
+      Statement s2 = conn.createStatement();
+      try {
+        PreparedStatement
+            pStmt = conn.prepareStatement(query);
+        pStmt.setInt(1, 7);
+        pStmt.setInt(2, 1);
+        pStmt.setString(3, "y");
+        pStmt.setInt(4, 11);
+        int updatedCount = pStmt.executeUpdate();
+        ResultSet rs = s2.executeQuery("select col3 from src_tab");
+        assertTrue(rs.next());
+        assertEquals(7, rs.getInt(1));
+        assertEquals(1, updatedCount);
+
+      } catch (SQLException e) {
+        e.printStackTrace();
+        throw new SQLException(e.toString()
+            + " Exception in executing query = " + query, e.getSQLState());
+      }
+      assertTrue(this.callbackInvoked);
+    } finally {
+      if (old != null) {
+        GemFireXDQueryObserverHolder.setInstance(old);
+      }
+    }
+  }
+
+
   public void createTableWithPrimaryKey(Connection conn) throws SQLException {
     Statement s = conn.createStatement();
     // We create a table...

@@ -4171,6 +4171,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
           event.setPossibleDuplicate(possibleDuplicate);
           event.setTXState(tx);
           oldValue = this.region.validatedPut(event, startPut);
+          System.out.println(" old value for "+ predicate + " is = " + oldValue);
           // TODO OFFHEAP validatedPut calls freeOffHeapResources
           if(oldValue == null){
             throw new EntryNotFoundException("Entry not found for "+ predicate);
@@ -5767,6 +5768,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
     private static final byte HAS_FBS = 0x1;
     private static final byte HAS_VERSION_TAG = 0x2;
     private static final byte HAS_PERSISTENT_VERSION_TAG = 0x4;
+    private static final byte HAS_OTHER_KEYS_TAG = 0x8;
 
     /** constructor for deserialization */
     public SerializableDelta() {
@@ -5795,6 +5797,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
             + ") is already destroyed");
       }
       try {
+        System.out.println("Checking Predicate for " + predicate);
         if (this.predicate != null && this.otherKeyValues != null
             && !ValidUpdateOperation.isValid(region, this.predicate,
             this.otherKeyValues)) {
@@ -6032,6 +6035,9 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
           flags |= HAS_PERSISTENT_VERSION_TAG;
         }
       }
+      if(otherKeyValues != null) {
+        flags |= HAS_OTHER_KEYS_TAG;
+      }
       if (fbs != null) {
         out.writeByte(HAS_FBS | flags);
         fbs.toData(out);
@@ -6047,8 +6053,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
             out.writeByte(DSCODE.NULL);
             out.writeByte(DSCODE.NULL);
           }
-          InternalDataSerializer.writeString(predicate, out);
-          DataType.writeDVDArray(otherKeyValues, out);
+
         }
       }
       else {
@@ -6057,6 +6062,10 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
       }
       if (version != null) {
         InternalDataSerializer.invokeToData(version, out);
+      }
+      if(otherKeyValues != null){
+        InternalDataSerializer.writeString(predicate, out);
+        DataType.writeDVDArray(otherKeyValues, out);
       }
     }
 
@@ -6074,8 +6083,6 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
         for (int pos = fbs.anySetBit(); pos >= 0; pos = fbs.anySetBit(pos)) {
           this.changedRow[pos] = DataType.readDVD(in);
         }
-        this.predicate = InternalDataSerializer.readString(in);
-        this.otherKeyValues = DataType.readDVDArray(in);
       }
       else {
         DataType.readDVDArray(in);
@@ -6084,6 +6091,11 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
         this.versionTag = VersionTag.create(
             (flags & HAS_PERSISTENT_VERSION_TAG) != 0, in);
       }
+      if ((flags & HAS_OTHER_KEYS_TAG) != 0) {
+        this.predicate = InternalDataSerializer.readString(in);
+        this.otherKeyValues = DataType.readDVDArray(in);
+      }
+
     }
 
     @Override
