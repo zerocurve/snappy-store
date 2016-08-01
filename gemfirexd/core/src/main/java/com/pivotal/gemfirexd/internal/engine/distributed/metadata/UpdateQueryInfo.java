@@ -323,4 +323,8 @@ public class UpdateQueryInfo extends DMLQueryInfo {
   public boolean routeQueryToAllNodes() {
     return this.qic.isVTIDistributable();
   }
+
+  public QueryInfo[][] getUpdatedCols(){
+    return this.updateCols;
+  }
 }

@@ -5795,7 +5795,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
             + ") is already destroyed");
       }
       try {
-        if (this.predicate != null
+        if (this.predicate != null && this.otherKeyValues != null
             && !ValidUpdateOperation.isValid(region, this.predicate,
             this.otherKeyValues)) {
           throw new EntryNotFoundException("Update on key=" + key

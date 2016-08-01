@@ -119,28 +119,47 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
       observer.beforeGemFireResultSetExecuteOnActivation(this);
     }
 
-    int primaryKeyLength =
-        this.container.getExtraTableInfo().getPrimaryKeyColumnNames().length;
-    if(primaryKeyLength == otherKeys.length){// Pure PK based update
-      predicate = null;
-    }
+
+
     DataValueDescriptor[] otherKeyValues = null;
-    if (otherKeys != null && predicate != null ) {
+    if (otherKeys != null && predicate != null) {
+
+      int primaryKeyLength =
+          this.container.getExtraTableInfo().getPrimaryKeyColumnNames().length;
+      if(primaryKeyLength == otherKeys.length){// Pure PK based update
+        predicate = null;
+      }
+
+      QueryInfo[][] updatedCols = ((UpdateQueryInfo)this.qInfo).getUpdatedCols();
+      int startIndexOfWhereParams = 0;
+      for(int i = 0; i< updatedCols.length ; i++){
+        QueryInfo[] qif = updatedCols[i];
+        ColumnQueryInfo cqi = (ColumnQueryInfo)qif[0];
+        if (cqi != null) {
+          ValueQueryInfo vqi = (ValueQueryInfo)qif[i];
+          if (vqi instanceof ParameterQueryInfo) {
+            startIndexOfWhereParams++;
+          }
+        }
+      }
+
       otherKeyValues = new DataValueDescriptor[otherKeys.length];
       for (int i = 0; i < otherKeys.length; i++) {
         QueryInfo[] qif = (QueryInfo[])otherKeys[i];
         ColumnQueryInfo cqi = (ColumnQueryInfo)qif[0];
         int index = 0;
         if (cqi != null) {
-          ValueQueryInfo vqi = (ValueQueryInfo)qif[1];
-          if(vqi instanceof ParameterQueryInfo){
-            index = ((ParameterQueryInfo)vqi).getParamIndex();
+          for (int j = 1; j < qif.length; j++) {
+            ValueQueryInfo vqi = (ValueQueryInfo)qif[j];
+            if (vqi instanceof ParameterQueryInfo) {
+              index = ((ParameterQueryInfo)vqi).getParamIndex() - startIndexOfWhereParams;
+            }
+            if (vqi instanceof ConstantQueryInfo) {
+              continue;
+            }
+            otherKeyValues[index] = vqi
+                .evaluateToGetDataValueDescriptor(this);
           }
-          if(vqi instanceof ConstantQueryInfo){
-            continue;
-          }
-          otherKeyValues[index -1] = vqi
-              .evaluateToGetDataValueDescriptor(this);
         }
       }
     }
