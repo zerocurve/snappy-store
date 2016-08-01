@@ -27,10 +27,14 @@ public interface StoreCallbacks {
 
   String SHADOW_TABLE_SUFFIX = "_COLUMN_STORE_";
 
-  Set createCachedBatch(BucketRegion region, UUID batchID, int bucketID);
+  Set<Object> createCachedBatch(BucketRegion region, UUID batchID,
+      int bucketID);
 
   List<String> getInternalTableSchemas();
-  public int getHashCodeSnappy(Object dvd, int numPartitions);
-  public int getHashCodeSnappy(Object dvds[], int numPartitions);
-  public boolean haveRegisteredExternalStore(String tableName);
+
+  int getHashCodeSnappy(Object dvd, int numPartitions);
+
+  int getHashCodeSnappy(Object dvds[], int numPartitions);
+
+  boolean haveRegisteredExternalStore(String tableName);
 }

@@ -41,6 +41,7 @@
 package com.pivotal.gemfirexd.internal.impl.sql;
 
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Collections;
@@ -134,16 +135,18 @@ public class GenericStatement
         public final static short IS_CALLABLE_STATEMENT = 0x200;
 
         public static final Pattern SKIP_CANCEL_STMTS = Pattern.compile(
-            "^\\s*(DROP|TRUNCATE)\\s+(TABLE|INDEX)\\s+", Pattern.CASE_INSENSITIVE);
+            "^\\s*\\{?\\s*(DROP|TRUNCATE)\\s+(TABLE|INDEX)\\s+",
+            Pattern.CASE_INSENSITIVE);
 	public static final Pattern DELETE_STMT = Pattern.compile(
-			"^\\s*DELETE\\s+FROM\\s+.*", Pattern.CASE_INSENSITIVE);
+            "^\\s*\\{?\\s*DELETE\\s+FROM\\s+.*", Pattern.CASE_INSENSITIVE);
         private static final Pattern ignoreStmts = Pattern.compile(
             ("\\s.*(\"SYSSTAT\"|SYS.\")"), Pattern.CASE_INSENSITIVE);
         //private ProcedureProxy procProxy;
         private final GfxdHeapThresholdListener thresholdListener;
         private THashMap ncjMetaData = null;
 	      private static final String STREAMING_DDL_PREFIX = "STREAMING";
-	      private static final String INSERT_INTO_TABLE_PATTERN = ".*INSERT\\s+INTO\\s+TABLE.*";
+	      private static final String INSERT_INTO_TABLE_SELECT_PATTERN = ".*INSERT\\s+INTO\\s+(TABLE)?.*SELECT\\s+.*";
+	      private static final String PUT_INTO_TABLE_SELECT_PATTERN = ".*PUT\\s+INTO\\s+(TABLE)?.*SELECT\\s+.*";
 // GemStone changes END
 	/**
 	 * Constructor for a Statement given the text of the statement in a String
@@ -563,7 +566,16 @@ public class GenericStatement
 				//StatementNode qt = p.parseStatement(statementText, paramDefaults);
 				StatementNode qt;
 				try {
-				    qt = p.parseStatement(getQueryStringForParse(lcc), paramDefaults);
+					//Route all "insert/put into tab select .. " queries to spark
+
+					if (routeQuery && (Pattern.matches(INSERT_INTO_TABLE_SELECT_PATTERN, getSource().toUpperCase()) ||
+							Pattern.matches(PUT_INTO_TABLE_SELECT_PATTERN, getSource().toUpperCase()))) {
+						if (prepareIsolationLevel == Connection.TRANSACTION_NONE) {
+							cc.markAsDDLForSnappyUse(true);
+							return getPreparedStatementForSnappy(false, statementContext, lcc, cc.isMarkedAsDDLForSnappyUse(), checkCancellation);
+						}
+					}
+					qt = p.parseStatement(getQueryStringForParse(lcc), paramDefaults);
 				}
 				catch (StandardException ex) {
 				    //SanityManager.DEBUG_PRINT("DEBUG", "Parse: exception routeQuery=" + routeQuery + " ,sql=" + this.getSource() + " ,flag=" + cc.isDDL4routing());
@@ -573,9 +585,7 @@ public class GenericStatement
 		&& getSource().substring(0, STREAMING_DDL_PREFIX.length()).equalsIgnoreCase(STREAMING_DDL_PREFIX)) {
               cc.markAsDDLForSnappyUse(true);
             }
-						if(Pattern.matches(INSERT_INTO_TABLE_PATTERN, getSource().toUpperCase())){
-							cc.markAsDDLForSnappyUse(true);
-						}
+
             return getPreparedStatementForSnappy(false, statementContext, lcc, cc.isMarkedAsDDLForSnappyUse(), checkCancellation);
           }
           throw ex;
@@ -747,13 +757,14 @@ public class GenericStatement
                                           final QueryInfoContext qic = new QueryInfoContext(
                                               this.createQueryInfo(),  paramDTDS != null ? paramDTDS.length : 0, isPreparedStatement());
                                           qinfo = qt.computeQueryInfo(qic);
-																					// Only rerouting selects to lead node. Inserts will be handled separately.
-																					// The below should be connection specific.
-																					if (routeQuery && qinfo != null && qinfo.isSelect() && !isPreparedStatement()) {
-																						if (SnappyActivation.isColumnTable((DMLQueryInfo)qinfo, false)) {
-																							return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
-																						}
-																					}
+                                          // Only rerouting selects to lead node. Inserts will be handled separately.
+                                          // The below should be connection specific.
+                                          if (routeQuery && qinfo != null && qinfo.isSelect() && !isPreparedStatement()) {
+                                            if (SnappyActivation.isColumnTable((DMLQueryInfo)qinfo, false)) {
+                                              return getPreparedStatementForSnappy(true, statementContext, lcc,
+                                                  false, checkCancellation);
+                                            }
+                                          }
 
                                           if (qinfo != null && qinfo.isInsert()) {
                                             qinfo = handleInsertAndInsertSubSelect(qinfo, qt);

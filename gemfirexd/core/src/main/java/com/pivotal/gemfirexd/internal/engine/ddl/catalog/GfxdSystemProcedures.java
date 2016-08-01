@@ -96,7 +96,7 @@ import com.pivotal.gemfirexd.internal.shared.common.SharedUtils;
 import com.pivotal.gemfirexd.internal.shared.common.reference.SQLState;
 import com.pivotal.gemfirexd.internal.shared.common.sanity.SanityManager;
 import com.pivotal.gemfirexd.load.Import;
-import com.pivotal.gemfirexd.thrift.ServerType;
+import io.snappydata.thrift.ServerType;
 
 /**
  * GemFireXD built-in system procedures that will get executed on every
@@ -2237,14 +2237,15 @@ public class GfxdSystemProcedures extends SystemProcedures {
   /**
    * Get the schema for a column table as a JSON string (as in Spark SQL).
    *
-   * @param table The qualified name of column table.
+   * @param schema name
+   * @param table The  name of column table.
    * @throws SQLException if table is not found or is not a column table
    */
-  public static void GET_COLUMN_TABLE_SCHEMA(String table,
+  public static void GET_COLUMN_TABLE_SCHEMA(String schema, String table,
       Clob[] schemaAsJson) throws SQLException {
 
     String schemaString = Misc.getMemStoreBooting().getExternalCatalog()
-        .getColumnTableSchemaAsJson(table, true);
+        .getColumnTableSchemaAsJson(schema, table, true);
     if (schemaString == null) {
       throw PublicAPI.wrapStandardException(StandardException.newException(
           SQLState.TABLE_NOT_FOUND, table));

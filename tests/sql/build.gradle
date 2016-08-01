@@ -20,7 +20,7 @@ ext {
 dependencies {
   provided project(subprojectBase + 'gemfire-core')
   compile project(subprojectBase + 'gemfire-tests')
-  provided project(subprojectBase + 'gemfirexd-client')
+  compile project(subprojectBase + 'gemfirexd-client')
   provided project(subprojectBase + 'gemfirexd-tools')
   provided project(subprojectBase + 'gemfirexd-core')
 
@@ -32,6 +32,8 @@ dependencies {
   provided "com.google.protobuf:protobuf-java:${protobufVersion}"
   provided "com.sun.jersey:jersey-core:${jerseyVersion}"
   provided "com.sun.jersey:jersey-server:${jerseyVersion}"
+  provided "com.sun.jersey:jersey-servlet:${jerseyVersion}"
+  provided 'javax.ws.rs:jsr311-api:1.1.1'
   provided "org.mortbay.jetty:jetty:${hadoopJettyVersion}"
   provided "org.mortbay.jetty:jetty-util:${hadoopJettyVersion}"
   provided "com.google.code.findbugs:jsr305:${jsr305Version}"
@@ -78,5 +80,5 @@ shadowJar {
   }
 }
 
-archivesBaseName = 'gemfirexd-hydra-tests'
+archivesBaseName = 'snappydata-store-hydra-tests'
 jar.dependsOn shadowJar

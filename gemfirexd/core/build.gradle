@@ -25,6 +25,8 @@ dependencies {
   provided "com.google.protobuf:protobuf-java:${protobufVersion}"
   provided "com.sun.jersey:jersey-core:${jerseyVersion}"
   provided "com.sun.jersey:jersey-server:${jerseyVersion}"
+  provided "com.sun.jersey:jersey-servlet:${jerseyVersion}"
+  provided 'javax.ws.rs:jsr311-api:1.1.1'
   provided "org.mortbay.jetty:jetty:${hadoopJettyVersion}"
   provided "org.mortbay.jetty:jetty-util:${hadoopJettyVersion}"
   provided "com.google.code.findbugs:jsr305:${jsr305Version}"
@@ -147,6 +149,29 @@ task doSplit(dependsOn: buildMessages) {
   }
 }
 
+task odbcMeta {
+  dependsOn "${subprojectBase}gemfirexd-prebuild:processResources", 'processResources'
+  def metaDir = file("${buildDir}/resources/main/com/pivotal/gemfirexd/internal/impl/jdbc")
+  outputs.files "${metaDir}/metadata.properties"
+  inputs.dir compileJava.destinationDir
+
+  doFirst {
+    metaDir.mkdirs()
+  }
+
+  doLast {
+    println('Creating ODBC metadata properties')
+    javaexec {
+      main = 'org.apache.derbyBuild.ODBCMetadataGenerator'
+      classpath = sourceSets.main.compileClasspath
+      workingDir = metaDir
+    }
+    // move generated odbc_metadata.properties as metadata.properties
+    file("${metaDir}/odbc_metadata.properties").
+      renameTo("${metaDir}/metadata.properties")
+  }
+}
+
 /*
 task createClassSizeCatalog {
   def internalDir = 'com/pivotal/gemfirexd/internal'
@@ -190,17 +215,19 @@ javadoc {
 javadoc.dependsOn.clear()
 
 shadowJar {
-  dependsOn doSplit
-  dependsOn jar
+  dependsOn odbcMeta, doSplit, jar
   zip64 = true
-  baseName = 'gemfirexd'
+  baseName = 'snappydata-store'
   classifier = ''
 
   mergeServiceFiles()
 }
 
+archivesBaseName = 'snappydata-store-core'
+
 jar {
-  dependsOn doSplit
+  dependsOn odbcMeta, doSplit
+  baseName = 'snappydata-store-core'
 
   doLast {
     // copy the native JNI library

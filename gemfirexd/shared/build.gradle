@@ -21,6 +21,7 @@ task createVersionPropertiesFile(dependsOn: 'processResources') {
       "Source-Date"       : sourceDate,
       "Source-Revision"   : commitId,
       "Source-Repository" : gitBranch,
+      "Product-Stage"     : PRODUCT_RELEASE_STAGE,
       "GemFire-Version"   : GEMFIRE_VERSION
     ]
 
@@ -37,4 +38,4 @@ javadoc {
 }
 javadoc.dependsOn.clear()
 
-archivesBaseName = 'gemfirexd-shared'
+archivesBaseName = 'snappydata-store-shared'

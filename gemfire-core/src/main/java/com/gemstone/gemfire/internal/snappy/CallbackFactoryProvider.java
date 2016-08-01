@@ -30,7 +30,8 @@ public abstract class CallbackFactoryProvider {
   private static StoreCallbacks storeCallbacks = new StoreCallbacks() {
 
     @Override
-    public Set createCachedBatch(BucketRegion region, UUID batchID, int bucketID) {
+    public Set<Object> createCachedBatch(BucketRegion region, UUID batchID,
+        int bucketID) {
       return null;
     }
 
@@ -53,8 +54,7 @@ public abstract class CallbackFactoryProvider {
 
     @Override
     public boolean haveRegisteredExternalStore(String tableName) {
-      throw new UnsupportedOperationException("unexpected invocation for "
-          + toString());
+      return false;
     }
 
   };
@@ -66,5 +66,4 @@ public abstract class CallbackFactoryProvider {
   public static StoreCallbacks getStoreCallbacks() {
     return storeCallbacks;
   }
-
 }
