@@ -4173,9 +4173,6 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
           oldValue = this.region.validatedPut(event, startPut);
           System.out.println(" old value for "+ predicate + " is = " + oldValue);
           // TODO OFFHEAP validatedPut calls freeOffHeapResources
-          if(oldValue == null){
-            throw new EntryNotFoundException("Entry not found for "+ predicate);
-          }
         }
         else {
           mkvh.addKeyValueAndCallbackArg(key, delta, sca);
@@ -5797,7 +5794,6 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
             + ") is already destroyed");
       }
       try {
-        System.out.println("Checking Predicate for " + predicate);
         if (this.predicate != null && this.otherKeyValues != null
             && !ValidUpdateOperation.isValid(region, this.predicate,
             this.otherKeyValues)) {
@@ -6063,6 +6059,7 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
       if (version != null) {
         InternalDataSerializer.invokeToData(version, out);
       }
+
       if(otherKeyValues != null){
         InternalDataSerializer.writeString(predicate, out);
         DataType.writeDVDArray(otherKeyValues, out);

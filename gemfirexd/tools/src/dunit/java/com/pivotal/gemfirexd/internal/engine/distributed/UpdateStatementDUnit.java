@@ -61,7 +61,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     super(name);
   }
 
-  public void _testBasicNodePruningNoPrimaryKey() throws Exception {
+  public void testBasicNodePruningNoPrimaryKey() throws Exception {
     try {
       // Start one client and three servers
       startServerVMs(3, 0, "SG1");
@@ -136,7 +136,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testBasicNodePruningWithPrimaryKey() throws Exception {
+  public void testBasicNodePruningWithPrimaryKey() throws Exception {
       // Start one client and three servers
     startServerVMs(3, 0, "SG1");
     startClientVMs(1, 0, null);
@@ -216,7 +216,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
    * Test to make sure an UPDATE on PK lookup with no existing row
    * updates zero rows
    */
-  public void _testUpdateMissPrimaryKey() throws Exception {
+  public void testUpdateMissPrimaryKey() throws Exception {
     try {
       // Start one client and three servers
       startVMs(1, 3);
@@ -226,10 +226,10 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
       
       // Create the table and insert a row
       clientSQLExecute(
-                       1,
-                       "create table EMP.TESTTABLE (ID int primary key, "
-                       + "DESCRIPTION varchar(1024) not null, ADDRESS varchar(1024) not null ) PARTITION BY RANGE ( ID )"
-                       + " ( VALUES BETWEEN 0 and 3, VALUES BETWEEN  3 and 6 , VALUES BETWEEN 6 and  +Infinity )"+getOverflowSuffix());
+          1,
+          "create table EMP.TESTTABLE (ID int primary key, "
+              + "DESCRIPTION varchar(1024) not null, ADDRESS varchar(1024) not null ) PARTITION BY RANGE ( ID )"
+              + " ( VALUES BETWEEN 0 and 3, VALUES BETWEEN  3 and 6 , VALUES BETWEEN 6 and  +Infinity )" + getOverflowSuffix());
       
       // Insert values 1 to 8
       for (int i = 0; i < 8; ++i) {
@@ -255,7 +255,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
       // update some ID values, try to cover local as well as remote buckets
       // Expected ReplyException carrying an EntryNotFoundException, shows up
       // in DM Verbose logging
-      addExpectedException(new int[] { 1 }, new int[] { 1, 2, 3 },
+      addExpectedException(new int[]{1}, new int[]{1, 2, 3},
           EntryNotFoundException.class);
 
       try {
@@ -278,7 +278,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }  
 
-  public void _testBasicNodePruningWithParameter() throws Exception {
+  public void testBasicNodePruningWithParameter() throws Exception {
     try {
       // Start one client and three servers
       startServerVMs(3, 0, "SG1");
@@ -357,7 +357,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testUpdateHavingParameterizedExpression_Bug39646_1()
+  public void testUpdateHavingParameterizedExpression_Bug39646_1()
       throws Exception {
     // Start one client and three servers
     startVMs(1, 3);
@@ -396,7 +396,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
 
       TestUtil.setupConnection();
       EmbedPreparedStatement es = (EmbedPreparedStatement)TestUtil.jdbcConn.prepareStatement(updateQuery);
-      es.setInt(1,1);
+      es.setInt(1, 1);
       es.setInt(2,0);
       es.setInt(3,3);
       int n = es.executeUpdate();
@@ -423,7 +423,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
         if(rs.getInt(1) > 0 && rs.getInt(1) < 3) {
           assertEquals(rs.getInt(2), rs.getInt(1)+1);
         }else {
-          assertEquals(rs.getInt(2),rs.getInt(1));
+          assertEquals(rs.getInt(2), rs.getInt(1));
         }
       }
       
@@ -438,7 +438,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testUpdateWithoutInsert() throws Exception {
+  public void testUpdateWithoutInsert() throws Exception {
     // Start one client and three servers
     startServerVMs(3, 0, "SG1");
     startClientVMs(1, 0, null);
@@ -469,7 +469,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testUpdateHavingExpression_Bug39646_2() throws Exception {
+  public void testUpdateHavingExpression_Bug39646_2() throws Exception {
     // Start one client and three servers
     startVMs(1, 3);
     try {
@@ -545,7 +545,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
   
-  public void _testUpdateOnTableHavingNoPrimaryOrPartitionKeyDefined_Bug39921() throws Exception {
+  public void testUpdateOnTableHavingNoPrimaryOrPartitionKeyDefined_Bug39921() throws Exception {
     try {
       // Start one client and three servers
       startServerVMs(3, 0, "SG1");
@@ -609,7 +609,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
   
-  public void _testBug40025() throws Exception {
+  public void testBug40025() throws Exception {
     try {
       // Start one client and one server
       startVMs(1, 3);
@@ -671,7 +671,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
    * update statement which is not put convertible.
    * @throws Exception
    */
-  public void _testBug40025WithOutUpdatesToPut() throws Exception {
+  public void testBug40025WithOutUpdatesToPut() throws Exception {
     // Start one client and one server
     startVMs(1, 1);
     // Rahul :this following update will not be put convertible. Other than
@@ -710,7 +710,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testBug40025_1() throws Exception {
+  public void testBug40025_1() throws Exception {
     try {
       // Start one client and one server
       startVMs(1, 3);
@@ -725,13 +725,13 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
           1,
           "create table Child ( id2 int primary key, sector_id2 int, subsector_id2 int, foreign key (sector_id2) references instruments (id1) ) partition by primary key");
        
-      clientSQLExecute(1,"insert into instruments values (1,1,1)");
-      clientSQLExecute(1,"insert into Child values (1,1,1)");
+      clientSQLExecute(1, "insert into instruments values (1,1,1)");
+      clientSQLExecute(1, "insert into Child values (1,1,1)");
       TestUtil.setupConnection();
       EmbedPreparedStatement es = (EmbedPreparedStatement)TestUtil.jdbcConn.prepareStatement(updateQuery);
       es.setInt(1, 2);
       es.setInt(2, 1);
-      addExpectedException(new int[] { 1 }, new int[] { 1, 2, 3 },
+      addExpectedException(new int[]{1}, new int[]{1, 2, 3},
           FunctionException.class);
       try {
         es.executeUpdate();
@@ -754,7 +754,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     } 
   }
 
-  public void _testConstraintExceptionForPartitionedRegionTable_Bug40016_2() throws Exception {
+  public void testConstraintExceptionForPartitionedRegionTable_Bug40016_2() throws Exception {
     // Start one client and one server
     startVMs(1, 3);
     try {
@@ -798,7 +798,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }    
   }
 
-  public void _testConstraintExceptionForReplicatedRegionTable_Bug40016_1() throws Exception {
+  public void testConstraintExceptionForReplicatedRegionTable_Bug40016_1() throws Exception {
       // Start one client and one server
     startVMs(1, 3);
     String updateQuery =  "update Child set sector_id2 = ? where subsector_id2 = ?";
@@ -812,8 +812,8 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
           1,
           "create table Child ( id2 int primary key, sector_id2 int, subsector_id2 int, foreign key (sector_id2) references instruments (id1) ) replicate");
        
-      clientSQLExecute(1,"insert into instruments values (1,1,1)");
-      clientSQLExecute(1,"insert into Child values (1,1,1)");
+      clientSQLExecute(1, "insert into instruments values (1,1,1)");
+      clientSQLExecute(1, "insert into Child values (1,1,1)");
       TestUtil.setupConnection();
       EmbedPreparedStatement es = (EmbedPreparedStatement)TestUtil.jdbcConn.prepareStatement(updateQuery);
       es.setInt(1, 2); 
@@ -835,13 +835,13 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }    
   }
   
-  public void _testNotNullCheck_Bug40018_1() throws Exception
+  public void testNotNullCheck_Bug40018_1() throws Exception
   {
     startVMs(1, 3);
 
     clientSQLExecute(
         1,
-        "create table Child ( id2 int primary key, sector_id2 int not null, subsector_id2 int)"+getOverflowSuffix());
+        "create table Child ( id2 int primary key, sector_id2 int not null, subsector_id2 int)" + getOverflowSuffix());
 
     try {
       // Start one client and one server
@@ -870,7 +870,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testNotNullCheck_Bug40018_2() throws Exception
+  public void testNotNullCheck_Bug40018_2() throws Exception
   {
     startVMs(1, 3);
 
@@ -890,7 +890,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
       ps.setInt(2, 2);
       ps.setInt(3, 1);
       int n = ps.executeUpdate();
-      assertEquals(3,n);      
+      assertEquals(3, n);
     }
     finally {
       GemFireXDQueryObserverHolder
@@ -900,7 +900,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testBug41985() throws Exception {
+  public void testBug41985() throws Exception {
     startVMs(1, 3);
 
     clientSQLExecute(
@@ -929,7 +929,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
   
-  public void _testBug41985_1() throws Exception {
+  public void testBug41985_1() throws Exception {
     startVMs(1, 3);
 
     clientSQLExecute(
@@ -952,7 +952,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testNotNullCheck_Bug40018_3() throws Exception
+  public void testNotNullCheck_Bug40018_3() throws Exception
   {
     startVMs(1, 3);
     clientSQLExecute(
@@ -986,7 +986,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testPKUpdateOnNonExistentRowForReplicateTable_Bug42862()
+  public void testPKUpdateOnNonExistentRowForReplicateTable_Bug42862()
       throws Exception {
     startVMs(1, 3);
     clientSQLExecute(1, "create table Child ( id2 int primary key, sector_id2 "
@@ -1011,7 +1011,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testPKUpdateOnNonExistentRowForPartitionedTable_Bug42862()
+  public void testPKUpdateOnNonExistentRowForPartitionedTable_Bug42862()
       throws Exception {
     startVMs(1, 3);
     clientSQLExecute(1, "create table Child ( id2 int primary key, sector_id2 "
@@ -1036,7 +1036,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testPKUpdateOnExistingRowForPartitionedTable_Bug42862()
+  public void testPKUpdateOnExistingRowForPartitionedTable_Bug42862()
       throws Exception {
     startVMs(1, 3);
     clientSQLExecute(1, "create table Child ( id2 int primary key, sector_id2 "
@@ -1068,14 +1068,14 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     // Start one client and three servers
     startServerVMs(3, 0, "SG1");
     startClientVMs(1, 0, null);
-    String updateQuery = "Update EMP.TESTTABLE set type = ? where ID = ? ";
+    String updateQuery = "Update EMP.TESTTABLE set type = ? where ID = ? and DESCRIPTION = ?";
     // Create a schema with default server groups GemFire extension
     clientSQLExecute(1, "create schema EMP default server groups (SG1)");
 
     // Create the table and insert a row
     clientSQLExecute(1, "create table EMP.TESTTABLE (ID int primary key, "
         + "DESCRIPTION varchar(1024) not null, "
-        + "ADDRESS varchar(1024) ,type int ) "+getOverflowSuffix());
+        + "ADDRESS varchar(1024) ,type int ) " + getOverflowSuffix());
 
     // Insert values 1 to 8
     for (int i = 0; i < 8; ++i) {
@@ -1088,19 +1088,20 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
 
     try {
       TestUtil.setupConnection();
-      ResultSet rs = TestUtil.jdbcConn.createStatement().executeQuery("select id from EMP" +
+      ResultSet rs = TestUtil.jdbcConn.createStatement().executeQuery("select DESCRIPTION from EMP" +
           ".TESTTABLE");
       while(rs.next()){
-        int s = rs.getInt(1);
+        String s = rs.getString(1);
         System.out.println(" After updated value = " + s);
       }
-/*      EmbedPreparedStatement es = (EmbedPreparedStatement)TestUtil.jdbcConn
+     /* EmbedPreparedStatement es = (EmbedPreparedStatement)TestUtil.jdbcConn
           .prepareStatement(updateQuery);
       es.setInt(1, 1);
-      es.setInt(2, 2);*/
-      //int n = es.executeUpdate();
+      es.setInt(2, 2);
+      es.setString(3, "First2");
+      int n = es.executeUpdate();*/
       int n = TestUtil.jdbcConn.createStatement().executeUpdate("Update EMP.TESTTABLE set type = " +
-          "1 where ID = 2");
+          "1 where ID = 2 and DESCRIPTION = 'First2'");
       assertEquals(1, n);
 
     } finally {

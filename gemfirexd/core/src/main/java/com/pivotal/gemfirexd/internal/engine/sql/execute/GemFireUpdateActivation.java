@@ -77,8 +77,12 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
     Object pk = this.qInfo.getPrimaryKey();
     Object[][] otherKeys = (Object[][])this.qInfo.getOtherKeys();
 
-    String whereStatement = ((UpdateQueryInfo)this.qInfo).statementSQLText.toLowerCase();
-    String predicate = whereStatement.substring(whereStatement.indexOf("where") + 6,
+    String whereStatement = ((UpdateQueryInfo)this.qInfo).statementSQLText;
+    int whereIndex = whereStatement.indexOf("where");
+    if (whereIndex == 0) {
+      whereIndex = whereStatement.indexOf("WHERE");
+    }
+    String predicate = whereStatement.substring(whereIndex + 6,
         whereStatement.length());
 
     System.out.println("Evaluating for " + predicate);
