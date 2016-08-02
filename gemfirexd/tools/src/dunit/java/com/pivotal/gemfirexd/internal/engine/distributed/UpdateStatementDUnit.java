@@ -1068,6 +1068,39 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     // Start one client and three servers
     startServerVMs(3, 0, "SG1");
     startClientVMs(1, 0, null);
+    // Create a schema with default server groups GemFire extension
+    clientSQLExecute(1, "create schema EMP default server groups (SG1)");
+
+    // Create the table and insert a row
+    clientSQLExecute(1, "create table EMP.TESTTABLE (ID int primary key, "
+        + "DESCRIPTION varchar(1024) not null, "
+        + "ADDRESS varchar(1024) ,type int ) " + getOverflowSuffix());
+
+    // Insert values 1 to 8
+    for (int i = 0; i < 8; ++i) {
+      clientSQLExecute(1, "insert into EMP.TESTTABLE values (" + (i + 1)
+          + ", 'First" + (i + 1) + "', 'J 604" + (i + 1) + "'," + (i + 1)
+          + ")");
+    }
+    try {
+      TestUtil.setupConnection();
+      int n = TestUtil.jdbcConn.createStatement().executeUpdate("Update EMP.TESTTABLE set type = " +
+          "1 where ID = 2 and DESCRIPTION = 'First2'");
+      assertEquals(1, n);
+
+    } finally {
+      GemFireXDQueryObserverHolder
+          .setInstance(new GemFireXDQueryObserverAdapter());
+      clientSQLExecute(1, "Drop table EMP.TESTTABLE ");
+      clientSQLExecute(1, "Drop schema EMP restrict");
+      //invokeInEveryVM(this.getClass(), "reset");
+    }
+  }
+
+  public void testUpdatePrimarykeyWithExtraAndsPrepStmt() throws Exception {
+    // Start one client and three servers
+    startServerVMs(3, 0, "SG1");
+    startClientVMs(1, 0, null);
     String updateQuery = "Update EMP.TESTTABLE set type = ? where ID = ? and DESCRIPTION = ?";
     // Create a schema with default server groups GemFire extension
     clientSQLExecute(1, "create schema EMP default server groups (SG1)");
@@ -1083,25 +1116,14 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
           + ", 'First" + (i + 1) + "', 'J 604" + (i + 1) + "'," + (i + 1)
           + ")");
     }
-
-
-
     try {
       TestUtil.setupConnection();
-      ResultSet rs = TestUtil.jdbcConn.createStatement().executeQuery("select DESCRIPTION from EMP" +
-          ".TESTTABLE");
-      while(rs.next()){
-        String s = rs.getString(1);
-        System.out.println(" After updated value = " + s);
-      }
-     /* EmbedPreparedStatement es = (EmbedPreparedStatement)TestUtil.jdbcConn
+      EmbedPreparedStatement es = (EmbedPreparedStatement)TestUtil.jdbcConn
           .prepareStatement(updateQuery);
       es.setInt(1, 1);
       es.setInt(2, 2);
       es.setString(3, "First2");
-      int n = es.executeUpdate();*/
-      int n = TestUtil.jdbcConn.createStatement().executeUpdate("Update EMP.TESTTABLE set type = " +
-          "1 where ID = 2 and DESCRIPTION = 'First2'");
+      int n = es.executeUpdate();
       assertEquals(1, n);
 
     } finally {
