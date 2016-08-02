@@ -355,7 +355,7 @@ public abstract class AbstractConditionQueryInfo extends AbstractQueryInfo  {
   }
 
 
-  Object getOtherConditions(int[][] pkColumns, TableQueryInfo tqi)
+  Object getAllConditions(int[][] pkColumns, TableQueryInfo tqi)
       throws StandardException
   {
     return null;

@@ -276,7 +276,7 @@ public class AndJunctionQueryInfo extends JunctionQueryInfo {
 
 
   @Override
-  Object getOtherConditions(int[][] fkColumns, TableQueryInfo tqi)
+  Object getAllConditions(int[][] fkColumns, TableQueryInfo tqi)
       throws StandardException {
     Object[][] otherColumns = null;
 

@@ -1254,7 +1254,6 @@ public class SQLParser
 							C_NodeTypes.UPDATE_NODE,
 							tableName,
 							resultSet,
-							whereClause,
 							fromList,
 							statementSQLText,
 							getContextManager());
