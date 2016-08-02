@@ -654,6 +654,14 @@ public class UpdateQueryInfoInternalsTest extends JdbcTestBase{
       }
     }
   }
+  //Other Tests to be added
+
+  // Test simple statements
+  // Test single PK key
+  // Test query with IN clause.
+  // Test prepared statements with partial parameters.
+  // Test with only primary keys
+  // Test query with IN clause and PreparedStatements
 
 
   public void createTableWithPrimaryKey(Connection conn) throws SQLException {

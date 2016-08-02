@@ -979,7 +979,7 @@ public abstract class DMLQueryInfo extends AbstractQueryInfo implements Visitor 
         int[][] pkColumn = tqi.getPrimaryKeyColumns();
         this.pk = this.whereClause.isConvertibleToGet(pkColumn, tqi);
         if(this.pk != null){
-          this.otherKeys = this.whereClause.getOtherConditions(pkColumn, tqi);
+          this.otherKeys = this.whereClause.getAllConditions(pkColumn, tqi);
         }
         if (GemFireXDUtils.isSet(this.queryType, MARK_NOT_GET_CONVERTIBLE)) {
           this.pk = null;
