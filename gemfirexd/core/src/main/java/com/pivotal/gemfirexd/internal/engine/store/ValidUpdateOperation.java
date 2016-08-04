@@ -17,6 +17,8 @@
 
 package com.pivotal.gemfirexd.internal.engine.store;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import com.gemstone.gemfire.LogWriter;
 import com.gemstone.gemfire.cache.Region;
 import com.pivotal.gemfirexd.internal.catalog.types.RoutineAliasInfo;
@@ -31,6 +33,8 @@ import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.StatementContext;
 import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
 import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedConnection;
+import com.pivotal.gemfirexd.internal.impl.services.cache.CacheEntry;
+import com.pivotal.gemfirexd.internal.impl.services.cache.ConcurrentCache;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericParameterValueSet;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericPreparedStatement;
 
@@ -57,11 +61,14 @@ public class ValidUpdateOperation {
     try {
 
       if (lcc == null) {
+        System.out.println("LCC is null");
         //a PK based insert is converted into
         // region.put since it bypasses GemFireXD layer, the LCC can be null.
         conn = GemFireXDUtils.getTSSConnection(true, true, false);
         conn.getTR().setupContextStack();
         lcc = conn.getLanguageConnectionContext();
+
+
         // lcc can be null if the node has started to go down.
         if (lcc == null) {
           Misc.getGemFireCache().getCancelCriterion()
@@ -69,13 +76,16 @@ public class ValidUpdateOperation {
         }
       }
 
+      ConcurrentHashMap<Object, CacheEntry> cache =
+          ((ConcurrentCache) lcc.getLanguageConnectionFactory().getStatementCache()).getCache();
+
       final GemFireContainer container = (GemFireContainer)region
           .getUserAttribute();
       PreparedStatement queryStatement = lcc.prepareInternalStatement("SELECT * FROM "
               + container.getQualifiedTableName() + " WHERE " + predicateString,
           (short)0);
 
-
+      System.out.println("Cache size = "+ cache.size());
       if (lcc != null) {
         lcc.pushMe();
         popContext = true;
