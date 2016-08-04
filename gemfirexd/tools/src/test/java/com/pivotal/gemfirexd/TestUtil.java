@@ -555,7 +555,7 @@ public class TestUtil extends TestCase {
         ExclusiveSharedSynchronizer.LOCK_MAX_TIMEOUT_PROP, "20000");
 
     // allow running in background that gets stuck due to jline usage
-    setPropertyIfAbsent(null, "jline.terminal", "scala.tools.jline.UnsupportedTerminal");
+    setPropertyIfAbsent(null, "jline.terminal", "jline.UnsupportedTerminal");
 
     // randomly set the streaming flag
     setPropertyIfAbsent(props, Attribute.DISABLE_STREAMING,

@@ -1,5 +1,5 @@
 plugins {
-  id "ca.coglinc.javacc" version "2.3.1"
+  id 'ca.coglinc.javacc' version '2.3.1'
 }
 
 artifacts {
@@ -17,7 +17,7 @@ dependencies {
   compile 'commons-configuration:commons-configuration:1.10'
   compile 'commons-pool:commons-pool:1.6'
   compile 'commons-dbcp:commons-dbcp:1.4'
-  compile "org.scala-lang:jline:${scalaVersion}"
+  compile 'jline:jline:2.14.2'
 
   // use dunit support from snappydata
   if (subprojectBase == ':') {
@@ -40,9 +40,9 @@ dependencies {
   provided "org.apache.hadoop:hadoop-hdfs:${hadoopVersion}"
   provided "org.apache.hadoop:hadoop-mapreduce-client-core:${hadoopVersion}"
   provided "com.google.protobuf:protobuf-java:${protobufVersion}"
-  provided "com.sun.jersey:jersey-core:${jerseyVersion}"
-  provided "com.sun.jersey:jersey-server:${jerseyVersion}"
-  provided "com.sun.jersey:jersey-servlet:${jerseyVersion}"
+  provided "com.sun.jersey:jersey-core:${sunJerseyVersion}"
+  provided "com.sun.jersey:jersey-server:${sunJerseyVersion}"
+  provided "com.sun.jersey:jersey-servlet:${sunJerseyVersion}"
   provided 'javax.ws.rs:jsr311-api:1.1.1'
   provided "org.mortbay.jetty:jetty-util:${hadoopJettyVersion}"
   provided "org.mortbay.jetty:jetty:${hadoopJettyVersion}"
@@ -76,7 +76,10 @@ dependencies {
 
 // move javacc output directory to a place where IDEA can easily register
 def javaccOut = 'src/generated/javacc'
-compileJavacc.outputDirectory = file(javaccOut)
+compileJavacc {
+  arguments = [ grammar_encoding: 'UTF-8' ]
+  outputDirectory = file(javaccOut)
+}
 
 sourceSets.main.java.srcDirs = [ 'src/main/java', javaccOut, 'src/ddlutils/java' ]
 sourceSets.test.java.srcDirs = [ 'src/test/java', 'src/testing/java', 'src/dunit/java',

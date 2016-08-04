@@ -1,5 +1,5 @@
 plugins {
-  id "ca.coglinc.javacc" version "2.3.1"
+  id 'ca.coglinc.javacc' version '2.3.1'
 }
 
 apply plugin: 'com.github.johnrengelman.shadow'
@@ -15,7 +15,7 @@ dependencies {
   provided "com.pivotal:pxf-api:${pxfVersion}"
   compile "org.osgi:org.osgi.core:${osgiVersion}"
   compile "org.apache.ant:ant:${antVersion}"
-  compile 'javax.servlet:javax.servlet-api:3.0.1'
+  compile "javax.servlet:javax.servlet-api:${servletAPIVersion}"
 
   provided "org.apache.hadoop:hadoop-annotations:${hadoopVersion}"
   provided "org.apache.hadoop:hadoop-auth:${hadoopVersion}"
@@ -23,9 +23,9 @@ dependencies {
   provided "org.apache.hadoop:hadoop-hdfs:${hadoopVersion}"
   provided "org.apache.hadoop:hadoop-mapreduce-client-core:${hadoopVersion}"
   provided "com.google.protobuf:protobuf-java:${protobufVersion}"
-  provided "com.sun.jersey:jersey-core:${jerseyVersion}"
-  provided "com.sun.jersey:jersey-server:${jerseyVersion}"
-  provided "com.sun.jersey:jersey-servlet:${jerseyVersion}"
+  provided "com.sun.jersey:jersey-core:${sunJerseyVersion}"
+  provided "com.sun.jersey:jersey-server:${sunJerseyVersion}"
+  provided "com.sun.jersey:jersey-servlet:${sunJerseyVersion}"
   provided 'javax.ws.rs:jsr311-api:1.1.1'
   provided "org.mortbay.jetty:jetty:${hadoopJettyVersion}"
   provided "org.mortbay.jetty:jetty-util:${hadoopJettyVersion}"
@@ -34,26 +34,30 @@ dependencies {
 
 // move javacc output directory to a place where IDEA can easily register
 def javaccOut = 'src/generated/javacc'
-compileJavacc.outputDirectory = file(javaccOut)
 
 sourceSets.main.java.srcDirs = [ 'src/main/java', javaccOut, 'src/drda/java' ]
 
 // update javacc generated files as per in original derby build
-compileJavacc.doLast {
-  def grammarDir = 'com/pivotal/gemfirexd/internal/impl/sql/compile'
-  def matcherDir = 'com/pivotal/gemfirexd/internal/engine/sql/compile'
+compileJavacc {
+  arguments = [ grammar_encoding: 'UTF-8' ]
+  outputDirectory = file(javaccOut)
 
-  println 'Replacing all occurrances of GetImage() to GetImage(jjmatchedKind)'
+  doLast {
+    def grammarDir = 'com/pivotal/gemfirexd/internal/impl/sql/compile'
+    def matcherDir = 'com/pivotal/gemfirexd/internal/engine/sql/compile'
 
-  replaceRegex("${compileJavacc.outputDirectory}/${grammarDir}", 'SQLParser.java',
-      'GetImage\\(\\)', 'GetImage(jjmatchedKind)')
-  replaceRegex("${compileJavacc.outputDirectory}/${grammarDir}", 'SQLParserTokenManager.java',
-      'GetImage\\(\\)', 'GetImage(jjmatchedKind)')
+    println 'Replacing all occurrances of GetImage() to GetImage(jjmatchedKind)'
 
-  replaceRegex("${compileJavacc.outputDirectory}/${matcherDir}", 'SQLMatcher.java',
-      'GetImage\\(\\)', "GetImage(jjmatchedKind)")
-  replaceRegex("${compileJavacc.outputDirectory}/${matcherDir}", 'SQLMatcherTokenManager.java',
-      'GetImage\\(\\)', 'GetImage(jjmatchedKind)')
+    replaceRegex("${compileJavacc.outputDirectory}/${grammarDir}", 'SQLParser.java',
+        'GetImage\\(\\)', 'GetImage(jjmatchedKind)')
+    replaceRegex("${compileJavacc.outputDirectory}/${grammarDir}", 'SQLParserTokenManager.java',
+        'GetImage\\(\\)', 'GetImage(jjmatchedKind)')
+
+    replaceRegex("${compileJavacc.outputDirectory}/${matcherDir}", 'SQLMatcher.java',
+        'GetImage\\(\\)', "GetImage(jjmatchedKind)")
+    replaceRegex("${compileJavacc.outputDirectory}/${matcherDir}", 'SQLMatcherTokenManager.java',
+        'GetImage\\(\\)', 'GetImage(jjmatchedKind)')
+  }
 }
 
 task generatePropertiesFiles(dependsOn: 'processResources') {

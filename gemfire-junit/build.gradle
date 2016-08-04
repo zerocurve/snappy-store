@@ -40,9 +40,9 @@ dependencies {
   provided "org.apache.hadoop:hadoop-hdfs:${hadoopVersion}"
   provided "org.apache.hadoop:hadoop-mapreduce-client-core:${hadoopVersion}"
   provided "com.google.protobuf:protobuf-java:${protobufVersion}"
-  provided "com.sun.jersey:jersey-core:${jerseyVersion}"
-  provided "com.sun.jersey:jersey-server:${jerseyVersion}"
-  provided "com.sun.jersey:jersey-servlet:${jerseyVersion}"
+  provided "com.sun.jersey:jersey-core:${sunJerseyVersion}"
+  provided "com.sun.jersey:jersey-server:${sunJerseyVersion}"
+  provided "com.sun.jersey:jersey-servlet:${sunJerseyVersion}"
   provided 'javax.ws.rs:jsr311-api:1.1.1'
   provided "org.mortbay.jetty:jetty:${hadoopJettyVersion}"
   provided "org.mortbay.jetty:jetty-util:${hadoopJettyVersion}"
