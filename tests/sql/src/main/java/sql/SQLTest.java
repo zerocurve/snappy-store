@@ -3233,7 +3233,7 @@ public class SQLTest {
     }
   }
 
-  protected void verifyResultSets(Connection dConn, Connection gConn) {
+  protected void  verifyResultSets(Connection dConn, Connection gConn) {
     if (dConn == null) {
       Log.getLogWriter().info("Connection to disc db is null, could not verify results");
       return;
@@ -3245,6 +3245,7 @@ public class SQLTest {
       try {
         Log.getLogWriter().info("verifyResultSets-verifyResultSets-schema " + table[0] + " and table " + table[1]);
         verifyResultSets(dConn, gConn, table[0], table[1]);
+        dumpDiagosis(dConn, gConn, table[0], table[1]);
       }catch (TestException te) {
         if (verifyUsingOrderBy) throw te; //avoid OOME on accessor due to failure with large resultset 
         
@@ -3253,13 +3254,83 @@ public class SQLTest {
         //Log.getLogWriter().info("Logged test failure:\n" + te.getMessage());
         str.append(te.getMessage() + "\n");
       } //temporary
+
     }
     if (throwException) {
       throw new TestException ("verifyResultSets-verify results failed: " + str);
     }
 
   }
-  
+  protected void  dumpDiagosis(Connection dConn, Connection gConn, String schema, String table) {
+    boolean throwException = false;
+    StringBuffer str = new StringBuffer();
+    String tablename = schema + "." + table;
+    String[] q = {
+            "select count(*), dsid() from sys.members m --GEMFIREXD-PROPERTIES withSecondaries=false\n , "
+                    + tablename + "where dsid() = m.id group by dsid()",
+            "select count(*), dsid() from sys.members m --GEMFIREXD-PROPERTIES withSecondaries=true\n , "
+                    + tablename + "where dsid() = m.id group by dsid()",
+//          "select count(*), dsid() from sys.members m , TABLE_DATA --GEMFIREXD-PROPERTIES
+//              index=IF3_4_5\n where dsid() = m.id group by dsid()",
+//          "select count(*), dsid() from sys.members m , TABLE_DATA --GEMFIREXD-PROPERTIES
+//              index=IF3_4_5\n where dsid() = m.id group by dsid()",
+//          "select count(*), dsid() from sys.members m , TABLE_DATA --GEMFIREXD-PROPERTIES
+//              index=IF3_4_5\n where dsid() = m.id group by dsid()"
+    };
+    try {
+      Log.getLogWriter().info("dumpDiagosis-Dumping diagonis report for " + tablename);
+      ResultSet rs = gConn.createStatement().executeQuery("VALUES SYS.CHECK_TABLE_EX(schema, table)");
+      Statement stmt = gConn.createStatement();
+      stmt.execute(q[0]);
+      ResultSet rs1 = stmt.getResultSet();
+      int numRecordsTot = 0;
+      while(rs.next()) {
+        numRecordsTot += rs.getInt(1);
+      }
+
+      stmt.execute(q[1]);
+      rs1 = stmt.getResultSet();
+      int numRecordsTotIncludingSec = 0;
+      while(rs.next()) {
+        numRecordsTotIncludingSec += rs.getInt(1);
+      }
+
+//      stmt.execute(q[3]);
+//      rs1 = stmt.getResultSet();
+//      int numRecordsTotIncludingSec_idx1 = 0;
+//      while(rs.next()) {
+//        numRecordsTotIncludingSec_idx1 += rs.getInt(1);
+//      }
+//
+//      stmt.execute(q[3]);
+//      rs1 = stmt.getResultSet();
+//      int numRecordsTotIncludingSec_idx2 = 0;
+//      while(rs.next()) {
+//        numRecordsTotIncludingSec_idx2 += rs.getInt(1);
+//      }
+//
+//      stmt.execute(q[4]);
+//      rs1 = stmt.getResultSet();
+//      int numRecordsTotIncludingSec_idx3 = 0;
+//      while(rs.next()) {
+//        numRecordsTotIncludingSec_idx3 += rs.getInt(1);
+//      }
+
+      Log.getLogWriter().info("Total number of records from query1 primaries " + numRecordsTot);
+      Log.getLogWriter().info("Total number of records from query2 including secondaries " + numRecordsTotIncludingSec);
+//      Log.getLogWriter().info("Total number of records from query3 index1 " + numRecordsTotIncludingSec_idx1);
+//      Log.getLogWriter().info("Total number of records from query4 index2 " + numRecordsTotIncludingSec_idx2);
+//      Log.getLogWriter().info("Total number of records from query5 index3 " + numRecordsTotIncludingSec_idx3);
+    }catch (SQLException se) {
+      if (!(se.getSQLState().equals("X0Y55") || se.getSQLState().equals("X0Y60"))) {
+        throwException = true;
+        str.append(se.getMessage() + "\n");
+      }
+    }
+    if (throwException) {
+      throw new TestException ("dumpDiagosis-diagonis failed: " + str);
+    }
+  }
   
   protected void jsonVerification(Connection gConn){
     boolean throwException = false;
@@ -3429,7 +3500,6 @@ public class SQLTest {
     select = "select count (*) from " + schema + "." + table;
     if ( (verifyByTid && getMyTid() == 0 ) || (!verifyByTid) ) 
     verifyResultSets(dConn, gConn, schema, table, select, hasHdfs);
-    
     
     //TODO temp work around large number of rows returned using heap dump to clear heap
     if (verifyUsingOrderBy && (table.contains("customers".toUpperCase()) 
