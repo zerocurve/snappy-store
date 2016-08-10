@@ -1789,18 +1789,18 @@ public abstract class AbstractRegion implements Region, RegionAttributes,
     this.evictionAttributes = new EvictionAttributesImpl((EvictionAttributesImpl)attrs
         .getEvictionAttributes());
     if (this.partitionAttributes != null) {
-      ((PartitionAttributesImpl) this.partitionAttributes).computeLocalMaxMemory();
-      
       if (this.evictionAttributes != null
           && this.evictionAttributes.getAlgorithm().isLRUMemory()
-          && this.partitionAttributes.getLocalMaxMemory() != 0
-          && this.evictionAttributes.getMaximum() != this.partitionAttributes.getLocalMaxMemory()) {
+          && this.partitionAttributes.getLocalMaxMemory() > 0
+          && this.evictionAttributes.getMaximum() > this.partitionAttributes.getLocalMaxMemory()) {
         
         getCache().getLoggerI18n().warning(LocalizedStrings.Mem_LRU_Eviction_Attribute_Reset,
             new Object[] { regionName,this.evictionAttributes.getMaximum(),
             this.partitionAttributes.getLocalMaxMemory() });
         this.evictionAttributes.setMaximum(this.partitionAttributes.getLocalMaxMemory());
       }
+      ((PartitionAttributesImpl) this.partitionAttributes)
+          .computeLocalMaxMemory();
     }
     //final boolean isNotPartitionedRegion = !(attrs.getPartitionAttributes() != null || attrs
     //            .getDataPolicy().withPartitioning());

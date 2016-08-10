@@ -336,12 +336,10 @@ public class RegionCreation implements Region {
       this.attrs.setRefid(getRefid());
     }
     if (attrs.getPartitionAttributes() != null) {
-      ((PartitionAttributesImpl) attrs.getPartitionAttributes()).computeLocalMaxMemory();
-        
       if (attrs.getEvictionAttributes() != null
           && attrs.getEvictionAttributes().getAlgorithm().isLRUMemory()
-          && attrs.getPartitionAttributes().getLocalMaxMemory() != 0
-          && attrs.getEvictionAttributes().getMaximum() != attrs.getPartitionAttributes().getLocalMaxMemory()) {
+          && attrs.getPartitionAttributes().getLocalMaxMemory() > 0
+          && attrs.getEvictionAttributes().getMaximum() > attrs.getPartitionAttributes().getLocalMaxMemory()) {
         
         getCache().getLoggerI18n().warning(
             LocalizedStrings.Mem_LRU_Eviction_Attribute_Reset,
@@ -353,6 +351,8 @@ public class RegionCreation implements Region {
             attrs.getEvictionAttributes().getObjectSizer(),
             attrs.getEvictionAttributes().getAction()));
       }
+      ((PartitionAttributesImpl) attrs.getPartitionAttributes())
+          .computeLocalMaxMemory();
     }
   }
 
