@@ -319,28 +319,51 @@ public class AndJunctionQueryInfo extends JunctionQueryInfo {
       Map<String, ComparisonQueryInfo> unameToCondition = this.equalityConditions
           .values().iterator().next();
       int opsLen = unameToCondition.size();
-      if (fkColumns.length <= opsLen) {// There is a primary key and is
-        // part of the where clause
-        AbstractConditionQueryInfo conditions[] = new AbstractConditionQueryInfo[opsLen];
-        unameToCondition.values().toArray(conditions);
-        if (opsLen > 2) {
-          sortOperandInIncreasingColumnPosition(conditions);
-        }
-        pks = this.isWhereClauseDynamic() || this.hasINPredicate() ? new Object[fkColumns.length]
-            : new DataValueDescriptor[fkColumns.length];
-        for (int index = 0; index < fkColumns.length; ++index) {
-          AbstractConditionQueryInfo aqi = conditions[index];
-          Object temp = aqi.isConvertibleToGet(fkColumns[index][0], tqi);
-          if (temp == null) {
-            pks = null;
-            break;
+      boolean disableCasUpdate = Boolean.getBoolean("snappy.store.disableCASUpdate");
+      if (!disableCasUpdate) {
+        if (fkColumns.length <= opsLen) {// There is a primary key and is
+          // part of the where clause
+          AbstractConditionQueryInfo conditions[] = new AbstractConditionQueryInfo[opsLen];
+          unameToCondition.values().toArray(conditions);
+          if (opsLen > 2) {
+            sortOperandInIncreasingColumnPosition(conditions);
           }
-          else {
-            pks[fkColumns[index][1] - 1] = temp;
+          pks = this.isWhereClauseDynamic() || this.hasINPredicate() ? new Object[fkColumns.length]
+              : new DataValueDescriptor[fkColumns.length];
+          for (int index = 0; index < fkColumns.length; ++index) {
+            AbstractConditionQueryInfo aqi = conditions[index];
+            Object temp = aqi.isConvertibleToGet(fkColumns[index][0], tqi);
+            if (temp == null) {
+              pks = null;
+              break;
+            } else {
+              pks[fkColumns[index][1] - 1] = temp;
+            }
+          }
+        }
+      } else {
+        if (fkColumns.length == opsLen) {
+          AbstractConditionQueryInfo conditions[] = new AbstractConditionQueryInfo[opsLen];
+          unameToCondition.values().toArray(conditions);
+          if (opsLen > 2) {
+            sortOperandInIncreasingColumnPosition(conditions);
+          }
+          pks = this.isWhereClauseDynamic() || this.hasINPredicate() ? new Object[opsLen]
+              : new DataValueDescriptor[opsLen];
+          for (int index = 0; index < opsLen; ++index) {
+            AbstractConditionQueryInfo aqi = conditions[index];
+            Object temp = aqi.isConvertibleToGet(fkColumns[index][0], tqi);
+            if (temp == null) {
+              pks = null;
+              break;
+            } else {
+              pks[fkColumns[index][1] - 1] = temp;
+            }
           }
         }
       }
     }
+
     if (pks != null) {
       if (this.hasINPredicate()) {
         retType = this.generateCompositeKeysForBulkOp(pks, tqi);

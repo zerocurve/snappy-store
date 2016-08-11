@@ -49,7 +49,8 @@ public class ValidUpdateOperation {
       DataValueDescriptor[] otherKeyValues) throws
       StandardException {
 
-    System.out.println("checking validity of " + predicateString);
+
+    //System.out.println("checking validity of " + predicateString);
     ResultSet r = null;
     EmbedConnection conn = null;
     StatementContext statementContext = null;
@@ -61,7 +62,6 @@ public class ValidUpdateOperation {
     try {
 
       if (lcc == null) {
-        System.out.println("LCC is null");
         //a PK based insert is converted into
         // region.put since it bypasses GemFireXD layer, the LCC can be null.
         conn = GemFireXDUtils.getTSSConnection(true, true, false);
@@ -85,7 +85,6 @@ public class ValidUpdateOperation {
               + container.getQualifiedTableName() + " WHERE " + predicateString,
           (short)0);
 
-      System.out.println("Cache size = "+ cache.size());
       if (lcc != null) {
         lcc.pushMe();
         popContext = true;
@@ -116,6 +115,7 @@ public class ValidUpdateOperation {
             }
           }
         }
+
 
         r = queryStatement.execute(childActivation, true, 0L, true, true);
 

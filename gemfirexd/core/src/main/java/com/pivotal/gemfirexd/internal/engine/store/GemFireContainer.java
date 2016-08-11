@@ -4169,7 +4169,6 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
           event.setPossibleDuplicate(possibleDuplicate);
           event.setTXState(tx);
           oldValue = this.region.validatedPut(event, startPut);
-          System.out.println(" old value for "+ predicate + " is = " + oldValue);
           // TODO OFFHEAP validatedPut calls freeOffHeapResources
         }
         else {

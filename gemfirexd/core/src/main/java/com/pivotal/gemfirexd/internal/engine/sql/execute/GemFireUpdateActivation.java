@@ -85,8 +85,6 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
     String predicate = whereStatement.substring(whereIndex + 6,
         whereStatement.length());
 
-    System.out.println("Evaluating for " + predicate);
-
     Object[] gfKeys = null;
     // TODO:Asif: We need to find out a cleaner
     // way to detect bulk get / bulk put conditions
@@ -147,7 +145,22 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
         }
       }
 
-      otherKeyValues = new DataValueDescriptor[otherKeys.length];
+      int otherKeyValLength = 0;
+
+      for (int i = 0; i < otherKeys.length; i++) {
+        QueryInfo[] qif = (QueryInfo[])otherKeys[i];
+        ColumnQueryInfo cqi = (ColumnQueryInfo)qif[0];
+        if (cqi != null) {
+          for (int j = 1; j < qif.length; j++) {
+            ValueQueryInfo vqi = (ValueQueryInfo)qif[j];
+            if (vqi instanceof ParameterQueryInfo) {
+              otherKeyValLength++;
+            }
+          }
+        }
+      }
+
+      otherKeyValues = new DataValueDescriptor[otherKeyValLength];
       for (int i = 0; i < otherKeys.length; i++) {
         QueryInfo[] qif = (QueryInfo[])otherKeys[i];
         ColumnQueryInfo cqi = (ColumnQueryInfo)qif[0];
@@ -157,12 +170,9 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
             ValueQueryInfo vqi = (ValueQueryInfo)qif[j];
             if (vqi instanceof ParameterQueryInfo) {
               index = ((ParameterQueryInfo)vqi).getParamIndex() - startIndexOfWhereParams;
+              otherKeyValues[index] = vqi
+                  .evaluateToGetDataValueDescriptor(this);
             }
-            if (vqi instanceof ConstantQueryInfo) {
-              continue;
-            }
-            otherKeyValues[index] = vqi
-                .evaluateToGetDataValueDescriptor(this);
           }
         }
       }
