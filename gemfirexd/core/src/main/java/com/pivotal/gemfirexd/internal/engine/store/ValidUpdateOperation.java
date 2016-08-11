@@ -17,8 +17,6 @@
 
 package com.pivotal.gemfirexd.internal.engine.store;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.gemstone.gemfire.LogWriter;
 import com.gemstone.gemfire.cache.Region;
 import com.pivotal.gemfirexd.internal.catalog.types.RoutineAliasInfo;
@@ -33,8 +31,6 @@ import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.StatementContext;
 import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
 import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedConnection;
-import com.pivotal.gemfirexd.internal.impl.services.cache.CacheEntry;
-import com.pivotal.gemfirexd.internal.impl.services.cache.ConcurrentCache;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericParameterValueSet;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericPreparedStatement;
 
@@ -43,14 +39,11 @@ import com.pivotal.gemfirexd.internal.impl.sql.GenericPreparedStatement;
  * Right now we only support AND conditions. In future might add more.
  */
 public class ValidUpdateOperation {
-
-
   public static boolean isValid(Region<?, ?> region, String predicateString,
       DataValueDescriptor[] otherKeyValues) throws
       StandardException {
 
 
-    //System.out.println("checking validity of " + predicateString);
     ResultSet r = null;
     EmbedConnection conn = null;
     StatementContext statementContext = null;
@@ -76,13 +69,12 @@ public class ValidUpdateOperation {
         }
       }
 
-      ConcurrentHashMap<Object, CacheEntry> cache =
-          ((ConcurrentCache) lcc.getLanguageConnectionFactory().getStatementCache()).getCache();
-
       final GemFireContainer container = (GemFireContainer)region
           .getUserAttribute();
-      PreparedStatement queryStatement = lcc.prepareInternalStatement("SELECT * FROM "
-              + container.getQualifiedTableName() + " WHERE " + predicateString,
+      String sql = "SELECT * FROM " + container.getQualifiedTableName() + " WHERE " +
+          predicateString;
+
+      PreparedStatement queryStatement = lcc.prepareInternalStatement(sql,
           (short)0);
 
       if (lcc != null) {
@@ -116,7 +108,6 @@ public class ValidUpdateOperation {
           }
         }
 
-
         r = queryStatement.execute(childActivation, true, 0L, true, true);
 
         if (r.getNextRow() != null) {
@@ -147,5 +138,6 @@ public class ValidUpdateOperation {
     }
     return false;
   }
+
 }
 

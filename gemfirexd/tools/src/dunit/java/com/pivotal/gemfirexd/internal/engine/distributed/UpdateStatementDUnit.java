@@ -61,7 +61,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     super(name);
   }
 
-  public void _testBasicNodePruningNoPrimaryKey() throws Exception {
+  public void testBasicNodePruningNoPrimaryKey() throws Exception {
     try {
       // Start one client and three servers
       startServerVMs(3, 0, "SG1");
@@ -136,7 +136,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testBasicNodePruningWithPrimaryKey() throws Exception {
+  public void testBasicNodePruningWithPrimaryKey() throws Exception {
       // Start one client and three servers
     startServerVMs(3, 0, "SG1");
     startClientVMs(1, 0, null);
@@ -216,7 +216,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
    * Test to make sure an UPDATE on PK lookup with no existing row
    * updates zero rows
    */
-  public void _testUpdateMissPrimaryKey() throws Exception {
+  public void testUpdateMissPrimaryKey() throws Exception {
     try {
       // Start one client and three servers
       startVMs(1, 3);
@@ -278,7 +278,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }  
 
-  public void _testBasicNodePruningWithParameter() throws Exception {
+  public void testBasicNodePruningWithParameter() throws Exception {
     try {
       // Start one client and three servers
       startServerVMs(3, 0, "SG1");
@@ -357,7 +357,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testUpdateHavingParameterizedExpression_Bug39646_1()
+  public void testUpdateHavingParameterizedExpression_Bug39646_1()
       throws Exception {
     // Start one client and three servers
     startVMs(1, 3);
@@ -438,7 +438,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testUpdateWithoutInsert() throws Exception {
+  public void testUpdateWithoutInsert() throws Exception {
     // Start one client and three servers
     startServerVMs(3, 0, "SG1");
     startClientVMs(1, 0, null);
@@ -469,7 +469,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testUpdateHavingExpression_Bug39646_2() throws Exception {
+  public void testUpdateHavingExpression_Bug39646_2() throws Exception {
     // Start one client and three servers
     startVMs(1, 3);
     try {
@@ -545,7 +545,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
   
-  public void _testUpdateOnTableHavingNoPrimaryOrPartitionKeyDefined_Bug39921() throws Exception {
+  public void testUpdateOnTableHavingNoPrimaryOrPartitionKeyDefined_Bug39921() throws Exception {
     try {
       // Start one client and three servers
       startServerVMs(3, 0, "SG1");
@@ -609,7 +609,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
   
-  public void _testBug40025() throws Exception {
+  public void testBug40025() throws Exception {
     try {
       // Start one client and one server
       startVMs(1, 3);
@@ -671,7 +671,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
    * update statement which is not put convertible.
    * @throws Exception
    */
-  public void _testBug40025WithOutUpdatesToPut() throws Exception {
+  public void testBug40025WithOutUpdatesToPut() throws Exception {
     // Start one client and one server
     startVMs(1, 1);
     // Rahul :this following update will not be put convertible. Other than
@@ -710,7 +710,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testBug40025_1() throws Exception {
+  public void testBug40025_1() throws Exception {
     try {
       // Start one client and one server
       startVMs(1, 3);
@@ -754,7 +754,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     } 
   }
 
-  public void _testConstraintExceptionForPartitionedRegionTable_Bug40016_2() throws Exception {
+  public void testConstraintExceptionForPartitionedRegionTable_Bug40016_2() throws Exception {
     // Start one client and one server
     startVMs(1, 3);
     try {
@@ -798,7 +798,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }    
   }
 
-  public void _testConstraintExceptionForReplicatedRegionTable_Bug40016_1() throws Exception {
+  public void testConstraintExceptionForReplicatedRegionTable_Bug40016_1() throws Exception {
       // Start one client and one server
     startVMs(1, 3);
     String updateQuery =  "update Child set sector_id2 = ? where subsector_id2 = ?";
@@ -835,7 +835,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }    
   }
   
-  public void _testNotNullCheck_Bug40018_1() throws Exception
+  public void testNotNullCheck_Bug40018_1() throws Exception
   {
     startVMs(1, 3);
 
@@ -870,7 +870,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testNotNullCheck_Bug40018_2() throws Exception
+  public void testNotNullCheck_Bug40018_2() throws Exception
   {
     startVMs(1, 3);
 
@@ -900,7 +900,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testBug41985() throws Exception {
+  public void testBug41985() throws Exception {
     startVMs(1, 3);
 
     clientSQLExecute(
@@ -929,7 +929,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
   
-  public void _testBug41985_1() throws Exception {
+  public void testBug41985_1() throws Exception {
     startVMs(1, 3);
 
     clientSQLExecute(
@@ -952,7 +952,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testNotNullCheck_Bug40018_3() throws Exception
+  public void testNotNullCheck_Bug40018_3() throws Exception
   {
     startVMs(1, 3);
     clientSQLExecute(
@@ -986,7 +986,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testPKUpdateOnNonExistentRowForReplicateTable_Bug42862()
+  public void testPKUpdateOnNonExistentRowForReplicateTable_Bug42862()
       throws Exception {
     startVMs(1, 3);
     clientSQLExecute(1, "create table Child ( id2 int primary key, sector_id2 "
@@ -1011,7 +1011,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testPKUpdateOnNonExistentRowForPartitionedTable_Bug42862()
+  public void testPKUpdateOnNonExistentRowForPartitionedTable_Bug42862()
       throws Exception {
     startVMs(1, 3);
     clientSQLExecute(1, "create table Child ( id2 int primary key, sector_id2 "
@@ -1036,7 +1036,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testPKUpdateOnExistingRowForPartitionedTable_Bug42862()
+  public void testPKUpdateOnExistingRowForPartitionedTable_Bug42862()
       throws Exception {
     startVMs(1, 3);
     clientSQLExecute(1, "create table Child ( id2 int primary key, sector_id2 "
@@ -1064,7 +1064,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testUpdatePrimarykeyWithExtraAnds() throws Exception {
+  public void testUpdatePrimarykeyWithExtraAnds() throws Exception {
     // Start one client and three servers
     startServerVMs(3, 0, "SG1");
     startClientVMs(1, 0, null);
@@ -1097,7 +1097,7 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testUpdatePrimarykeyWithExtraAndsPrepStmt() throws Exception {
+  public void testUpdatePrimarykeyWithExtraAndsPrepStmt() throws Exception {
     // Start one client and three servers
     startServerVMs(3, 0, "SG1");
     startClientVMs(1, 0, null);
@@ -1173,22 +1173,60 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
         assertEquals(1, n);
       }
       long endTime = System.currentTimeMillis();
-      getLogWriter().info("CAS Update Time = " + (endTime - startTime));
-      //Disable CAS Updates
-      System.setProperty("snappy.store.disableCASUpdate", "true");
+      getLogWriter().info("UPDATE-PERF-CAS Based= " + (endTime - startTime));
 
-     es = (EmbedPreparedStatement)TestUtil.jdbcConn
+    } finally {
+      GemFireXDQueryObserverHolder
+          .setInstance(new GemFireXDQueryObserverAdapter());
+      clientSQLExecute(1, "Drop table EMP.TESTTABLE ");
+      clientSQLExecute(1, "Drop schema EMP restrict");
+      //invokeInEveryVM(this.getClass(), "reset");
+
+    }
+  }
+
+  public void testNonCASUpdatePerf() throws Exception {
+    System.setProperty("snappy.store.disableCASUpdate", "true");
+    // Start one client and three servers
+    startServerVMs(3, 0, "SG1");
+    startClientVMs(1, 0, null);
+    String updateQuery = "Update EMP.TESTTABLE set type = ? where ID = ? and DESCRIPTION = ?";
+    // Create a schema with default server groups GemFire extension
+    clientSQLExecute(1, "create schema EMP default server groups (SG1)");
+
+    // Create the table and insert a row
+    clientSQLExecute(1, "create table EMP.TESTTABLE (ID int primary key, "
+        + "DESCRIPTION varchar(1024) not null, "
+        + "ADDRESS varchar(1024) ,type int ) " + getOverflowSuffix());
+
+
+    try {
+      TestUtil.setupConnection();
+
+      PreparedStatement ps = TestUtil.jdbcConn
+          .prepareStatement("insert into EMP.TESTTABLE values (?, ?, ?, ?)");
+      for (int i = 0; i < 10000; ++i) {
+        ps.setInt(1, i);
+        ps.setString(2, "descp");
+        ps.setString(3, "addr");
+        ps.setInt(4, i);
+        ps.executeUpdate();
+      }
+
+      EmbedPreparedStatement es = (EmbedPreparedStatement)TestUtil.jdbcConn
           .prepareStatement(updateQuery);
       es.setInt(1, 1);
-      es.setInt(2, 2);
+      es.setInt(2, 1);
       es.setString(3, "descp");
-      startTime = System.currentTimeMillis();
-      for(int i = 0 ; i < 100; i++) {
+      long startTime = System.currentTimeMillis();
+      for(int i = 0 ; i < 100 ; i++ ){
         int n = es.executeUpdate();
         assertEquals(1, n);
       }
-      endTime = System.currentTimeMillis();
-      getLogWriter().info("Non-CAS Update Time = " + (endTime - startTime));
+      long endTime = System.currentTimeMillis();
+      getLogWriter().info("UPDATE-PERF-Non-CAS = " + (endTime - startTime));
+      //Disable CAS Updates
+
 
     } finally {
       GemFireXDQueryObserverHolder
@@ -1200,7 +1238,59 @@ public class UpdateStatementDUnit extends DistributedSQLTestBase {
     }
   }
 
-  public void _testInternalQueryCompilation() throws Exception {
+  public void testPKUpdatePerf() throws Exception {
+    System.setProperty("snappy.store.disableCASUpdate", "true");
+    // Start one client and three servers
+    startServerVMs(3, 0, "SG1");
+    startClientVMs(1, 0, null);
+    String updateQuery = "Update EMP.TESTTABLE set type = ? where ID = ?";
+    // Create a schema with default server groups GemFire extension
+    clientSQLExecute(1, "create schema EMP default server groups (SG1)");
+
+    // Create the table and insert a row
+    clientSQLExecute(1, "create table EMP.TESTTABLE (ID int primary key, "
+        + "DESCRIPTION varchar(1024) not null, "
+        + "ADDRESS varchar(1024) ,type int ) " + getOverflowSuffix());
+
+
+    try {
+      TestUtil.setupConnection();
+
+      PreparedStatement ps = TestUtil.jdbcConn
+          .prepareStatement("insert into EMP.TESTTABLE values (?, ?, ?, ?)");
+      for (int i = 0; i < 10000; ++i) {
+        ps.setInt(1, i);
+        ps.setString(2, "descp");
+        ps.setString(3, "addr");
+        ps.setInt(4, i);
+        ps.executeUpdate();
+      }
+
+      EmbedPreparedStatement es = (EmbedPreparedStatement)TestUtil.jdbcConn
+          .prepareStatement(updateQuery);
+      es.setInt(1, 1);
+      es.setInt(2, 1);
+      long startTime = System.currentTimeMillis();
+      for(int i = 0 ; i < 100 ; i++ ){
+        int n = es.executeUpdate();
+        assertEquals(1, n);
+      }
+      long endTime = System.currentTimeMillis();
+      getLogWriter().info("UPDATE-PERF-PKBased= " + (endTime - startTime));
+      //Disable CAS Updates
+
+
+    } finally {
+      GemFireXDQueryObserverHolder
+          .setInstance(new GemFireXDQueryObserverAdapter());
+      clientSQLExecute(1, "Drop table EMP.TESTTABLE ");
+      clientSQLExecute(1, "Drop schema EMP restrict");
+      //invokeInEveryVM(this.getClass(), "reset");
+      System.clearProperty("snappy.store.disableCASUpdate");
+    }
+  }
+
+  public void testInternalQueryCompilation() throws Exception {
     // Start one client and three servers
     startServerVMs(3, 0, "SG1");
     startClientVMs(1, 0, null);
