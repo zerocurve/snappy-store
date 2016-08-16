@@ -2880,7 +2880,7 @@ public class DistributedSQLTestBase extends DistributedTestBase {
 
     }
   }
-  
+
   protected void derbyCleanup(Statement derbyStmt, Connection derbyConn,
       NetworkServerControl server) throws Exception {
 
@@ -2890,9 +2890,6 @@ public class DistributedSQLTestBase extends DistributedTestBase {
     if (derbyStmt == null) {
       derbyStmt = derbyConn.createStatement();
     }
-    derbyStmt.execute("drop procedure validateTestEnd ");
-    derbyConn.commit();
-    
     for (int tries = 1; tries <= 5; tries++) {
       try {
         derbyStmt.execute("drop trigger test_ok");
@@ -2908,6 +2905,10 @@ public class DistributedSQLTestBase extends DistributedTestBase {
       }
     }
     derbyConn.commit();
+
+    derbyStmt.execute("drop procedure validateTestEnd ");
+    derbyConn.commit();
+
     derbyConn.close();
     
     cleanDerbyArtifacts(derbyStmt, new String[] {}, new String[] {},

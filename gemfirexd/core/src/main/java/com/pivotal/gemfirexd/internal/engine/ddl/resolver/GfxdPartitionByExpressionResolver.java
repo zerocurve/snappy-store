@@ -471,8 +471,7 @@ public final class GfxdPartitionByExpressionResolver extends
     if (this.exprCompiler == null) {
       // case of partitioning by columns
       if (snappyStore && customHashing) {
-        return Misc.getUnifiedHashCodeFromDVD(dvd, this.gfContainer
-            .getRegionAttributes().getPartitionAttributes().getTotalNumBuckets());
+        return Misc.getUnifiedHashCodeFromDVD(dvd, this.numBuckets);
       } else {
         return Misc.getHashCodeFromDVD(dvd);
       }
@@ -487,8 +486,7 @@ public final class GfxdPartitionByExpressionResolver extends
     if (this.exprCompiler == null) {
       // case of partitioning by some columns or generated primary key
       if (snappyStore && customHashing) {
-        return Misc.getUnifiedHashCodeFromDVD(dvds, this.gfContainer
-            .getRegionAttributes().getPartitionAttributes().getTotalNumBuckets());
+        return Misc.getUnifiedHashCodeFromDVD(dvds, this.numBuckets);
       } else {
         int hash = 0;
         if (dvds.length == 1) {

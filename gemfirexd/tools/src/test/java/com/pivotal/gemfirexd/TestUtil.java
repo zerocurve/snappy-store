@@ -784,10 +784,15 @@ public class TestUtil extends TestCase {
   }
 
   public static void loadDerbyDriver() throws Exception {
-    Driver autoDriver = (Driver)Class.forName(
-        "org.apache.derby.jdbc.AutoloadedDriver40").newInstance();
     Class<?> autoDriverBaseClass = Class.forName(
         "org.apache.derby.jdbc.AutoloadedDriver");
+    Driver autoDriver;
+    try {
+      autoDriver = (Driver)Class.forName(
+          "org.apache.derby.jdbc.AutoloadedDriver40").newInstance();
+    } catch (Throwable t) {
+      autoDriver = (Driver)autoDriverBaseClass.newInstance();
+    }
     Method m = autoDriverBaseClass.getDeclaredMethod("registerMe",
         autoDriverBaseClass);
     m.setAccessible(true);
