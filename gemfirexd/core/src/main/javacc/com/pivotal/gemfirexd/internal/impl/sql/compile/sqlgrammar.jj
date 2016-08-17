@@ -3409,6 +3409,12 @@ TOKEN :
 			(~["\""])
 		) +
 		"\"">
+| <BACKQUOTED_IDENTIFIER: "`"
+    (
+			("``") |
+			(~["`"])
+		) +
+		"`">
 }
 
 TOKEN :
@@ -17498,7 +17504,7 @@ delimitedIdentifier() :
 	Token	tok;
 }
 {
-	tok = <DELIMITED_IDENTIFIER>
+	( tok = <DELIMITED_IDENTIFIER> | tok = <BACKQUOTED_IDENTIFIER> )
 	{
         //GemStone changes BEGIN
         str = tok.image;
