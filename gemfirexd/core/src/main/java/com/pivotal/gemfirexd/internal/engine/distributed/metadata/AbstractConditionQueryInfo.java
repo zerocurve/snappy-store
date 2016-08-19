@@ -360,4 +360,6 @@ public abstract class AbstractConditionQueryInfo extends AbstractQueryInfo  {
   {
     return null;
   }
+  protected boolean isPartofUpdate  = false;
+
 }

@@ -320,7 +320,7 @@ public class AndJunctionQueryInfo extends JunctionQueryInfo {
           .values().iterator().next();
       int opsLen = unameToCondition.size();
       boolean disableCasUpdate = Boolean.getBoolean("snappy.store.disableCASUpdate");
-      if (!disableCasUpdate) {
+      if (!disableCasUpdate && this.isPartofUpdate) {
         if (fkColumns.length <= opsLen) {// There is a primary key and is
           // part of the where clause
           AbstractConditionQueryInfo conditions[] = new AbstractConditionQueryInfo[opsLen];

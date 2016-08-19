@@ -719,6 +719,58 @@ public class UpdateQueryInfoInternalsTest extends JdbcTestBase{
     }
   }
 
+  public void testUpdatePutConvertibleExtraAnds_MultipleUpdates() throws Exception {
+    Connection conn = getConnection();
+    Statement s = conn.createStatement();
+    s.execute("create table src_tab (col1 varchar(10), col2 int , " +
+            "col3 int, col4 int, PRIMARY KEY (col1, col2)) partition by column (col1)");
+    String query = "update src_tab set col3=7, col4=33 where col2=1 and col1='y' and col3=11";
+    GemFireXDQueryObserver old = null;
+    try {
+      old = GemFireXDQueryObserverHolder
+              .setInstance(new GemFireXDQueryObserverAdapter() {
+                @Override
+                public void queryInfoObjectFromOptmizedParsedTree(QueryInfo qInfo, GenericPreparedStatement gps, LanguageConnectionContext lcc) {
+                  if (qInfo instanceof UpdateQueryInfo) {
+                    callbackInvoked = true;
+                    UpdateQueryInfo uqi = (UpdateQueryInfo)qInfo;
+                    assertTrue(uqi.isPrimaryKeyBased());
+                  }
+
+                }
+
+                @Override
+                public void afterGemFireActivationCreate(AbstractGemFireActivation activation) {
+                  assert activation instanceof GemFireUpdateActivation;
+                }
+
+              });
+      // Now insert some data
+      this.callbackInvoked = false;
+      s.executeUpdate("insert into src_tab values('y', 1, 11, 10)");
+      Statement s2 = conn.createStatement();
+      try {
+
+        int updatedCount = conn.createStatement().executeUpdate(query);
+        ResultSet rs = s2.executeQuery("select col3 from src_tab");
+        assertTrue(rs.next());
+        assertEquals(7, rs.getInt(1));
+        assertEquals(1, updatedCount);
+
+      } catch (SQLException e) {
+        e.printStackTrace();
+        throw new SQLException(e.toString()
+                + " Exception in executing query = " + query, e.getSQLState());
+      }
+      assertTrue(this.callbackInvoked);
+    } finally {
+      if (old != null) {
+        GemFireXDQueryObserverHolder.setInstance(old);
+      }
+    }
+  }
+
+
   /**
    * Tests if the where clause containing multiple fields with primary keys and extra
    * conditions

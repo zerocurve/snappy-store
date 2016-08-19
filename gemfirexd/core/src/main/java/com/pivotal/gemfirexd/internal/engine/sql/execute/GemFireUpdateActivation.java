@@ -124,7 +124,7 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
 
 
     DataValueDescriptor[] otherKeyValues = null;
-    if (otherKeys != null && predicate != null) {
+    if (otherKeys != null && predicate != null && !isTransactional) {
 
       int primaryKeyLength =
           this.container.getExtraTableInfo().getPrimaryKeyColumnNames().length;
@@ -138,7 +138,7 @@ public class GemFireUpdateActivation extends AbstractGemFireActivation
         QueryInfo[] qif = updatedCols[i];
         ColumnQueryInfo cqi = (ColumnQueryInfo)qif[0];
         if (cqi != null) {
-          ValueQueryInfo vqi = (ValueQueryInfo)qif[i];
+          ValueQueryInfo vqi = (ValueQueryInfo)qif[1];
           if (vqi instanceof ParameterQueryInfo) {
             startIndexOfWhereParams++;
           }

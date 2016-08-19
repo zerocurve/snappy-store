@@ -977,6 +977,10 @@ public abstract class DMLQueryInfo extends AbstractQueryInfo implements Visitor 
     if (this.whereClause != null) {
       if (tqi.isPrimaryKeyBased()) {
         int[][] pkColumn = tqi.getPrimaryKeyColumns();
+        //Set
+        if(this.isUpdate()){
+          this.whereClause.isPartofUpdate = true;
+        }
         this.pk = this.whereClause.isConvertibleToGet(pkColumn, tqi);
         if(this.pk != null){
           this.otherKeys = this.whereClause.getAllConditions(pkColumn, tqi);
