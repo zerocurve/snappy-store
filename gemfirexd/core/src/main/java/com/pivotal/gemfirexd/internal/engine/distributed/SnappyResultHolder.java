@@ -113,6 +113,9 @@ public final class SnappyResultHolder extends GfxdDataSerializable {
           // read the precision and the scale
           precisions[i] = (int)InternalDataSerializer.readSignedVL(dis);
           scales[i] = (int)InternalDataSerializer.readSignedVL(dis);
+        } else if (columnType == StoredFormatIds.SQL_VARCHAR_ID) {
+          precisions[i] = (int)InternalDataSerializer.readSignedVL(dis);
+          scales[i] = -1;
         } else {
           precisions[i] = -1;
           scales[i] = -1;
@@ -243,10 +246,15 @@ public final class SnappyResultHolder extends GfxdDataSerializable {
         break;
 
       case StoredFormatIds.SQL_CLOB_ID:
-      case StoredFormatIds.SQL_VARCHAR_ID:
         dvd = new SQLClob();
         jdbcTypeId = Types.CLOB;
         dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdbcTypeId, nullable);
+        break;
+
+      case StoredFormatIds.SQL_VARCHAR_ID:
+        dvd = new SQLVarchar();
+        jdbcTypeId = Types.VARCHAR;
+        dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdbcTypeId, nullable, precision);
         break;
 
       case StoredFormatIds.SQL_BLOB_ID:
