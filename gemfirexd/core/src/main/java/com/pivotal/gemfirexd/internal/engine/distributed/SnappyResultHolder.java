@@ -259,6 +259,7 @@ public final class SnappyResultHolder extends GfxdDataSerializable {
         break;
 
       case StoredFormatIds.SQL_CHAR_ID:
+        System.out.println("ABS SnappyResultHolder case CHAR");
         dvd = new SQLChar();
         jdbcTypeId = Types.CHAR;
         dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdbcTypeId, nullable, precision);

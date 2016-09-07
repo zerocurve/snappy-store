@@ -162,7 +162,7 @@ public final class DistributionManager
   public static final String NAME = "GemFire";
 
   /** Should we log operations related to distribution? */
-  public static boolean VERBOSE = Boolean.getBoolean("DistributionManager.VERBOSE");
+  public static boolean VERBOSE = true; //Boolean.getBoolean("DistributionManager.VERBOSE");
   
   /** The number of milliseconds to wait for distribution-related
    * things to happen */
