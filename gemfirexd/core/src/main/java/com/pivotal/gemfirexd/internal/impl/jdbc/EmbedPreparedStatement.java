@@ -1114,14 +1114,26 @@ public abstract class EmbedPreparedStatement
   			/* (original code)
   				batchStatements = new Vector();
   			*/
-
           //get a clone of the parameterValueSet and save it in the vector
           //which will be used later on at the time of batch execution.
           //This way we will get a copy of the current statement's parameter
           //values rather than a pointer to the statement's parameter value
           //set which will change with every new statement in the batch.
   	  try {
-            batchStatements.add(getParms().getClone());
+            //batchStatements.add(getParms().getClone());
+		  if (executeBatchInProgress == 0) {
+			  batchStatements.add(getParms().getClone());
+		  } else {
+			  // copy into the already existing params
+			  ParameterValueSet temp = (ParameterValueSet) getParms();
+			  int numberOfParameters = temp.getParameterCount();
+
+			  for (int j = 0; j < numberOfParameters; j++) {
+				  ((ParameterValueSet) batchStatements.get(batchStatementCurrentIndex)).getParameter(j)
+						  .setValue(temp.getParameter(j));
+			  }
+		  }
+		  batchStatementCurrentIndex++;
   	  } catch (Throwable t) {
   	    throw TransactionResourceImpl.wrapInSQLException(t);
   	  }
@@ -1171,6 +1183,7 @@ public abstract class EmbedPreparedStatement
             }
             finally {
               rs.closeBatch();
+			  resetBatch(); // with this, if .clearBatch is skipped, we will resuse the objects already created.
             }
             if (observer != null) {
               observer.afterFlushBatch(rs, lcc);
@@ -1923,6 +1936,11 @@ public abstract class EmbedPreparedStatement
 		checkIfInMiddleOfBatch();
 		clearResultSets();
 // GemStone changes BEGIN
+		if (batchStatements != null && batchStatementCurrentIndex == 0) {
+			pvs = (ParameterValueSet) batchStatements.get(0);
+			clearBatch();
+		}
+
 		return super.executeStatement(a, executeQuery, executeUpdate,
 		    ((GenericPreparedStatement)preparedStatement).createQueryInfo(),
 		    false /* is Context set */,
