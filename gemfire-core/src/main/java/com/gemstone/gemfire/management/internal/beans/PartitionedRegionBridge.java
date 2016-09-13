@@ -74,6 +74,8 @@ public class PartitionedRegionBridge<K, V>  extends RegionMBeanBridge<K, V> {
 
   private StatsAverageLatency remotePutAvgLatency;
 
+  private boolean isColumnTable = false;
+
   public static final String PAR_REGION_MONITOR = "PartitionedRegionMonitor";
   
   public static <K, V> PartitionedRegionBridge<K, V> getInstance(Region<K, V> region) {
@@ -93,6 +95,8 @@ public class PartitionedRegionBridge<K, V>  extends RegionMBeanBridge<K, V> {
     super(region);
     this.parRegion = (PartitionedRegion)region;
     this.prStats = parRegion.getPrStats();
+
+    this.isColumnTable = parRegion.getName().toUpperCase().endsWith(StoreCallbacks.SHADOW_TABLE_SUFFIX);
     
     PartitionAttributes<K, V>  partAttrs = parRegion.getPartitionAttributes();    
     
@@ -321,7 +325,7 @@ public class PartitionedRegionBridge<K, V>  extends RegionMBeanBridge<K, V> {
 
   @Override
   public boolean isColumnTable() {
-    return parRegion.getName().toUpperCase().endsWith(StoreCallbacks.SHADOW_TABLE_SUFFIX);
+    return isColumnTable;
   }
 
   @Override
