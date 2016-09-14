@@ -19,7 +19,7 @@ public class BatchInsertTest  extends JdbcTestBase {
     super(name);
   }
 
-  public void _testBatchInsert() throws Exception {
+  public void testBatchInsert() throws Exception {
     Connection conn = getConnection();
     Statement st = conn.createStatement();
     st.execute("Create table t1 (c1 int not null , c2 int not null) "
@@ -112,7 +112,7 @@ public class BatchInsertTest  extends JdbcTestBase {
     conn.close();
   }
 
-  public void _testBatchInsertStmt() throws Exception {
+  public void testBatchInsertStmt() throws Exception {
     Connection conn = getConnection();
     Statement st = conn.createStatement();
     st.execute("Create table t1 (c1 int not null , c2 int not null) "
