@@ -579,7 +579,7 @@ public class EmbedStatement extends ConnectionChild
 		return updateCount;
 	}
 
-	final void checkIfInMiddleOfBatch() throws SQLException {
+	void checkIfInMiddleOfBatch() throws SQLException {
 		/* If batchStatements is not null then we are in the middle
 		 * of a batch. That's an invalid state. We need to finish the
 		 * batch either by clearing the batch or executing the batch.
@@ -659,8 +659,8 @@ public class EmbedStatement extends ConnectionChild
 		  warnings = null;
 		  SQLText = null;
 		  batchStatements = null;
-          batchStatementCurrentIndex = 0;
-	      executeBatchInProgress = 0;
+      batchStatementCurrentIndex = 0;
+	    executeBatchInProgress = 0;
 
 	  }
 		
@@ -1081,6 +1081,7 @@ public class EmbedStatement extends ConnectionChild
       if (sql == null) {
         throw newSQLException(SQLState.NULL_SQL_TEXT);
       }
+			// GemStone changes BEGIN
       checkIfInMiddleOfBatch();
       clearResultSets(); // release the last statement executed, if any.
       
@@ -1610,6 +1611,8 @@ public class EmbedStatement extends ConnectionChild
 		    batchStatements = new ArrayList<Object>();
 		  }
 		  batchStatements.add(sql);
+		  batchStatementCurrentIndex++;
+
 		    /* (original code)
 			  batchStatements = new Vector();
         batchStatements.addElement(sql);
@@ -1631,8 +1634,8 @@ public class EmbedStatement extends ConnectionChild
 		checkStatus();
   	  synchronized (getConnectionSynchronization()) {
         batchStatements = null;
-		batchStatementCurrentIndex = 0;
-  		}
+        batchStatementCurrentIndex = 0;
+          }
 	}
 
 	public final void resetBatch() throws SQLException {
@@ -1642,7 +1645,7 @@ public class EmbedStatement extends ConnectionChild
 			batchStatementCurrentIndex = 0;
 			if (batchStatements != null) {
 				for (int i = batchStatements.size() - 1; i >= 0; i--) {
-					((ParameterValueSet) batchStatements.get(i)).clearParameters();
+					((ParameterValueSet)batchStatements.get(i)).clearParameters();
 				}
 			}
 		}
@@ -1672,7 +1675,6 @@ public class EmbedStatement extends ConnectionChild
 		checkExecStatus();
 		synchronized (getConnectionSynchronization()) 
 		{
-			executeBatchInProgress++;
                         setupContextStack(true);
 			int i = 0;
 			// As per the jdbc 2.0 specs, close the statement object's current resultset
@@ -1688,12 +1690,12 @@ public class EmbedStatement extends ConnectionChild
 			Vector stmts = batchStatements;
 			*/
 // GemStone changes END
-			//batchStatements = null;
+			batchStatements = null;
 			int size;
 			if (stmts == null)
 				size = 0;
 			else
-				size = batchStatementCurrentIndex;//stmts.size();
+				size = stmts.size();
 			// take the index in case if last batch
 			int[] returnUpdateCountForBatch = new int[size];
 

@@ -68,6 +68,7 @@ import com.gemstone.gnu.trove.THashMap;
 import com.pivotal.gemfirexd.internal.engine.Misc;
 import com.pivotal.gemfirexd.internal.engine.GemFireXDQueryObserver;
 import com.pivotal.gemfirexd.internal.engine.GemFireXDQueryObserverHolder;
+import com.pivotal.gemfirexd.internal.engine.access.GemFireTransaction;
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.GemFireXDUtils;
 import com.pivotal.gemfirexd.internal.iapi.error.StandardException;
 import com.pivotal.gemfirexd.internal.iapi.jdbc.BrokeredConnectionControl;
@@ -388,6 +389,16 @@ public abstract class EmbedPreparedStatement
             }
             return updateCount;
         }
+
+	void checkIfInMiddleOfBatch() throws SQLException {
+		/* If batchStatements is not null then we are in the middle
+		 * of a batch. That's an invalid state. We need to finish the
+		 * batch either by clearing the batch or executing the batch.
+		 * executeUpdate is not allowed inside the batch.
+		 */
+		if (batchStatements != null && batchStatementCurrentIndex > 0)
+			throw newSQLException(SQLState.MIDDLE_OF_BATCH);
+	}
 
     /**
      * Set a parameter to SQL NULL.
@@ -1106,11 +1117,11 @@ public abstract class EmbedPreparedStatement
 	  // would lead to one of the set of parameters being thrown
 	  // away
   	  synchronized (getConnectionSynchronization()) {
-  			if (batchStatements == null)
-// GemStone changes BEGIN
-  			{
-  			  batchStatements = new ArrayList<Object>();
-  			}
+            if (batchStatements == null)
+              // GemStone changes BEGIN
+            {
+              batchStatements = new ArrayList<Object>();
+            }
   			/* (original code)
   				batchStatements = new Vector();
   			*/
@@ -1121,20 +1132,24 @@ public abstract class EmbedPreparedStatement
           //set which will change with every new statement in the batch.
   	  try {
             //batchStatements.add(getParms().getClone());
-		  if (executeBatchInProgress == 0) {
-			  batchStatements.add(getParms().getClone());
-		  } else {
-			  // copy into the already existing params
-			  ParameterValueSet temp = (ParameterValueSet) getParms();
-			  int numberOfParameters = temp.getParameterCount();
+            if (executeBatchInProgress == 0) {
+              batchStatements.add(getParms().getClone());
+            } else {
+              // copy into the already existing params
+              ParameterValueSet temp = (ParameterValueSet)getParms();
+              int numberOfParameters = temp.getParameterCount();
 
-			  for (int j = 0; j < numberOfParameters; j++) {
-				  ((ParameterValueSet) batchStatements.get(batchStatementCurrentIndex)).getParameter(j)
-						  .setValue(temp.getParameter(j));
-			  }
-		  }
-		  batchStatementCurrentIndex++;
-  	  } catch (Throwable t) {
+              if (batchStatementCurrentIndex < batchStatements.size()) {
+                for (int j = 0; j < numberOfParameters; j++) {
+                  ((ParameterValueSet)batchStatements.get(batchStatementCurrentIndex)).getParameter(j)
+                    .setValue(temp.getParameter(j));
+                }
+              } else {
+                batchStatements.add(getParms().getClone());
+              }
+            }
+            batchStatementCurrentIndex++;
+          } catch (Throwable t) {
   	    throw TransactionResourceImpl.wrapInSQLException(t);
   	  }
           /* (original code)
@@ -1144,6 +1159,123 @@ public abstract class EmbedPreparedStatement
           clearParameters();
   	  }
     }
+
+	/**
+	 * JDBC 2.0
+	 *
+	 * Submit a batch of commands to the database for execution.
+	 * This method is optional.
+	 *
+	 * Moving jdbc2.0 batch related code in this class because
+	 * callableStatement in jdbc 20 needs this code too and it doesn't derive
+	 * from prepared statement in jdbc 20 in our implementation.
+	 * BatchUpdateException is the only new class from jdbc 20 which is being
+	 * referenced here and in order to avoid any jdk11x problems, using
+	 * reflection code to make an instance of that class.
+	 *
+	 * @return an array of update counts containing one element for each
+	 * command in the batch.  The array is ordered according
+	 * to the order in which commands were inserted into the batch
+	 * @exception SQLException if a database-access error occurs, or the
+	 * driver does not support batch statements
+	 */
+	public int[] executeBatch() throws SQLException {
+		checkExecStatus();
+		synchronized (getConnectionSynchronization())
+		{
+			executeBatchInProgress++;
+			setupContextStack(true);
+			int i = 0;
+			// As per the jdbc 2.0 specs, close the statement object's current resultset
+			// if one is open.
+			// Are there results?
+			// outside of the lower try/finally since results will
+			// setup and restore themselves.
+			clearResultSets();
+
+// GemStone changes BEGIN
+			final ArrayList<Object> stmts = this.batchStatements;
+			/* (original code)
+			Vector stmts = batchStatements;
+			*/
+// GemStone changes END
+			//batchStatements = null;
+			int size;
+			if (stmts == null)
+				size = 0;
+			else
+				size = batchStatementCurrentIndex;//stmts.size();
+			// take the index in case if last batch
+			int[] returnUpdateCountForBatch = new int[size];
+
+			SQLException sqle;
+// GemStone changes BEGIN
+			final GemFireXDQueryObserver observer =
+					GemFireXDQueryObserverHolder.getInstance();
+			try {
+				if (observer != null) {
+					observer.beforeBatchQueryExecution(this,
+							stmts != null ? stmts.size() : 0);
+				}
+	                /* (original code)
+	                try {
+	                */
+// GemStone changes END
+				for (; i< size; i++)
+				{
+// GemStone changes BEGIN
+					if (executeBatchElement(stmts.get(i)))
+					/* (original code)
+					if (executeBatchElement(stmts.elementAt(i)))
+					*/
+// GemStone changes END
+						throw newSQLException(SQLState.RESULTSET_RETURN_NOT_ALLOWED);
+					returnUpdateCountForBatch[i] = getUpdateCount();
+				}
+// GemStone changes BEGIN
+				postBatchExecution();
+				commitIfAutoCommit();
+				if (this.lcc != null) {
+					GemFireTransaction tran = (GemFireTransaction)
+							this.lcc.getTransactionExecute();
+					if (!tran.isTransactional()) {
+						tran.releaseAllLocks(false, false);
+					}
+				}
+				if (observer != null) {
+					observer.afterBatchQueryExecution(this, size);
+				}
+// GemStone changes END
+				return returnUpdateCountForBatch;
+			}
+			catch (StandardException se) {
+
+				sqle = handleException(se);
+			}
+			catch (SQLException sqle2)
+			{
+				sqle = sqle2;
+			}
+			finally
+			{
+				restoreContextStack();
+			}
+
+			int successfulUpdateCount[] = new int[i];
+			for (int j=0; j<i; j++)
+			{
+				successfulUpdateCount[j] = returnUpdateCountForBatch[j];
+			}
+
+			SQLException batch =
+					new java.sql.BatchUpdateException(sqle.getMessage(), sqle.getSQLState(),
+							sqle.getErrorCode(), successfulUpdateCount);
+
+			batch.setNextException(sqle);
+			batch.initCause(sqle);
+			throw batch;
+		}
+	}
 
 	boolean executeBatchElement(Object batchElement) throws SQLException, StandardException {
 		
@@ -1183,7 +1315,7 @@ public abstract class EmbedPreparedStatement
             }
             finally {
               rs.closeBatch();
-			  resetBatch(); // with this, if .clearBatch is skipped, we will resuse the objects already created.
+	      resetBatch(); // with this, if .clearBatch is skipped, we will resuse the objects already created.
             }
             if (observer != null) {
               observer.afterFlushBatch(rs, lcc);
@@ -1931,15 +2063,11 @@ public abstract class EmbedPreparedStatement
                      boolean executeQuery, boolean executeUpdate,
                      boolean skipContextRestore /* GemStone addition */)
                      throws SQLException {
-
+		// GemStone changes BEGIN
 		checkExecStatus();
 		checkIfInMiddleOfBatch();
 		clearResultSets();
 // GemStone changes BEGIN
-		if (batchStatements != null && batchStatementCurrentIndex == 0) {
-			pvs = (ParameterValueSet) batchStatements.get(0);
-			clearBatch();
-		}
 
 		return super.executeStatement(a, executeQuery, executeUpdate,
 		    ((GenericPreparedStatement)preparedStatement).createQueryInfo(),

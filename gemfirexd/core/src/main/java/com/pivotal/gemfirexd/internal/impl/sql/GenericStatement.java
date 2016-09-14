@@ -784,11 +784,11 @@ public class GenericStatement
                                             }
                                           }
 
-                                          if (observer != null && qinfo.isSelect()) {
+                                          if (observer != null && qinfo != null && qinfo.isSelect()) {
                                             observer.testExecutionEngineDecision(qinfo, ExecutionEngine.STORE, this.statementText);
                                           }
 
-                                          if (qinfo != null && qinfo.isInsert()) {
+                                          if (qinfo != null && qinfo != null && qinfo.isInsert()) {
                                             qinfo = handleInsertAndInsertSubSelect(qinfo, qt);
                                           }
 
