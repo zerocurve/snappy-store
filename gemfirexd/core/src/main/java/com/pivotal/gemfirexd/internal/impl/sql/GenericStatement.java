@@ -788,7 +788,7 @@ public class GenericStatement
                                             observer.testExecutionEngineDecision(qinfo, ExecutionEngine.STORE, this.statementText);
                                           }
 
-                                          if (qinfo != null && qinfo != null && qinfo.isInsert()) {
+                                          if (qinfo != null && qinfo.isInsert()) {
                                             qinfo = handleInsertAndInsertSubSelect(qinfo, qt);
                                           }
 

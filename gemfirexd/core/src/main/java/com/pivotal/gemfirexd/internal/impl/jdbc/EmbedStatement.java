@@ -1691,7 +1691,7 @@ public class EmbedStatement extends ConnectionChild
 			Vector stmts = batchStatements;
 			*/
 // GemStone changes END
-			if (stmts != null && (stmts.size() > 0) && stmts.get(0) instanceof String){
+			if (!isPrepared()){
 				batchStatements = null;
 			}
 
