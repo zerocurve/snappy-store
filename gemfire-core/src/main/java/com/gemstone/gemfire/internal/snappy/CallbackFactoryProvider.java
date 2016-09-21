@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.gemstone.gemfire.internal.cache.BucketRegion;
+import com.gemstone.gemfire.internal.cache.LocalRegion;
 
 public abstract class CallbackFactoryProvider {
 
@@ -41,22 +42,41 @@ public abstract class CallbackFactoryProvider {
     }
 
     @Override
-    public int getHashCodeSnappy(Object dvd) {
+    public int getHashCodeSnappy(Object dvd, int numPartitions) {
       throw new UnsupportedOperationException("unexpected invocation for "
           + toString());
     }
 
     @Override
-    public int getHashCodeSnappy(Object[] dvds) {
+    public int getHashCodeSnappy(Object[] dvds, int numPartitions) {
       throw new UnsupportedOperationException("unexpected invocation for "
           + toString());
     }
 
     @Override
-    public boolean haveRegisteredExternalStore(String tableName) {
-      return false;
+    public void invalidateReplicatedTableCache(LocalRegion region) {
     }
 
+    @Override
+    public String cachedBatchTableName(String tableName) {
+      throw new UnsupportedOperationException("unexpected invocation for "
+          + toString());
+    }
+
+    @Override
+    public String snappyInternalSchemaName() {
+      throw new UnsupportedOperationException("unexpected invocation for "
+          + toString());
+    }
+
+    @Override
+    public void cleanUpCachedObjects(String table,
+        Boolean sentFromExternalCluster) {
+    }
+
+    @Override
+    public void registerRelationDestroyForHiveStore() {
+    }
   };
 
   public static void setStoreCallbacks(StoreCallbacks cb) {

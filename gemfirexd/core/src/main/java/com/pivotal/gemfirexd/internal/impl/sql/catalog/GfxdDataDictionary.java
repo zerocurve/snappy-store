@@ -1582,7 +1582,7 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
         String[] argNames = new String[] { "TABLE_NAME", "BUCKETS"};
         TypeDescriptor[] argTypes = new TypeDescriptor[] {
             DataTypeDescriptor.getCatalogType(Types.VARCHAR),
-            DataTypeDescriptor.getCatalogType(Types.INTEGER)
+            DataTypeDescriptor.getCatalogType(Types.VARCHAR)
             };
         super.createSystemProcedureOrFunction("SET_BUCKETS_FOR_LOCAL_EXECUTION", sysUUID, argNames,
             argTypes, 0, 0, RoutineAliasInfo.NO_SQL, null, newlyCreatedRoutines,
@@ -1775,7 +1775,13 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
           RoutineAliasInfo.MODIFIES_SQL_DATA, null, newlyCreatedRoutines, tc,
           GFXD_SYS_PROC_CLASSNAME, false);
     }
-    
+
+    {
+      super.createSystemProcedureOrFunction("REPAIR_CATALOG", sysUUID,
+          null, null, 0, 0, RoutineAliasInfo.READS_SQL_DATA,
+          null, newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, true);
+    }
+
     {
       // SYS.CANCEL_STATEMENT(long statementId, long connectionId, long
       // executionId)

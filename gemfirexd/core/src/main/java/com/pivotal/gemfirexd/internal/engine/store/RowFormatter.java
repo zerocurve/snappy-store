@@ -55,14 +55,7 @@ import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.ColumnDescriptorList;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.ExecRow;
 import com.pivotal.gemfirexd.internal.iapi.store.access.Qualifier;
 import com.pivotal.gemfirexd.internal.iapi.store.access.RowUtil;
-import com.pivotal.gemfirexd.internal.iapi.types.DataTypeDescriptor;
-import com.pivotal.gemfirexd.internal.iapi.types.DataTypeUtilities;
-import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
-import com.pivotal.gemfirexd.internal.iapi.types.HarmonySerialBlob;
-import com.pivotal.gemfirexd.internal.iapi.types.HarmonySerialClob;
-import com.pivotal.gemfirexd.internal.iapi.types.SQLChar;
-import com.pivotal.gemfirexd.internal.iapi.types.SQLDecimal;
-import com.pivotal.gemfirexd.internal.iapi.types.TypeId;
+import com.pivotal.gemfirexd.internal.iapi.types.*;
 import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedResultSetMetaData;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericColumnDescriptor;
 import com.pivotal.gemfirexd.internal.shared.common.ResolverUtils;
@@ -234,21 +227,17 @@ public final class RowFormatter implements Serializable {
   /** indicator for default value */
   public static final long OFFSET_AND_WIDTH_IS_DEFAULT = -6;
 
-  /**
-   * Mask to extract column width from the result of
-   * {@link #getOffsetAndWidth(int, byte[])}.
-   */
-  public static final long LOWER_INT32_MASK = (1L << Integer.SIZE) - 1L;
-
-  /**
-   * Mask to extract offset from the result of
-   * {@link #getOffsetAndWidth(int, byte[])}.
-   */
-  public static final long UPPER_INT32_MASK =
-      (LOWER_INT32_MASK << Integer.SIZE);
-
   /** Fixed delimiter character used internally for PXF formatting */
   public static final int DELIMITER_FOR_PXF = ',';
+
+  private static final sun.misc.Unsafe _unsafe;
+  private static final boolean littleEndian;
+  private static final int BYTE_ARRAY_OFFSET;
+  static {
+    _unsafe = UnsafeWrapper.getUnsafe();
+    littleEndian = OffHeapRegionEntryHelper.NATIVE_BYTE_ORDER_IS_LITTLE_ENDIAN;
+    BYTE_ARRAY_OFFSET = _unsafe.arrayBaseOffset(byte[].class);
+  }
 
   /**
    * This interface allows specification of action to be taken for each column
@@ -777,19 +766,22 @@ public final class RowFormatter implements Serializable {
 
   /**
    * Write an int into a byte[].
-   * 
+   *
    * @return the number of bytes written.
    */
   public static int writeInt(final byte[] bytes, int intValue, int offset) {
     assert bytes != null;
+
     // serialize in big-endian format to be compatible with DataOutput.writeInt
     // and also SQLInteger.computeHashCode
-    offset += 3;
-    bytes[offset] = (byte) intValue;
-    bytes[--offset] = (byte) (intValue >>>= 8);
-    bytes[--offset] = (byte) (intValue >>>= 8);
-    bytes[--offset] = (byte) (intValue >>>= 8);
-    return 4; // bytes in int (= Integer.SIZE / 8);
+    if (littleEndian) {
+      _unsafe.putInt(bytes, offset + BYTE_ARRAY_OFFSET,
+          Integer.reverseBytes(intValue));
+      return 4; // bytes in int (= Integer.SIZE / 8);
+    } else {
+      _unsafe.putInt(bytes, offset + BYTE_ARRAY_OFFSET, intValue);
+      return 4; // bytes in int (= Integer.SIZE / 8);
+    }
   }
 
   /**
@@ -901,7 +893,6 @@ public final class RowFormatter implements Serializable {
     int intValue = (b & 0xFF);
     int shift = 8;
     while (++memOffset < endAddr) {
-      // intValue |= (int) (((int) (bytes[offset + 1])) << (8 * 1));
       b = unsafe.getByte(memOffset);
       intValue |= ((b & 0xFF) << shift);
       shift += 8;
@@ -931,7 +922,6 @@ public final class RowFormatter implements Serializable {
     final int endPos = offset + numBytesToBeRead;
     int shift = 8;
     while (++offset < endPos) {
-      // intValue |= (int) (((int) (bytes[offset + 1])) << (8 * 1));
       b = bytes[offset];
       intValue |= ((b & 0xFF) << shift);
       shift += 8;
@@ -952,21 +942,22 @@ public final class RowFormatter implements Serializable {
    * @return the int value read.
    */
   public static int readInt(final UnsafeWrapper unsafe, final long memOffset) {
-    if (OffHeapRegionEntryHelper.NATIVE_BYTE_ORDER_IS_LITTLE_ENDIAN) {
-      return Integer.reverseBytes(unsafe.getInt(memOffset));
-    }
-    else {
-      return unsafe.getInt(memOffset);
+    if (littleEndian) {
+      return Integer.reverseBytes(_unsafe.getInt(memOffset));
+    } else {
+      return _unsafe.getInt(memOffset);
     }
   }
 
   public static int readInt(final byte[] bytes, int offset) {
     assert bytes != null;
-    int intValue = (bytes[offset] & 0xFF) << 24;
-    intValue |= ((bytes[++offset] & 0xFF) << 16);
-    intValue |= ((bytes[++offset] & 0xFF) << 8);
-    intValue |= (bytes[++offset] & 0xFF);
-    return intValue;
+
+    if (littleEndian) {
+      return Integer.reverseBytes(_unsafe.getInt(bytes,
+          offset + BYTE_ARRAY_OFFSET));
+    } else {
+      return _unsafe.getInt(bytes, offset + BYTE_ARRAY_OFFSET);
+    }
   }
 
   /**
@@ -1008,23 +999,22 @@ public final class RowFormatter implements Serializable {
 
   /**
    * Write a long into a byte[].
-   * 
+   *
    * @return the number of bytes written.
    */
   public static int writeLong(final byte[] bytes, long longValue, int offset) {
     assert bytes != null;
+
     // serialize in big-endian format to be compatible with DataOutput.writeInt
     // and also SQLInteger.computeHashCode
-    offset += 7;
-    bytes[offset] = (byte) longValue;
-    bytes[--offset] = (byte) (longValue >>>= 8);
-    bytes[--offset] = (byte) (longValue >>>= 8);
-    bytes[--offset] = (byte) (longValue >>>= 8);
-    bytes[--offset] = (byte) (longValue >>>= 8);
-    bytes[--offset] = (byte) (longValue >>>= 8);
-    bytes[--offset] = (byte) (longValue >>>= 8);
-    bytes[--offset] = (byte) (longValue >>>= 8);
-    return 8; // bytes in long (= Long.SIZE / 8);
+    if (littleEndian) {
+      _unsafe.putLong(bytes, offset + BYTE_ARRAY_OFFSET,
+          Long.reverseBytes(longValue));
+      return 8; // bytes in long (= Long.SIZE / 8);
+    } else {
+      _unsafe.putLong(bytes, offset + BYTE_ARRAY_OFFSET, longValue);
+      return 8; // bytes in long (= Long.SIZE / 8);
+    }
   }
 
   /**
@@ -1034,27 +1024,22 @@ public final class RowFormatter implements Serializable {
    */
   public static long readLong(final UnsafeWrapper unsafe,
       final long memOffset) {
-    if (OffHeapRegionEntryHelper.NATIVE_BYTE_ORDER_IS_LITTLE_ENDIAN) {
-      return Long.reverseBytes(unsafe.getLong(memOffset));
-    }
-    else {
-      return unsafe.getLong(memOffset);
+    if (littleEndian) {
+      return Long.reverseBytes(_unsafe.getLong(memOffset));
+    } else {
+      return _unsafe.getLong(memOffset);
     }
   }
 
   public static long readLong(final byte[] bytes, int offset) {
     assert bytes != null;
-    assert offset >= 0: "offset should be >= 0";
 
-    long longValue = ((long) bytes[offset] << 56);
-    longValue |= ((long) (bytes[++offset] & 0xFF) << 48);
-    longValue |= ((long) (bytes[++offset] & 0xFF) << 40);
-    longValue |= ((long) (bytes[++offset] & 0xFF) << 32);
-    longValue |= ((long) (bytes[++offset] & 0xFF) << 24);
-    longValue |= ((bytes[++offset] & 0xFF) << 16);
-    longValue |= ((bytes[++offset] & 0xFF) << 8);
-    longValue |= (bytes[++offset] & 0xFF);
-    return longValue;
+    if (littleEndian) {
+      return Long.reverseBytes(_unsafe.getLong(bytes,
+          offset + BYTE_ARRAY_OFFSET));
+    } else {
+      return _unsafe.getLong(bytes, offset + BYTE_ARRAY_OFFSET);
+    }
   }
 
   /**
@@ -5419,8 +5404,8 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
         cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int) (offsetAndWidth & LOWER_INT32_MASK);
-      final int offset = (int) (offsetAndWidth >>> Integer.SIZE);
+      final int columnWidth = (int)offsetAndWidth;
+      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       dvd = cd.columnType.getNull();
       final int bytesRead = dvd.readBytes(bytes, offset, columnWidth);
       assert bytesRead == columnWidth : "bytesRead=" + bytesRead
@@ -5481,8 +5466,8 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int) (offsetAndWidth & LOWER_INT32_MASK);
-      final int offset = (int) (offsetAndWidth >>> Integer.SIZE);
+      final int columnWidth = (int)offsetAndWidth;
+      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       dvd = cd.columnType.getNull();
       final int bytesRead = dvd.readBytes(unsafe, memAddr + offset,
           columnWidth, row);
@@ -5550,8 +5535,8 @@ public final class RowFormatter implements Serializable {
         final long offsetAndWidth = getOffsetAndWidth(index, unsafe,
             memAddr0th, bytesLen0th, offsetFromMap, cd);
         if (offsetAndWidth >= 0) {
-          final int columnWidth = (int) (offsetAndWidth & 0xFFFFFFFF);
-          final int offset = (int) (offsetAndWidth >>> Integer.SIZE);
+          final int columnWidth = (int)offsetAndWidth;
+          final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
           dvd = cd.columnType.getNull();
           final int bytesRead = dvd.readBytes(unsafe, memAddr0th + offset,
               columnWidth, byteArrays);
@@ -5627,8 +5612,8 @@ public final class RowFormatter implements Serializable {
         final long offsetAndWidth = getOffsetAndWidth(index, bytes,
             offsetFromMap, cd);
         if (offsetAndWidth >= 0) {
-          final int columnWidth = (int) (offsetAndWidth & 0xFFFFFFFF);
-          final int offset = (int) (offsetAndWidth >>> Integer.SIZE);
+          final int columnWidth = (int)offsetAndWidth;
+          final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
           dvd = cd.columnType.getNull();
           final int bytesRead = dvd.readBytes(bytes, offset, columnWidth);
           assert bytesRead == columnWidth : "bytesRead=" + bytesRead
@@ -5695,7 +5680,7 @@ public final class RowFormatter implements Serializable {
     final int typeId = cd.columnType.getTypeId().getTypeFormatId();
     int offset, width;
     if (offsetAndWidth >= 0) {
-      width = (int)(offsetAndWidth & RowFormatter.LOWER_INT32_MASK);
+      width = (int)offsetAndWidth;
       offset = (int)(offsetAndWidth >>> Integer.SIZE);
       if (typeId == StoredFormatIds.VARCHAR_TYPE_ID) {
         int idx = offset + width - 1;
@@ -5769,7 +5754,7 @@ public final class RowFormatter implements Serializable {
     final int typeId = cd.columnType.getTypeId().getTypeFormatId();
     int offset, width;
     if (offsetAndWidth >= 0) {
-      width = (int)(offsetAndWidth & RowFormatter.LOWER_INT32_MASK);
+      width = (int)offsetAndWidth;
       offset = (int)(offsetAndWidth >>> Integer.SIZE);
       if (typeId == StoredFormatIds.VARCHAR_TYPE_ID) {
         final long offsetAddr = memAddr + offset;
@@ -5849,8 +5834,8 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
         cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int) (offsetAndWidth & LOWER_INT32_MASK);
-      final int offset = (int) (offsetAndWidth >>> Integer.SIZE);
+      final int columnWidth = (int)offsetAndWidth;
+      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       final DataTypeDescriptor dtd = cd.columnType;
       if (result.getTypeFormatId() == dtd.getDVDTypeFormatId()) {
         // if target and source types match, then directly read into the DVD
@@ -5891,7 +5876,7 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       final DataTypeDescriptor dtd = cd.columnType;
       if (result.getTypeFormatId() == dtd.getDVDTypeFormatId()) {
@@ -6320,7 +6305,7 @@ public final class RowFormatter implements Serializable {
         offsetAndWidth = getOffsetAndWidth(varPosition, rowBytes,
             truncateSpaces);
         if (offsetAndWidth >= 0) {
-          sz += (int) (offsetAndWidth & LOWER_INT32_MASK);
+          sz += (int)offsetAndWidth;
         } else if (offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT) {
           final byte[] defaultBytes = this.columns[varPosition
               - 1].columnDefaultBytes;
@@ -6351,8 +6336,8 @@ public final class RowFormatter implements Serializable {
       // now write the variable width columns
       for (int index = 0; index < numVarWidths; ++index) {
         if ((offsetAndWidth = offsetAndWidths[index]) >= 0) {
-          width = (int) (offsetAndWidth & LOWER_INT32_MASK);
-          offset = (int) (offsetAndWidth >>> Integer.SIZE);
+          width = (int)offsetAndWidth;
+          offset = (int)(offsetAndWidth >>> Integer.SIZE);
           out.write(rowBytes, offset, width);
           // change offsetAndWidth to offset to be written at the end
           offsetAndWidths[index] = targetFormat.getVarDataOffset(varOffset);
@@ -6366,7 +6351,7 @@ public final class RowFormatter implements Serializable {
       }
       // finally write the variable width column offsets
       for (int index = 0; index < numVarWidths; ++index) {
-        writeInt(out, (int) offsetAndWidths[index], targetFormatOffsetBytes);
+        writeInt(out, (int)offsetAndWidths[index], targetFormatOffsetBytes);
       }
     }
   }
@@ -6409,7 +6394,7 @@ public final class RowFormatter implements Serializable {
         offsetAndWidth = getOffsetAndWidth(varColumns[index], unsafe, memAddr,
             bytesLen, truncateSpaces);
         if (offsetAndWidth >= 0) {
-          sz += (int) (offsetAndWidth & LOWER_INT32_MASK);
+          sz += (int)offsetAndWidth;
         }
         sz += targetFormatOffsetBytes;
         offsetAndWidths[index] = offsetAndWidth;
@@ -6435,8 +6420,8 @@ public final class RowFormatter implements Serializable {
       // now write the variable width columns
       for (int index = 0; index < numVarWidths; ++index) {
         if ((offsetAndWidth = offsetAndWidths[index]) >= 0) {
-          width = (int) (offsetAndWidth & LOWER_INT32_MASK);
-          offset = (int) (offsetAndWidth >>> Integer.SIZE);
+          width = (int)offsetAndWidth;
+          offset = (int)(offsetAndWidth >>> Integer.SIZE);
           OffHeapRegionEntryHelper.copyBytesToDataOutput(unsafe,
               memAddr + offset, width, out);
           // change offsetAndWidth to offset to be written at the end
@@ -6460,7 +6445,7 @@ public final class RowFormatter implements Serializable {
       }
       // finally write the variable width column offsets
       for (int index = 0; index < numVarWidths; ++index) {
-        writeInt(out, (int) offsetAndWidths[index], targetFormatOffsetBytes);
+        writeInt(out, (int)offsetAndWidths[index], targetFormatOffsetBytes);
       }
     }
   }
@@ -6546,7 +6531,7 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
         cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       DataTypeUtilities.writeAsUTF8BytesForPXF(bytes, offset, columnWidth,
           cd.columnType, buffer);
@@ -6588,7 +6573,7 @@ public final class RowFormatter implements Serializable {
       final long offsetAndWidth = getOffsetAndWidth(index, bytes,
           offsetFromMap, cd);
       if (offsetAndWidth >= 0) {
-        columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+        columnWidth = (int)offsetAndWidth;
         offset = (int)(offsetAndWidth >>> Integer.SIZE);
       }
       else {
@@ -6615,7 +6600,7 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       DataTypeUtilities.writeAsUTF8BytesForPXF(unsafe, memAddr + offset,
           columnWidth, bs, cd.columnType, buffer);
@@ -7254,7 +7239,7 @@ public final class RowFormatter implements Serializable {
     if (hasUnknown || maxDataLength > Integer.MAX_VALUE) {
       maxDataLength = Integer.MAX_VALUE;
     }
-    calcNumOffsetBytesToUse((int) maxDataLength, result[VAR_DATA_OFFSET_POS],
+    calcNumOffsetBytesToUse((int)maxDataLength, result[VAR_DATA_OFFSET_POS],
         result);
     return result;
   }
@@ -7285,7 +7270,7 @@ public final class RowFormatter implements Serializable {
     if (hasUnknown || maxDataLength > Integer.MAX_VALUE) {
       maxDataLength = Integer.MAX_VALUE;
     }
-    calcNumOffsetBytesToUse((int) maxDataLength, result[VAR_DATA_OFFSET_POS],
+    calcNumOffsetBytesToUse((int)maxDataLength, result[VAR_DATA_OFFSET_POS],
         result);
     return result;
   }
@@ -7317,7 +7302,7 @@ public final class RowFormatter implements Serializable {
     if (hasUnknown || maxDataLength > Integer.MAX_VALUE) {
       maxDataLength = Integer.MAX_VALUE;
     }
-    calcNumOffsetBytesToUse((int) maxDataLength, result[VAR_DATA_OFFSET_POS],
+    calcNumOffsetBytesToUse((int)maxDataLength, result[VAR_DATA_OFFSET_POS],
         result);
     return result;
   }
@@ -7348,7 +7333,7 @@ public final class RowFormatter implements Serializable {
     if (hasUnknown || maxDataLength > Integer.MAX_VALUE) {
       maxDataLength = Integer.MAX_VALUE;
     }
-    calcNumOffsetBytesToUse((int) maxDataLength, result[VAR_DATA_OFFSET_POS],
+    calcNumOffsetBytesToUse((int)maxDataLength, result[VAR_DATA_OFFSET_POS],
         result);
     return result;
   }
@@ -7375,7 +7360,7 @@ public final class RowFormatter implements Serializable {
     if (hasUnknown || maxDataLength > Integer.MAX_VALUE) {
       maxDataLength = Integer.MAX_VALUE;
     }
-    calcNumOffsetBytesToUse((int) maxDataLength, result[VAR_DATA_OFFSET_POS],
+    calcNumOffsetBytesToUse((int)maxDataLength, result[VAR_DATA_OFFSET_POS],
         result);
     return result;
   }
@@ -8048,7 +8033,7 @@ public final class RowFormatter implements Serializable {
       final long offsetAndWidth = getOffsetAndWidth(index, bytes,
           offsetFromMap, cd);
       if (offsetAndWidth >= 0) {
-        final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+        final int columnWidth = (int)offsetAndWidth;
         final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
 
         // check if targetFormat is variable width then need to skip the column
@@ -8116,7 +8101,7 @@ public final class RowFormatter implements Serializable {
       final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddress,
           bytesLen, offsetFromMap, cd);
       if (offsetAndWidth >= 0) {
-        final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+        final int columnWidth = (int)offsetAndWidth;
         final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
 
         // check if targetFormat is variable width then need to skip the column
@@ -8315,10 +8300,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
         cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsString(bytes, offset, columnWidth,
-          cd.columnType, wasNull);
+          cd.columnType);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -8327,18 +8312,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getString();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -8364,12 +8343,9 @@ public final class RowFormatter implements Serializable {
           : cd.columnDefaultBytes;
       if (bytes != null) {
         return DataTypeUtilities.getAsString(bytes, 0, bytes.length,
-            cd.columnType, wasNull);
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+            cd.columnType);
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -8383,10 +8359,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsString(unsafe, memAddr + offset,
-          columnWidth, bs, cd.columnType, wasNull);
+          columnWidth, bs, cd.columnType);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -8395,18 +8371,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getString();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -8445,7 +8415,7 @@ public final class RowFormatter implements Serializable {
         if (lob instanceof byte[]) {
           final byte[] bytes = (byte[])lob;
           return DataTypeUtilities.getAsString(bytes, 0, bytes.length,
-              cd.columnType, wasNull);
+              cd.columnType);
         }
         else {
           final OffHeapByteSource bs = (OffHeapByteSource)lob;
@@ -8453,13 +8423,10 @@ public final class RowFormatter implements Serializable {
           final int bytesLen = bs.getLength();
           final long memAddr = bs.getUnsafeAddress(0, bytesLen);
           return DataTypeUtilities.getAsString(unsafe, memAddr, bytesLen, bs,
-              cd.columnType, wasNull);
+              cd.columnType);
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -8471,10 +8438,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
         cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsObject(bytes, offset, columnWidth,
-          cd.columnType, wasNull);
+          cd.columnType);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -8483,18 +8450,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getObject();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -8520,12 +8481,9 @@ public final class RowFormatter implements Serializable {
           : cd.columnDefaultBytes;
       if (bytes != null) {
         return DataTypeUtilities.getAsObject(bytes, 0, bytes.length,
-            cd.columnType, wasNull);
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+            cd.columnType);
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -8539,10 +8497,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsObject(unsafe, memAddr + offset,
-          columnWidth, bs, cd.columnType, wasNull);
+          columnWidth, bs, cd.columnType);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -8551,18 +8509,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getObject();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -8601,7 +8553,7 @@ public final class RowFormatter implements Serializable {
         if (lob instanceof byte[]) {
           final byte[] bytes = (byte[])lob;
           return DataTypeUtilities.getAsObject(bytes, 0, bytes.length,
-              cd.columnType, wasNull);
+              cd.columnType);
         }
         else {
           final OffHeapByteSource bs = (OffHeapByteSource)lob;
@@ -8609,49 +8561,11 @@ public final class RowFormatter implements Serializable {
           final int bytesLen = bs.getLength();
           final long memAddr = bs.getUnsafeAddress(0, bytesLen);
           return DataTypeUtilities.getAsObject(unsafe, memAddr, bytesLen, bs,
-              cd.columnType, wasNull);
+              cd.columnType);
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
-      }
-    }
-  }
-
-  final boolean getAsBoolean(final int index, final ColumnDescriptor cd,
-      byte[] bytes, final ResultWasNull wasNull) throws StandardException {
-    final int offsetFromMap = this.positionMap[index];
-    final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
-        cd);
-    if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
-      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
-      return DataTypeUtilities.getAsBoolean(bytes, offset, columnWidth,
-          cd.columnType, wasNull);
-    }
-    else {
-      assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
-          || offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT: offsetAndWidth;
-      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT) {
-        final DataValueDescriptor dvd = cd.columnDefault;
-        if (dvd != null && !dvd.isNull()) {
-          return dvd.getBoolean();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
-          return false;
-        }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
-        return false;
       }
     }
   }
@@ -8659,18 +8573,42 @@ public final class RowFormatter implements Serializable {
   final boolean getAsBoolean(final int logicalPosition, byte[] bytes,
       final ResultWasNull wasNull) throws StandardException {
     final int index = logicalPosition - 1;
-    return getAsBoolean(index, this.columns[index], bytes, wasNull);
+    final ColumnDescriptor cd = this.columns[index];
+    final int offsetFromMap = this.positionMap[index];
+    final long offsetAndWidth;
+    if (offsetFromMap >= this.nVersionBytes) {
+      return DataTypeUtilities.getAsBoolean(bytes, offsetFromMap,
+          cd.fixedWidth, cd.columnType);
+    } else if ((offsetAndWidth = getVarOffsetAndWidth(bytes,
+        offsetFromMap, cd, false)) >= 0) {
+      final int columnWidth = (int)offsetAndWidth;
+      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
+      return DataTypeUtilities.getAsBoolean(bytes, offset, columnWidth,
+          cd.columnType);
+    } else {
+      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL) {
+        if (wasNull != null) wasNull.setWasNull();
+        return false;
+      } else {
+        assert offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT : offsetAndWidth;
+        final DataValueDescriptor dvd = cd.columnDefault;
+        if (dvd != null && !dvd.isNull()) {
+          return dvd.getBoolean();
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
+          return false;
+        }
+      }
+    }
   }
 
   final boolean getAsBoolean(final int logicalPosition,
       final byte[][] byteArrays, final ResultWasNull wasNull)
       throws StandardException {
-    final int index = logicalPosition - 1;
-    final ColumnDescriptor cd = this.columns[index];
+    final ColumnDescriptor cd = this.columns[logicalPosition - 1];
     if (!cd.isLob) {
-      return getAsBoolean(index, cd, byteArrays[0], wasNull);
-    }
-    else {
+      return getAsBoolean(logicalPosition, byteArrays[0], wasNull);
+    } else {
       throw StandardException.newException(
           SQLState.LANG_DATA_TYPE_GET_MISMATCH, "BOOLEAN", cd.getType()
               .getFullSQLTypeName(), cd.getColumnName());
@@ -8685,10 +8623,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsBoolean(unsafe, memAddr + offset,
-          columnWidth, bs, cd.columnType, wasNull);
+          columnWidth, bs, cd.columnType);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -8697,18 +8635,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getBoolean();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return false;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return false;
       }
     }
@@ -8745,56 +8677,44 @@ public final class RowFormatter implements Serializable {
     }
   }
 
-  final byte getAsByte(final int index, final ColumnDescriptor cd,
-      byte[] bytes, final ResultWasNull wasNull) throws StandardException {
-    final int offsetFromMap = this.positionMap[index];
-    final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
-        cd);
-    if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
-      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
-      return DataTypeUtilities.getAsByte(bytes, offset, columnWidth,
-          cd, wasNull);
-    }
-    else {
-      assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
-          || offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT: offsetAndWidth;
-      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT) {
-        final DataValueDescriptor dvd = cd.columnDefault;
-        if (dvd != null && !dvd.isNull()) {
-          return dvd.getByte();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
-          return 0;
-        }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
-        return 0;
-      }
-    }
-  }
-
   final byte getAsByte(final int logicalPosition, byte[] bytes,
       final ResultWasNull wasNull) throws StandardException {
     final int index = logicalPosition - 1;
-    return getAsByte(index, this.columns[index], bytes, wasNull);
+    final ColumnDescriptor cd = this.columns[index];
+    final int offsetFromMap = this.positionMap[index];
+    final long offsetAndWidth;
+    if (offsetFromMap >= this.nVersionBytes) {
+      return DataTypeUtilities.getAsByte(bytes, offsetFromMap,
+          cd.fixedWidth, cd);
+    } else if ((offsetAndWidth = getVarOffsetAndWidth(bytes,
+        offsetFromMap, cd, false)) >= 0) {
+      final int columnWidth = (int)offsetAndWidth;
+      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
+      return DataTypeUtilities.getAsByte(bytes, offset, columnWidth, cd);
+    } else {
+      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL) {
+        if (wasNull != null) wasNull.setWasNull();
+        return 0;
+      } else {
+        assert offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT : offsetAndWidth;
+        final DataValueDescriptor dvd = cd.columnDefault;
+        if (dvd != null && !dvd.isNull()) {
+          return dvd.getByte();
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
+          return 0;
+        }
+      }
+    }
   }
 
   final byte getAsByte(final int logicalPosition,
       final byte[][] byteArrays, final ResultWasNull wasNull)
       throws StandardException {
-    final int index = logicalPosition - 1;
-    final ColumnDescriptor cd = this.columns[index];
+    final ColumnDescriptor cd = this.columns[logicalPosition - 1];
     if (!cd.isLob) {
-      return getAsByte(index, cd, byteArrays[0], wasNull);
-    }
-    else {
+      return getAsByte(logicalPosition, byteArrays[0], wasNull);
+    } else {
       throw StandardException.newException(
           SQLState.LANG_DATA_TYPE_GET_MISMATCH, "TINYINT", cd.getType()
               .getFullSQLTypeName(), cd.getColumnName());
@@ -8809,10 +8729,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsByte(unsafe, memAddr + offset,
-          columnWidth, bs, cd, wasNull);
+          columnWidth, bs, cd);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -8821,18 +8741,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getByte();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return 0;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return 0;
       }
     }
@@ -8869,56 +8783,44 @@ public final class RowFormatter implements Serializable {
     }
   }
 
-  final short getAsShort(final int index, final ColumnDescriptor cd,
-      byte[] bytes, final ResultWasNull wasNull) throws StandardException {
-    final int offsetFromMap = this.positionMap[index];
-    final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
-        cd);
-    if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
-      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
-      return DataTypeUtilities.getAsShort(bytes, offset, columnWidth,
-          cd, wasNull);
-    }
-    else {
-      assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
-          || offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT: offsetAndWidth;
-      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT) {
-        final DataValueDescriptor dvd = cd.columnDefault;
-        if (dvd != null && !dvd.isNull()) {
-          return dvd.getShort();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
-          return 0;
-        }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
-        return 0;
-      }
-    }
-  }
-
   final short getAsShort(final int logicalPosition, byte[] bytes,
       final ResultWasNull wasNull) throws StandardException {
     final int index = logicalPosition - 1;
-    return getAsShort(index, this.columns[index], bytes, wasNull);
+    final ColumnDescriptor cd = this.columns[index];
+    final int offsetFromMap = this.positionMap[index];
+    final long offsetAndWidth;
+    if (offsetFromMap >= this.nVersionBytes) {
+      return DataTypeUtilities.getAsShort(bytes, offsetFromMap,
+          cd.fixedWidth, cd);
+    } else if ((offsetAndWidth = getVarOffsetAndWidth(bytes,
+        offsetFromMap, cd, false)) >= 0) {
+      final int columnWidth = (int)offsetAndWidth;
+      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
+      return DataTypeUtilities.getAsShort(bytes, offset, columnWidth, cd);
+    } else {
+      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL) {
+        if (wasNull != null) wasNull.setWasNull();
+        return 0;
+      } else {
+        assert offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT : offsetAndWidth;
+        final DataValueDescriptor dvd = cd.columnDefault;
+        if (dvd != null && !dvd.isNull()) {
+          return dvd.getShort();
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
+          return 0;
+        }
+      }
+    }
   }
 
   final short getAsShort(final int logicalPosition,
       final byte[][] byteArrays, final ResultWasNull wasNull)
       throws StandardException {
-    final int index = logicalPosition - 1;
-    final ColumnDescriptor cd = this.columns[index];
+    final ColumnDescriptor cd = this.columns[logicalPosition - 1];
     if (!cd.isLob) {
-      return getAsShort(index, cd, byteArrays[0], wasNull);
-    }
-    else {
+      return getAsShort(logicalPosition, byteArrays[0], wasNull);
+    } else {
       throw StandardException.newException(
           SQLState.LANG_DATA_TYPE_GET_MISMATCH, "SMALLINT", cd.getType()
               .getFullSQLTypeName(), cd.getColumnName());
@@ -8933,10 +8835,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsShort(unsafe, memAddr + offset,
-          columnWidth, bs, cd, wasNull);
+          columnWidth, bs, cd);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -8945,18 +8847,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getShort();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return 0;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return 0;
       }
     }
@@ -8993,56 +8889,44 @@ public final class RowFormatter implements Serializable {
     }
   }
 
-  final int getAsInt(final int index, final ColumnDescriptor cd,
-      byte[] bytes, final ResultWasNull wasNull) throws StandardException {
+  public final int getAsInt(final int logicalPosition, byte[] bytes,
+      final ResultWasNull wasNull) throws StandardException {
+    final int index = logicalPosition - 1;
+    final ColumnDescriptor cd = this.columns[index];
     final int offsetFromMap = this.positionMap[index];
-    final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
-        cd);
-    if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+    final long offsetAndWidth;
+    if (offsetFromMap >= this.nVersionBytes) {
+      return DataTypeUtilities.getAsInt(bytes, offsetFromMap,
+          cd.fixedWidth, cd);
+    } else if ((offsetAndWidth = getVarOffsetAndWidth(bytes,
+        offsetFromMap, cd, false)) >= 0) {
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
-      return DataTypeUtilities.getAsInt(bytes, offset, columnWidth,
-          cd, wasNull);
-    }
-    else {
-      assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
-          || offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT: offsetAndWidth;
-      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT) {
+      return DataTypeUtilities.getAsInt(bytes, offset, columnWidth, cd);
+    } else {
+      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL) {
+        if (wasNull != null) wasNull.setWasNull();
+        return 0;
+      } else {
+        assert offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT : offsetAndWidth;
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getInt();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return 0;
         }
       }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
-        return 0;
-      }
     }
   }
 
-  final int getAsInt(final int logicalPosition, byte[] bytes,
-      final ResultWasNull wasNull) throws StandardException {
-    final int index = logicalPosition - 1;
-    return getAsInt(index, this.columns[index], bytes, wasNull);
-  }
-
-  final int getAsInt(final int logicalPosition,
+  public final int getAsInt(final int logicalPosition,
       final byte[][] byteArrays, final ResultWasNull wasNull)
       throws StandardException {
-    final int index = logicalPosition - 1;
-    final ColumnDescriptor cd = this.columns[index];
+    final ColumnDescriptor cd = this.columns[logicalPosition - 1];
     if (!cd.isLob) {
-      return getAsInt(index, cd, byteArrays[0], wasNull);
-    }
-    else {
+      return getAsInt(logicalPosition, byteArrays[0], wasNull);
+    } else {
       throw StandardException.newException(
           SQLState.LANG_DATA_TYPE_GET_MISMATCH, "INTEGER", cd.getType()
               .getFullSQLTypeName(), cd.getColumnName());
@@ -9057,10 +8941,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsInt(unsafe, memAddr + offset,
-          columnWidth, bs, cd, wasNull);
+          columnWidth, bs, cd);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -9069,24 +8953,18 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getInt();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return 0;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return 0;
       }
     }
   }
 
-  final int getAsInt(final int logicalPosition,
+  public final int getAsInt(final int logicalPosition,
       @Unretained final OffHeapRow bytes, final ResultWasNull wasNull)
       throws StandardException {
     final UnsafeWrapper unsafe = UnsafeMemoryChunk.getUnsafeWrapper();
@@ -9098,7 +8976,7 @@ public final class RowFormatter implements Serializable {
         bytes, wasNull);
   }
 
-  final int getAsInt(final int logicalPosition,
+  public final int getAsInt(final int logicalPosition,
       @Unretained final OffHeapRowWithLobs byteArrays,
       final ResultWasNull wasNull) throws StandardException {
     final int index = logicalPosition - 1;
@@ -9117,56 +8995,44 @@ public final class RowFormatter implements Serializable {
     }
   }
 
-  final long getAsLong(final int index, final ColumnDescriptor cd,
-      byte[] bytes, final ResultWasNull wasNull) throws StandardException {
-    final int offsetFromMap = this.positionMap[index];
-    final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
-        cd);
-    if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
-      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
-      return DataTypeUtilities.getAsLong(bytes, offset, columnWidth,
-          cd, wasNull);
-    }
-    else {
-      assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
-          || offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT: offsetAndWidth;
-      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT) {
-        final DataValueDescriptor dvd = cd.columnDefault;
-        if (dvd != null && !dvd.isNull()) {
-          return dvd.getLong();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
-          return 0;
-        }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
-        return 0;
-      }
-    }
-  }
-
   final long getAsLong(final int logicalPosition, byte[] bytes,
       final ResultWasNull wasNull) throws StandardException {
     final int index = logicalPosition - 1;
-    return getAsLong(index, this.columns[index], bytes, wasNull);
+    final ColumnDescriptor cd = this.columns[index];
+    final int offsetFromMap = this.positionMap[index];
+    final long offsetAndWidth;
+    if (offsetFromMap >= this.nVersionBytes) {
+      return DataTypeUtilities.getAsLong(bytes, offsetFromMap,
+          cd.fixedWidth, cd);
+    } else if ((offsetAndWidth = getVarOffsetAndWidth(bytes,
+        offsetFromMap, cd, false)) >= 0) {
+      final int columnWidth = (int)offsetAndWidth;
+      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
+      return DataTypeUtilities.getAsLong(bytes, offset, columnWidth, cd);
+    } else {
+      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL) {
+        if (wasNull != null) wasNull.setWasNull();
+        return 0L;
+      } else {
+        assert offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT : offsetAndWidth;
+        final DataValueDescriptor dvd = cd.columnDefault;
+        if (dvd != null && !dvd.isNull()) {
+          return dvd.getLong();
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
+          return 0L;
+        }
+      }
+    }
   }
 
   final long getAsLong(final int logicalPosition,
       final byte[][] byteArrays, final ResultWasNull wasNull)
       throws StandardException {
-    final int index = logicalPosition - 1;
-    final ColumnDescriptor cd = this.columns[index];
+    final ColumnDescriptor cd = this.columns[logicalPosition - 1];
     if (!cd.isLob) {
-      return getAsLong(index, cd, byteArrays[0], wasNull);
-    }
-    else {
+      return getAsLong(logicalPosition, byteArrays[0], wasNull);
+    } else {
       throw StandardException.newException(
           SQLState.LANG_DATA_TYPE_GET_MISMATCH, "BIGINT", cd.getType()
               .getFullSQLTypeName(), cd.getColumnName());
@@ -9181,10 +9047,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsLong(unsafe, memAddr + offset,
-          columnWidth, bs, cd, wasNull);
+          columnWidth, bs, cd);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -9193,18 +9059,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getLong();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return 0;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return 0;
       }
     }
@@ -9241,56 +9101,44 @@ public final class RowFormatter implements Serializable {
     }
   }
 
-  final float getAsFloat(final int index, final ColumnDescriptor cd,
-      byte[] bytes, final ResultWasNull wasNull) throws StandardException {
-    final int offsetFromMap = this.positionMap[index];
-    final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
-        cd);
-    if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
-      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
-      return DataTypeUtilities.getAsFloat(bytes, offset, columnWidth,
-          cd, wasNull);
-    }
-    else {
-      assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
-          || offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT: offsetAndWidth;
-      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT) {
-        final DataValueDescriptor dvd = cd.columnDefault;
-        if (dvd != null && !dvd.isNull()) {
-          return dvd.getFloat();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
-          return 0.0f;
-        }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
-        return 0.0f;
-      }
-    }
-  }
-
   final float getAsFloat(final int logicalPosition, byte[] bytes,
       final ResultWasNull wasNull) throws StandardException {
     final int index = logicalPosition - 1;
-    return getAsFloat(index, this.columns[index], bytes, wasNull);
+    final ColumnDescriptor cd = this.columns[index];
+    final int offsetFromMap = this.positionMap[index];
+    final long offsetAndWidth;
+    if (offsetFromMap >= this.nVersionBytes) {
+      return DataTypeUtilities.getAsFloat(bytes, offsetFromMap,
+          cd.fixedWidth, cd);
+    } else if ((offsetAndWidth = getVarOffsetAndWidth(bytes,
+        offsetFromMap, cd, false)) >= 0) {
+      final int columnWidth = (int)offsetAndWidth;
+      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
+      return DataTypeUtilities.getAsFloat(bytes, offset, columnWidth, cd);
+    } else {
+      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL) {
+        if (wasNull != null) wasNull.setWasNull();
+        return 0.0f;
+      } else {
+        assert offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT : offsetAndWidth;
+        final DataValueDescriptor dvd = cd.columnDefault;
+        if (dvd != null && !dvd.isNull()) {
+          return dvd.getFloat();
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
+          return 0.0f;
+        }
+      }
+    }
   }
 
   final float getAsFloat(final int logicalPosition,
       final byte[][] byteArrays, final ResultWasNull wasNull)
       throws StandardException {
-    final int index = logicalPosition - 1;
-    final ColumnDescriptor cd = this.columns[index];
+    final ColumnDescriptor cd = this.columns[logicalPosition - 1];
     if (!cd.isLob) {
-      return getAsFloat(index, cd, byteArrays[0], wasNull);
-    }
-    else {
+      return getAsFloat(logicalPosition, byteArrays[0], wasNull);
+    } else {
       throw StandardException.newException(
           SQLState.LANG_DATA_TYPE_GET_MISMATCH, "FLOAT", cd.getType()
               .getFullSQLTypeName(), cd.getColumnName());
@@ -9305,10 +9153,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsFloat(unsafe, memAddr + offset,
-          columnWidth, bs, cd, wasNull);
+          columnWidth, bs, cd);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -9317,18 +9165,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getFloat();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return 0.0f;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return 0.0f;
       }
     }
@@ -9365,56 +9207,44 @@ public final class RowFormatter implements Serializable {
     }
   }
 
-  final double getAsDouble(final int index, final ColumnDescriptor cd,
-      byte[] bytes, final ResultWasNull wasNull) throws StandardException {
-    final int offsetFromMap = this.positionMap[index];
-    final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
-        cd);
-    if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
-      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
-      return DataTypeUtilities.getAsDouble(bytes, offset, columnWidth,
-          cd, wasNull);
-    }
-    else {
-      assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
-          || offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT: offsetAndWidth;
-      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT) {
-        final DataValueDescriptor dvd = cd.columnDefault;
-        if (dvd != null && !dvd.isNull()) {
-          return dvd.getDouble();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
-          return 0.0;
-        }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
-        return 0.0;
-      }
-    }
-  }
-
   final double getAsDouble(final int logicalPosition, byte[] bytes,
       final ResultWasNull wasNull) throws StandardException {
     final int index = logicalPosition - 1;
-    return getAsDouble(index, this.columns[index], bytes, wasNull);
+    final ColumnDescriptor cd = this.columns[index];
+    final int offsetFromMap = this.positionMap[index];
+    final long offsetAndWidth;
+    if (offsetFromMap >= this.nVersionBytes) {
+      return DataTypeUtilities.getAsDouble(bytes, offsetFromMap,
+          cd.fixedWidth, cd);
+    } else if ((offsetAndWidth = getVarOffsetAndWidth(bytes,
+        offsetFromMap, cd, false)) >= 0) {
+      final int columnWidth = (int)offsetAndWidth;
+      final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
+      return DataTypeUtilities.getAsDouble(bytes, offset, columnWidth, cd);
+    } else {
+      if (offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL) {
+        if (wasNull != null) wasNull.setWasNull();
+        return 0.0;
+      } else {
+        assert offsetAndWidth == OFFSET_AND_WIDTH_IS_DEFAULT : offsetAndWidth;
+        final DataValueDescriptor dvd = cd.columnDefault;
+        if (dvd != null && !dvd.isNull()) {
+          return dvd.getDouble();
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
+          return 0.0;
+        }
+      }
+    }
   }
 
   final double getAsDouble(final int logicalPosition,
       final byte[][] byteArrays, final ResultWasNull wasNull)
       throws StandardException {
-    final int index = logicalPosition - 1;
-    final ColumnDescriptor cd = this.columns[index];
+    final ColumnDescriptor cd = this.columns[logicalPosition - 1];
     if (!cd.isLob) {
-      return getAsDouble(index, cd, byteArrays[0], wasNull);
-    }
-    else {
+      return getAsDouble(logicalPosition, byteArrays[0], wasNull);
+    } else {
       throw StandardException.newException(
           SQLState.LANG_DATA_TYPE_GET_MISMATCH, "DOUBLE", cd.getType()
               .getFullSQLTypeName(), cd.getColumnName());
@@ -9429,10 +9259,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsDouble(unsafe, memAddr + offset,
-          columnWidth, bs, cd, wasNull);
+          columnWidth, bs, cd);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -9441,18 +9271,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getDouble();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return 0.0;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return 0.0;
       }
     }
@@ -9495,10 +9319,9 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
         cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
-      return DataTypeUtilities.getAsBigDecimal(bytes, offset, columnWidth,
-          cd, wasNull);
+      return DataTypeUtilities.getAsBigDecimal(bytes, offset, columnWidth, cd);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -9507,18 +9330,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return SQLDecimal.getBigDecimal(dvd);
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -9553,10 +9370,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsBigDecimal(unsafe, memAddr + offset,
-          columnWidth, bs, cd, wasNull);
+          columnWidth, bs, cd);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -9565,18 +9382,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return SQLDecimal.getBigDecimal(dvd);
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -9619,10 +9430,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
         cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsBytes(bytes, offset, columnWidth,
-          cd.columnType, wasNull);
+          cd.columnType);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -9631,18 +9442,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getBytes();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -9668,12 +9473,9 @@ public final class RowFormatter implements Serializable {
           : cd.columnDefaultBytes;
       if (bytes != null) {
         return DataTypeUtilities.getAsBytes(bytes, 0, bytes.length,
-            cd.columnType, wasNull);
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+            cd.columnType);
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -9687,10 +9489,10 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       return DataTypeUtilities.getAsBytes(unsafe, memAddr, offset, columnWidth,
-          bs, cd.columnType, wasNull);
+          bs, cd.columnType);
     }
     else {
       assert offsetAndWidth == OFFSET_AND_WIDTH_IS_NULL
@@ -9699,18 +9501,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getBytes();
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -9749,7 +9545,7 @@ public final class RowFormatter implements Serializable {
         if (lob instanceof byte[]) {
           final byte[] bytes = (byte[])lob;
           return DataTypeUtilities.getAsBytes(bytes, 0, bytes.length,
-              cd.columnType, wasNull);
+              cd.columnType);
         }
         else {
           final OffHeapByteSource bs = (OffHeapByteSource)lob;
@@ -9757,13 +9553,10 @@ public final class RowFormatter implements Serializable {
           final int bytesLen = bs.getLength();
           final long memAddr = bs.getUnsafeAddress(0, bytesLen);
           return DataTypeUtilities.getAsBytes(unsafe, memAddr, 0, bytesLen, bs,
-              cd.columnType, wasNull);
+              cd.columnType);
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -9776,17 +9569,14 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
         cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       final java.sql.Date v = DataTypeUtilities.getAsDate(bytes, offset,
           columnWidth, cal, cd.columnType);
       if (v != null) {
         return v;
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -9797,18 +9587,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getDate(cal);
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -9843,17 +9627,14 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       final java.sql.Date v = DataTypeUtilities.getAsDate(unsafe, memAddr
           + offset, columnWidth, bs, cal, cd.columnType);
       if (v != null) {
         return v;
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -9864,18 +9645,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getDate(cal);
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -9919,17 +9694,14 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
         cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       final java.sql.Time v = DataTypeUtilities.getAsTime(bytes, offset,
           columnWidth, cal, cd.columnType);
       if (v != null) {
         return v;
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -9940,18 +9712,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getTime(cal);
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -9986,17 +9752,14 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       final java.sql.Time v = DataTypeUtilities.getAsTime(unsafe, memAddr
           + offset, columnWidth, bs, cal, cd.columnType);
       if (v != null) {
         return v;
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -10007,18 +9770,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getTime(cal);
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -10062,17 +9819,14 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, bytes, offsetFromMap,
         cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       final java.sql.Timestamp v = DataTypeUtilities.getAsTimestamp(bytes,
           offset, columnWidth, cal, cd.columnType);
       if (v != null) {
         return v;
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -10083,18 +9837,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getTimestamp(cal);
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -10130,17 +9878,14 @@ public final class RowFormatter implements Serializable {
     final long offsetAndWidth = getOffsetAndWidth(index, unsafe, memAddr,
         bytesLen, offsetFromMap, cd);
     if (offsetAndWidth >= 0) {
-      final int columnWidth = (int)(offsetAndWidth & LOWER_INT32_MASK);
+      final int columnWidth = (int)offsetAndWidth;
       final int offset = (int)(offsetAndWidth >>> Integer.SIZE);
       final java.sql.Timestamp v = DataTypeUtilities.getAsTimestamp(unsafe,
           memAddr + offset, columnWidth, bs, cal, cd.columnType);
       if (v != null) {
         return v;
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -10151,18 +9896,12 @@ public final class RowFormatter implements Serializable {
         final DataValueDescriptor dvd = cd.columnDefault;
         if (dvd != null && !dvd.isNull()) {
           return dvd.getTimestamp(cal);
-        }
-        else {
-          if (wasNull != null) {
-            wasNull.setWasNull();
-          }
+        } else {
+          if (wasNull != null) wasNull.setWasNull();
           return null;
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -10210,11 +9949,8 @@ public final class RowFormatter implements Serializable {
           : cd.columnDefaultBytes;
       if (bytes != null) {
         return new HarmonySerialBlob(bytes);
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -10241,11 +9977,8 @@ public final class RowFormatter implements Serializable {
         else {
           return new HarmonySerialBlob((OffHeapByteSource)lob);
         }
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -10271,11 +10004,8 @@ public final class RowFormatter implements Serializable {
         final int strlen = SQLChar.readIntoCharsFromByteArray(bytes, 0, size,
             chars);
         return new HarmonySerialClob(chars, strlen);
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -10313,11 +10043,8 @@ public final class RowFormatter implements Serializable {
               bs.getUnsafeAddress(0, bytesLen), bytesLen, bs, chars);
         }
         return new HarmonySerialClob(chars, strlen);
-      }
-      else {
-        if (wasNull != null) {
-          wasNull.setWasNull();
-        }
+      } else {
+        if (wasNull != null) wasNull.setWasNull();
         return null;
       }
     }
@@ -10585,6 +10312,30 @@ public final class RowFormatter implements Serializable {
       }
     }
     return OFFSET_AND_WIDTH_IS_NULL;
+  }
+
+  private long getVarOffsetAndWidth(final byte[] bytes,
+      final int offsetFromMap, final ColumnDescriptor cd,
+      final boolean truncateSpaces) {
+    // var width, offsetFromMap is negative offset of offset from end
+    // of byte array
+    final int bytesLen = bytes.length;
+    final int offsetOffset = bytesLen + offsetFromMap;
+    final int offset = readVarDataOffset(bytes, offsetOffset);
+    if (offset >= this.nVersionBytes) {
+      int columnWidth = getVarColumnWidth(bytes, bytesLen,
+          offsetOffset, offset);
+      // check for removal of trailing spaces
+      if (truncateSpaces && shouldTrimTrailingSpaces(cd)) {
+        columnWidth = trimTrailingSpaces(bytes, offset, columnWidth);
+      }
+      return (((long) offset) << Integer.SIZE) | columnWidth;
+    } else if (!isVarDataOffsetDefaultToken(offset)) {
+      // null value case
+      return OFFSET_AND_WIDTH_IS_NULL;
+    } else {
+      return OFFSET_AND_WIDTH_IS_DEFAULT;
+    }
   }
 
   /**
