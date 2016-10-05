@@ -19,6 +19,8 @@
  */
 package sql;
 
+import com.gemstone.gemfire.cache.Region;
+import com.pivotal.gemfirexd.internal.engine.distributed.GfxdMessage;
 import hydra.ClientVmInfo;
 import hydra.DerbyServerHelper;
 import hydra.EnvHelper;
@@ -3245,7 +3247,7 @@ public class SQLTest {
       try {
         Log.getLogWriter().info("verifyResultSets-verifyResultSets-schema " + table[0] + " and table " + table[1]);
         verifyResultSets(dConn, gConn, table[0], table[1]);
-        dumpDiagosis(dConn, gConn, table[0], table[1]);
+        dumpDiagnostics(gConn, table[0], table[1]);
       }catch (TestException te) {
         if (verifyUsingOrderBy) throw te; //avoid OOME on accessor due to failure with large resultset 
         
@@ -3261,76 +3263,124 @@ public class SQLTest {
     }
 
   }
-  protected void  dumpDiagosis(Connection dConn, Connection gConn, String schema, String table) {
-    boolean throwException = false;
-    StringBuffer str = new StringBuffer();
-    String tablename = schema + "." + table;
-    String[] q = {
-            "select count(*), dsid() from sys.members m --GEMFIREXD-PROPERTIES withSecondaries=false\n , "
-                    + tablename + "where dsid() = m.id group by dsid()",
-            "select count(*), dsid() from sys.members m --GEMFIREXD-PROPERTIES withSecondaries=true\n , "
-                    + tablename + "where dsid() = m.id group by dsid()",
-//          "select count(*), dsid() from sys.members m , TABLE_DATA --GEMFIREXD-PROPERTIES
-//              index=IF3_4_5\n where dsid() = m.id group by dsid()",
-//          "select count(*), dsid() from sys.members m , TABLE_DATA --GEMFIREXD-PROPERTIES
-//              index=IF3_4_5\n where dsid() = m.id group by dsid()",
-//          "select count(*), dsid() from sys.members m , TABLE_DATA --GEMFIREXD-PROPERTIES
-//              index=IF3_4_5\n where dsid() = m.id group by dsid()"
-    };
+
+  protected void dumpDiagnostics(Connection gConn, String schema, String table) {
+    boolean throwException = false, dumpIndex = false;
+    StringBuffer exceptionStr = new StringBuffer();
+    String fullyQualifiedTableName = (schema + "." + table).toUpperCase();
+    int numRecordsInTable = 0, numRecordsWithSecondary = 0, redundantCopies, numCopies = 0, numExpectedRowCount = 0;
+    int numRowsInReplTable = 0;
+
+    Log.getLogWriter().info("dumpDiagnostics-Dumping diagnostics report for : " + fullyQualifiedTableName);
+
+    Region region = Misc.getRegionForTable(fullyQualifiedTableName, true);
+    int numDataStores = GfxdMessage.getAllDataStores().size();
+
     try {
-      Log.getLogWriter().info("dumpDiagosis-Dumping diagonis report for " + tablename);
-      ResultSet rs = gConn.createStatement().executeQuery("VALUES SYS.CHECK_TABLE_EX(schema, table)");
-      Statement stmt = gConn.createStatement();
-      stmt.execute(q[0]);
-      ResultSet rs1 = stmt.getResultSet();
-      int numRecordsTot = 0;
-      while(rs.next()) {
-        numRecordsTot += rs.getInt(1);
+      if (region instanceof PartitionedRegion) {  // if partition table get redundancy level
+        redundantCopies = ((PartitionedRegion)region).getRedundantCopies();
+        Log.getLogWriter().info("DataPolicy is partition and redundancy is :" + redundantCopies);
+
+        PreparedStatement ps1 = gConn.prepareStatement(
+            "select count(*), dsid() from sys.members m --GEMFIREXD-PROPERTIES withSecondaries=false \n ,  " +
+                fullyQualifiedTableName + " where dsid() = m.id group by dsid()");
+        ResultSet rsWithoutSecondary = ps1.executeQuery();
+        while (rsWithoutSecondary.next()) {
+          numRecordsInTable += rsWithoutSecondary.getInt(1);
+        }
+        rsWithoutSecondary.close();
+
+        ps1 = gConn.prepareStatement(
+            "select count(*), dsid() from sys.members m --GEMFIREXD-PROPERTIES withSecondaries=true \n ,  " +
+                fullyQualifiedTableName + " where dsid() = m.id group by dsid()");
+        ResultSet rsWithSecondary = ps1.executeQuery();
+        while (rsWithSecondary.next()) {
+          numRecordsWithSecondary += rsWithSecondary.getInt(1);
+        }
+        rsWithSecondary.close();
+
+        numExpectedRowCount = numRecordsInTable * (redundantCopies + 1);
+        if (numExpectedRowCount != numRecordsWithSecondary) {
+          exceptionStr.append("Number of rows in primary and secondary did not match. \n NumRows in primary are " + numRecordsInTable
+              + "and with redundancy " + redundantCopies + " , expected row count is " + numExpectedRowCount
+              + " but found " + numRecordsWithSecondary);
+          throwException = true;
+        }
+        numCopies = redundantCopies + 1;
+      } else { // if replicated table
+        Log.getLogWriter().info("DataPolicy is replicate and numdataStores is :" + numDataStores);
+
+        PreparedStatement ps1 = gConn.prepareStatement(
+            "select count(*), dsid() from sys.members m ,  " +
+                fullyQualifiedTableName + " where dsid() = m.id group by dsid()");
+        ResultSet rsWithoutSecondary = ps1.executeQuery();
+        while (rsWithoutSecondary.next()) {
+          numRowsInReplTable += rsWithoutSecondary.getInt(1);
+        }
+
+        ResultSet rs = gConn.createStatement().executeQuery("select count(*) from " + fullyQualifiedTableName);
+        if (rs.next())
+          numRecordsInTable = rs.getInt(1);
+        rs.close();
+
+        numExpectedRowCount = numRecordsInTable * numDataStores;
+        if (numExpectedRowCount != numRowsInReplTable) {
+          exceptionStr.append("Number of rows in replicated table across datastores do not match.\n Num rows in table are "
+              + numRecordsInTable + " and with " + numDataStores + " dataStores, expected total row count is "
+              + numExpectedRowCount + " but found  " + numRowsInReplTable);
+          throwException = true;
+        }
+        numCopies = numDataStores;
       }
 
-      stmt.execute(q[1]);
-      rs1 = stmt.getResultSet();
-      int numRecordsTotIncludingSec = 0;
-      while(rs.next()) {
-        numRecordsTotIncludingSec += rs.getInt(1);
+      //compare number of rows in indexes
+      PreparedStatement ps2 = gConn.prepareStatement(
+          "select indexname,indextype from sys.indexes where schemaname=?  and tablename=? and indextype not in ('PRIMARY KEY','GLOBAL:HASH')");
+      ps2.setString(1, schema.toUpperCase());
+      ps2.setString(2, table.toUpperCase());
+      ResultSet rsIndex = ps2.executeQuery();
+      Log.getLogWriter().info("From system table, index names for " + fullyQualifiedTableName + " in gfxd: ");
+      while (rsIndex.next()) {
+        int numRows = 0;
+        String indexName = rsIndex.getString("indexname");
+        Log.getLogWriter().info("indexName :: " + indexName + "::" + rsIndex.getString("indextype"));
+        PreparedStatement ps3 = gConn.prepareStatement(
+            "select count(*), dsid() from sys.members m , " + fullyQualifiedTableName + " --GEMFIREXD-PROPERTIES index=" + indexName + " \n " +
+                "where dsid() = m.id group by dsid()");
+        ResultSet rs = ps3.executeQuery();
+        while (rs.next()) {
+          numRows += rs.getInt(1);
+        }
+        rs.close();
+        numExpectedRowCount = numRecordsInTable * numCopies;
+        if (numRows != numExpectedRowCount) {// validation for index
+          exceptionStr.append("\n Number of rows in index and table did not match. Num rows in table are "
+              + numRecordsInTable + " and with " + numCopies + " copies, expected total row count is "
+              + numExpectedRowCount + " but found  " + numRows);
+          throwException = true;
+          dumpIndex = true;
+        }
       }
-
-//      stmt.execute(q[3]);
-//      rs1 = stmt.getResultSet();
-//      int numRecordsTotIncludingSec_idx1 = 0;
-//      while(rs.next()) {
-//        numRecordsTotIncludingSec_idx1 += rs.getInt(1);
-//      }
-//
-//      stmt.execute(q[3]);
-//      rs1 = stmt.getResultSet();
-//      int numRecordsTotIncludingSec_idx2 = 0;
-//      while(rs.next()) {
-//        numRecordsTotIncludingSec_idx2 += rs.getInt(1);
-//      }
-//
-//      stmt.execute(q[4]);
-//      rs1 = stmt.getResultSet();
-//      int numRecordsTotIncludingSec_idx3 = 0;
-//      while(rs.next()) {
-//        numRecordsTotIncludingSec_idx3 += rs.getInt(1);
-//      }
-
-      Log.getLogWriter().info("Total number of records from query1 primaries " + numRecordsTot);
-      Log.getLogWriter().info("Total number of records from query2 including secondaries " + numRecordsTotIncludingSec);
-//      Log.getLogWriter().info("Total number of records from query3 index1 " + numRecordsTotIncludingSec_idx1);
-//      Log.getLogWriter().info("Total number of records from query4 index2 " + numRecordsTotIncludingSec_idx2);
-//      Log.getLogWriter().info("Total number of records from query5 index3 " + numRecordsTotIncludingSec_idx3);
-    }catch (SQLException se) {
+      rsIndex.close();
+    } catch (SQLException se) {
       if (!(se.getSQLState().equals("X0Y55") || se.getSQLState().equals("X0Y60"))) {
         throwException = true;
-        str.append(se.getMessage() + "\n");
+        exceptionStr.append(se.getMessage() + TestHelper.getStackTrace(se) + "\n");
       }
     }
     if (throwException) {
-      throw new TestException ("dumpDiagosis-diagonis failed: " + str);
+      if (dumpIndex) {
+        try {
+          ResultSet rs = gConn.createStatement().executeQuery("VALUES SYS.CHECK_TABLE_EX('" + schema + "','" + table + "')");
+          rs.close();
+        } catch (SQLException se) {
+          exceptionStr.append("\n Query execution failed for CHECK_TABLE_EX : " + se.getMessage());
+        }
+      }
+      throw new TestException("dumpDiagnostics-diagnostics failed for : " + fullyQualifiedTableName + " \n " + exceptionStr);
     }
   }
+
   
   protected void jsonVerification(Connection gConn){
     boolean throwException = false;
