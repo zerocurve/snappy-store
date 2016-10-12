@@ -1,6 +1,33 @@
 dependencies {
   compile project(subprojectBase + 'gemfire-core')
 
+  provided group: 'org.apache.hbase', name: 'hbase-protocol', version: hbaseVersion
+  provided (group: 'org.apache.hbase', name: 'hbase-common', version: hbaseVersion) {
+    exclude(group: 'org.apache.hbase', module: 'hbase-annotations')
+  }
+  provided (group: 'org.apache.hbase', name: 'hbase-client', version: hbaseVersion) {
+    exclude(group: 'org.apache.hbase', module: 'hbase-annotations')
+    exclude(group: 'io.netty', module: 'netty')
+  }
+  provided (group: 'org.apache.hbase', name: 'hbase-server', version: hbaseVersion) {
+    exclude(group: 'org.apache.hbase', module: 'hbase-annotations')
+    exclude(group: 'org.apache.hadoop', module: 'hadoop-core')
+    exclude(group: 'org.apache.hadoop', module: 'hadoop-client')
+    exclude(group: 'org.apache.hadoop', module: 'hadoop-mapreduce-client-jobclient')
+    exclude(group: 'org.apache.hadoop', module: 'hadoop-mapreduce-client-core')
+    exclude(group: 'org.apache.hadoop', module: 'hadoop-auth')
+    exclude(group: 'org.apache.hadoop', module: 'hadoop-annotations')
+    exclude(group: 'org.apache.hadoop', module: 'hadoop-hdfs')
+    exclude(group: 'org.apache.hbase', module: 'hbase-hadoop1-compat')
+    exclude(group: 'commons-math', module: 'commons-math')
+    exclude(group: 'org.slf4j', module: 'slf4j-api')
+    exclude(group: 'com.sun.jersey', module: 'jersey-server')
+    exclude(group: 'com.sun.jersey', module: 'jersey-servlet')
+    exclude(group: 'com.sun.jersey', module: 'jersey-core')
+    exclude(group: 'com.sun.jersey', module: 'jersey-json')
+    exclude(group: 'commons-io', module: 'commons-io')
+  }
+
   compile 'net.spy:spymemcached:2.12.0'
   compile 'org.apache.bcel:bcel:5.2'
   compile "junit:junit:${junitVersion}"
