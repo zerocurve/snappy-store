@@ -2,7 +2,7 @@ sourceSets {
   jca {
     compileClasspath += configurations.compile
     runtimeClasspath += configurations.runtime
-  }
+}
 }
 
 configurations {
@@ -62,15 +62,15 @@ dependencies {
   provided "org.mortbay.jetty:jetty-util:${hadoopJettyVersion}"
   provided "com.google.code.findbugs:jsr305:${jsr305Version}"
 
-  compile group: 'org.apache.hbase', name: 'hbase-protocol', version: hbaseVersion
-  compile(group: 'org.apache.hbase', name: 'hbase-common', version: hbaseVersion) {
+  provided group: 'org.apache.hbase', name: 'hbase-protocol', version: hbaseVersion
+  provided (group: 'org.apache.hbase', name: 'hbase-common', version: hbaseVersion) {
     exclude(group: 'org.apache.hbase', module: 'hbase-annotations')
   }
-  compile(group: 'org.apache.hbase', name: 'hbase-client', version: hbaseVersion) {
+  provided (group: 'org.apache.hbase', name: 'hbase-client', version: hbaseVersion) {
     exclude(group: 'org.apache.hbase', module: 'hbase-annotations')
     exclude(group: 'io.netty', module: 'netty')
   }
-  compile(group: 'org.apache.hbase', name: 'hbase-server', version: hbaseVersion) {
+  provided (group: 'org.apache.hbase', name: 'hbase-server', version: hbaseVersion) {
     exclude(group: 'org.apache.hbase', module: 'hbase-annotations')
     exclude(group: 'org.apache.hadoop', module: 'hadoop-core')
     exclude(group: 'org.apache.hadoop', module: 'hadoop-client')
