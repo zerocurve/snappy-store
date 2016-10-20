@@ -52,7 +52,7 @@ public class SnappyRegionStatsCollectorResult extends GfxdDataSerializable {
 
   @Override
   public Version[] getSerializationVersions() {
-    return new Version[0];
+    return null;
   }
 
   @Override
