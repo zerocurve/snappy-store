@@ -7,6 +7,18 @@
 # ADD THE JIRA TICKET ID, IF APPLICABLE.                                                           #
 ####################################################################################################
 
+Release 0.6.1
+
+Bug Fixes
+
+* snap-1138 - Failure in Import causes the system to close region and network interfaces. So threads
+              are not interrupted anymore.
+
+* snap-1075 - A new function to fetch the region stats and show it on Spark UI.
+
+
+Release 0.6
+
 New Features
 
 * A new tool to collect the debug artifacts like logs, stats file and stack dumps, automatically 
