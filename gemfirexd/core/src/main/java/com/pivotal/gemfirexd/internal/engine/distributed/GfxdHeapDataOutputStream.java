@@ -79,6 +79,10 @@ public final class GfxdHeapDataOutputStream extends HeapDataOutputStream
     }
   }
 
+  public final void writeBytes(byte[] source, int offset, int len) {
+    super.write(source, offset, len);
+  }
+
   /**
    * Write a byte buffer to this HeapDataOutputStream,
    *
