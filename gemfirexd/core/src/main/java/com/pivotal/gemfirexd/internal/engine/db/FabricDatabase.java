@@ -430,7 +430,7 @@ public final class FabricDatabase implements ModuleControl,
 
     try {
       final EmbedConnection embedConn = (EmbedConnection)conn;
-      final GemFireCacheImpl cache = this.memStore.getGemFireCache();
+      final GemFireCacheImpl cache = GemFireCacheImpl.getExisting();
       final LogWriter logger = cache.getLogger();
       final LanguageConnectionContext lcc = embedConn.getLanguageConnection();
       final GemFireTransaction tc = (GemFireTransaction)lcc
