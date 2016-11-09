@@ -36,7 +36,6 @@ import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedM
 import com.gemstone.gemfire.internal.cache.versions.VersionSource;
 import com.gemstone.gemfire.internal.cache.versions.VersionStamp;
 import com.gemstone.gemfire.internal.cache.versions.VersionTag;
-import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap.HashEntry;
 import java.io.DataOutput;
 import java.io.IOException;
 import com.gemstone.gemfire.internal.cache.LocalRegion;
@@ -84,7 +83,6 @@ public class VersionedLocalRowLocationThinLRURegionEntryOffHeap extends RowLocat
     this.key = RegionEntryUtils.entryGetRegionKey(key, value);
   }
   protected int hash;
-  private HashEntry<Object, Object> next;
   @SuppressWarnings("unused")
   private volatile long lastModified;
   private static final AtomicLongFieldUpdater<VersionedLocalRowLocationThinLRURegionEntryOffHeap> lastModifiedUpdater
@@ -96,20 +94,12 @@ public class VersionedLocalRowLocationThinLRURegionEntryOffHeap extends RowLocat
     return lastModifiedUpdater.compareAndSet(this, expectedValue, newValue);
   }
   @Override
-  public final int getEntryHash() {
+  protected final int getEntryHash() {
     return this.hash;
   }
   @Override
-  protected void setEntryHash(int v) {
+  protected final void setEntryHash(int v) {
     this.hash = v;
-  }
-  @Override
-  public final HashEntry<Object, Object> getNextEntry() {
-    return this.next;
-  }
-  @Override
-  public final void setNextEntry(final HashEntry<Object, Object> n) {
-    this.next = n;
   }
   @Override
   public void setDelayedDiskId(LocalRegion r) {

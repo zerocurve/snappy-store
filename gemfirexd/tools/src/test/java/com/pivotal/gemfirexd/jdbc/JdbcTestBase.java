@@ -300,7 +300,7 @@ public class JdbcTestBase extends TestUtil implements UnitTest {
     }
 
     @Override
-    public void afterRegionCustomEntryConcurrentHashMapClear() {
+    public void afterRegionConcurrentHashMapClear() {
       synchronized (this) {
         ++this.currentCallCount;
         if (this.currentCallCount == this.numExpectedRegionClearCalls) {

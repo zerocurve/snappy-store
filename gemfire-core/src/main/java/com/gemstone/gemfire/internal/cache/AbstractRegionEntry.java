@@ -17,9 +17,6 @@
 
 package com.gemstone.gemfire.internal.cache;
 
-import static com.gemstone.gemfire.internal.offheap.annotations.OffHeapIdentifier.ABSTRACT_REGION_ENTRY_FILL_IN_VALUE;
-import static com.gemstone.gemfire.internal.offheap.annotations.OffHeapIdentifier.ABSTRACT_REGION_ENTRY_PREPARE_VALUE_FOR_CACHE;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -53,7 +50,6 @@ import com.gemstone.gemfire.distributed.internal.DM;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
 import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedMember;
 import com.gemstone.gemfire.i18n.LogWriterI18n;
-import com.gemstone.gemfire.internal.Assert;
 import com.gemstone.gemfire.internal.ByteArrayDataInput;
 import com.gemstone.gemfire.internal.HeapDataOutputStream;
 import com.gemstone.gemfire.internal.InternalDataSerializer;
@@ -74,7 +70,6 @@ import com.gemstone.gemfire.internal.cache.versions.VersionStamp;
 import com.gemstone.gemfire.internal.cache.versions.VersionTag;
 import com.gemstone.gemfire.internal.cache.wan.GatewaySenderEventImpl;
 import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap;
-import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap.HashEntry;
 import com.gemstone.gemfire.internal.concurrent.MapCallback;
 import com.gemstone.gemfire.internal.concurrent.MapCallbackAdapter;
 import com.gemstone.gemfire.internal.concurrent.MapResult;
@@ -102,6 +97,9 @@ import com.gemstone.gemfire.pdx.internal.ConvertableToBytes;
 import com.gemstone.gemfire.pdx.internal.PdxInstanceImpl;
 import com.gemstone.gemfire.pdx.internal.unsafe.UnsafeWrapper;
 
+import static com.gemstone.gemfire.internal.offheap.annotations.OffHeapIdentifier.ABSTRACT_REGION_ENTRY_FILL_IN_VALUE;
+import static com.gemstone.gemfire.internal.offheap.annotations.OffHeapIdentifier.ABSTRACT_REGION_ENTRY_PREPARE_VALUE_FOR_CACHE;
+
 /**
  * Abstract implementation class of RegionEntry interface.
  * This is the topmost implementation class so common behavior
@@ -114,8 +112,7 @@ import com.gemstone.gemfire.pdx.internal.unsafe.UnsafeWrapper;
  *
  */
 public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
-    implements RegionEntry, HashEntry<Object, Object>,
-    ExclusiveSharedLockObject {
+    implements RegionEntry, ExclusiveSharedLockObject {
 
   private static final long serialVersionUID = -2017968895983070356L;
 
@@ -540,19 +537,6 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
   @Retained
   public  Object getValueInVMOrDiskWithoutFaultIn(LocalRegion owner) {
    return getValueInVM(owner);
-  }
-
-  @Retained
-  public Object getHeapValueInVMOrDiskWithoutFaultIn(LocalRegion owner) {
-    final Object v;
-    if (owner.compressor == null) {
-      v = _getValue();
-      // null should only be possible if disk entry
-      return v != null ? v : Token.NOT_AVAILABLE;
-    } else {
-      v = decompress(owner, _getValue());
-      return v != null ? v : Token.NOT_AVAILABLE;
-    }
   }
 
   @Override
@@ -1192,30 +1176,6 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
   //protected static final long TIMESTAMP_MASK = 0x0000ffffffffffffL;
   //protected static final long DSID_MASK = ~TIMESTAMP_MASK;
 
-  public static class HashRegionEntryCreator implements
-      CustomEntryConcurrentHashMap.HashEntryCreator<Object, Object> {
-
-    public HashEntry<Object, Object> newEntry(final Object key, final int hash,
-        final HashEntry<Object, Object> next, final Object value) {
-      final AbstractRegionEntry entry = (AbstractRegionEntry)value;
-      // if hash is already set then assert that the two should be same
-      final int entryHash = entry.getEntryHash();
-      if (hash == 0 || entryHash != 0) {
-        if (entryHash != hash) {
-          Assert.fail("unexpected mismatch of hash, expected=" + hash
-              + ", actual=" + entryHash + " for " + entry);
-        }
-      }
-      entry.setEntryHash(hash);
-      entry.setNextEntry(next);
-      return entry;
-    }
-
-    public int keyHashCode(final Object key, final boolean compareValues) {
-      return CustomEntryConcurrentHashMap.keyHash(key, compareValues);
-    }
-  };
-
   protected static final MapCallback<RegionEntry,
       QueuedSynchronizer, AbstractRegionEntry, Void> waitQCreator =
         new MapCallbackAdapter<RegionEntry,
@@ -1348,15 +1308,6 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
 
   public abstract Object getRawKey();
   protected abstract void _setRawKey(Object key);
-
-  /**
-   * Default implementation. Override in subclasses with primitive keys
-   * to prevent creating an Object form of the key for each equality check.
-   */
-  @Override
-  public boolean isKeyEqual(Object k) {
-    return k.equals(getKey());
-  }
 
   public final void _setLastModified(long lastModifiedTime) {
     if (lastModifiedTime < 0 || lastModifiedTime > LAST_MODIFIED_MASK) {
@@ -1771,24 +1722,23 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
     return false;
   }
 
-  /**
-   * @see HashEntry#getMapValue()
-   */
-  public final Object getMapValue() {
-    return this;
-  }
-
-  /**
-   * @see HashEntry#setMapValue(Object)
-   */
-  public final void setMapValue(final Object newValue) {
-    if (this != newValue) {
-      Assert.fail("AbstractRegionEntry#setMapValue: unexpected setMapValue "
-          + "with newValue=" + newValue + ", this=" + this);
-    }
-  }
-
+  protected abstract int getEntryHash();
   protected abstract void setEntryHash(int v);
+
+  /** pointer to next entry in creation order (i.e. the next created entry) */
+  private AbstractRegionEntry next;
+
+  final AbstractRegionEntry getNextEntry() {
+    return this.next;
+  }
+
+  /**
+   * Set the next entry for list iteration. Note that this should be
+   * changed (and read) only under proper locks for stable iteration.
+   */
+  final void setNextEntry(final AbstractRegionEntry n) {
+    this.next = n;
+  }
 
   /**
    * Return the hashCode for the entry. In GemFireXD then entry can itself be the
@@ -1798,13 +1748,15 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
    */
   @Override
   public final int hashCode() {
+    int h = this.getEntryHash();
+    if (h != 0) {
+      return h;
+    }
     final StaticSystemCallbacks sysCb =
         GemFireCacheImpl.FactoryStatics.systemCallbacks;
     if (sysCb == null) {
-      return super.hashCode();
-    }
-    int h = this.getEntryHash();
-    if (h != 0) {
+      h = getRawKey().hashCode();
+      setEntryHash(h);
       return h;
     }
     int tries = 1;
@@ -1838,7 +1790,13 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
     final StaticSystemCallbacks sysCb =
         GemFireCacheImpl.FactoryStatics.systemCallbacks;
     if (sysCb == null) {
-      return this == other;
+      if (other == this) {
+        return true;
+      } else if (other instanceof RegionEntry) {
+        return getRawKey().equals(((RegionEntry)other).getRawKey());
+      } else {
+        return getRawKey().equals(other);
+      }
     }
     int tries = 1;
     final LocalRegion region = sysCb

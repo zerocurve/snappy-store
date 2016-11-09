@@ -55,21 +55,24 @@ public interface RegionMap extends LRUMapCallbacks {
    * Modification of fields after the map is constructed has no effect.
    */
   static class Attributes {
-    /** The initial capacity. The implementation
-     * performs internal sizing to accommodate this many elements. */
-    int initialCapacity = 16;
-    
+
+    /**
+     * The initial capacity. The implementation performs internal sizing
+     * to accommodate this many elements.
+     */
+    int initialCapacity = 1024;
+
     /** the load factor threshold, used to control resizing. */
-    float loadFactor = 0.75f;
-    
+    float loadFactor = 0.6f;
+
     /** the estimated number of concurrently
      * updating threads. The implementation performs internal sizing
      * to try to accommodate this many threads. */
     int concurrencyLevel = 16;
-    
+
     /** whether "api" statistics are enabled */
     boolean statisticsEnabled = false;
-    
+
     /** whether LRU stats are required */
 //    boolean lru = false;
   }
@@ -102,8 +105,6 @@ public interface RegionMap extends LRUMapCallbacks {
    */
   public int sizeInVM();
 
-  public Set keySet();
-  
   /** Returns a collection of RegionEntry instances.
    */
   public Collection<RegionEntry> regionEntries();

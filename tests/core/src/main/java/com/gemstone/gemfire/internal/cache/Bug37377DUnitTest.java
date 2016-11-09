@@ -19,21 +19,11 @@ package com.gemstone.gemfire.internal.cache;
 import java.io.File;
 import java.util.Properties;
 
-import com.gemstone.gemfire.cache.AttributesFactory;
-import com.gemstone.gemfire.cache.Cache;
-import com.gemstone.gemfire.cache.CacheFactory;
-import com.gemstone.gemfire.cache.DataPolicy;
-import com.gemstone.gemfire.cache.EntryEvent;
-import com.gemstone.gemfire.cache.Operation;
-import com.gemstone.gemfire.cache.Region;
-import com.gemstone.gemfire.cache.RegionAttributes;
-import com.gemstone.gemfire.cache.Scope;
+import com.gemstone.gemfire.cache.*;
 import com.gemstone.gemfire.cache30.CacheSerializableRunnable;
 import com.gemstone.gemfire.cache30.CacheTestCase;
 import com.gemstone.gemfire.distributed.DistributedSystem;
 import com.gemstone.gemfire.internal.cache.lru.EnableLRU;
-import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap.HashEntry;
-
 import dunit.AsyncInvocation;
 import dunit.DistributedTestCase;
 import dunit.Host;
@@ -424,18 +414,6 @@ public class Bug37377DUnitTest extends CacheTestCase
     public int getEntryHash() {
       // TODO Auto-generated method stub
       return 0;
-    }
-
-    @Override
-    public HashEntry<Object, Object> getNextEntry() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public void setNextEntry(HashEntry<Object, Object> n) {
-      // TODO Auto-generated method stub
-      
     }
 
     @Override

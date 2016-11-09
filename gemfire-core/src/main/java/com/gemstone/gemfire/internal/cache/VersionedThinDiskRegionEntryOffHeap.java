@@ -36,7 +36,6 @@ import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedM
 import com.gemstone.gemfire.internal.cache.versions.VersionSource;
 import com.gemstone.gemfire.internal.cache.versions.VersionStamp;
 import com.gemstone.gemfire.internal.cache.versions.VersionTag;
-import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap.HashEntry;
 @SuppressWarnings("serial")
 public class VersionedThinDiskRegionEntryOffHeap extends VMThinDiskRegionEntry
     implements OffHeapRegionEntry, VersionStamp
@@ -52,7 +51,6 @@ public class VersionedThinDiskRegionEntryOffHeap extends VMThinDiskRegionEntry
     this.key = key;
   }
   protected int hash;
-  private HashEntry<Object, Object> next;
   @SuppressWarnings("unused")
   private volatile long lastModified;
   private static final AtomicLongFieldUpdater<VersionedThinDiskRegionEntryOffHeap> lastModifiedUpdater
@@ -64,20 +62,12 @@ public class VersionedThinDiskRegionEntryOffHeap extends VMThinDiskRegionEntry
     return lastModifiedUpdater.compareAndSet(this, expectedValue, newValue);
   }
   @Override
-  public final int getEntryHash() {
+  protected final int getEntryHash() {
     return this.hash;
   }
   @Override
-  protected void setEntryHash(int v) {
+  protected final void setEntryHash(int v) {
     this.hash = v;
-  }
-  @Override
-  public final HashEntry<Object, Object> getNextEntry() {
-    return this.next;
-  }
-  @Override
-  public final void setNextEntry(final HashEntry<Object, Object> n) {
-    this.next = n;
   }
   protected void initialize(RegionEntryContext context, Object value) {
     diskInitialize(context, value);

@@ -22,7 +22,7 @@
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
  */
-/**
+/*
  * ConcurrentHashMap implementation adapted from JSR 166 backport
  * (http://backport-jsr166.sourceforge.net) JDK5 version release 3.1
  * with modifications to use generics where appropriate:
@@ -51,36 +51,17 @@ package com.gemstone.gemfire.internal.concurrent;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.AbstractCollection;
-import java.util.AbstractMap;
-import java.util.AbstractSet;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.RejectedExecutionException;
 
 import com.gemstone.gemfire.CancelException;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
+import com.gemstone.gemfire.internal.cache.*;
 import com.gemstone.gemfire.internal.cache.locks.NonReentrantReadWriteLock;
 import com.gemstone.gemfire.internal.cache.wan.GatewaySenderEventImpl;
-import com.gemstone.gemfire.internal.cache.BucketRegion;
-import com.gemstone.gemfire.internal.cache.BucketRegionIndexCleaner;
-import com.gemstone.gemfire.internal.cache.CacheObserver;
-import com.gemstone.gemfire.internal.cache.CacheObserverHolder;
-import com.gemstone.gemfire.internal.cache.LocalRegion;
-import com.gemstone.gemfire.internal.cache.OffHeapRegionEntry;
-import com.gemstone.gemfire.internal.cache.RegionEntry;
 import com.gemstone.gemfire.internal.offheap.OffHeapRegionEntryHelper;
 import com.gemstone.gemfire.internal.size.SingleObjectSizer;
-import com.gemstone.gemfire.internal.cache.AbstractRegionEntry;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -1971,7 +1952,7 @@ RETRYLOOP:
             }
             if(LocalRegion.ISSUE_CALLBACKS_TO_CACHE_OBSERVER && 
                 observer != null && isOffHeapEnabled) {
-              observer.afterRegionCustomEntryConcurrentHashMapClear();
+              observer.afterRegionConcurrentHashMapClear();
             }
           }
         };
@@ -1998,10 +1979,66 @@ RETRYLOOP:
       }else {
         if(LocalRegion.ISSUE_CALLBACKS_TO_CACHE_OBSERVER && 
             observer != null && isOffHeapEnabled) {
-          observer.afterRegionCustomEntryConcurrentHashMapClear();
+          observer.afterRegionConcurrentHashMapClear();
         }
       }
     }
+  }
+
+  public static ArrayList<AbstractRegionEntry> clearTHashSegment(
+      ConcurrentTHashSegment<AbstractRegionEntry> seg,
+      ArrayList<AbstractRegionEntry> clearedEntries) {
+    seg.writeLock().lock();
+    try {
+      final int sz = seg.size;
+      if (sz > 0) {
+        final Object[] set = seg.set;
+        final int size = set.length;
+        boolean collectEntries = clearedEntries != null;
+        if (!collectEntries) {
+          // see if we have a map with off-heap region entries
+          for (int index = 0; index < size; index++) {
+            final Object e = set[index];
+            if (e == null) continue;
+            if (e instanceof OffHeapRegionEntry) {
+              collectEntries = true;
+              clearedEntries = new ArrayList<>();
+            }
+            // after the first non-null entry we are done
+            break;
+          }
+        }
+        final boolean skipProcessOffHeap = !collectEntries &&
+            !OffHeapRegionEntryHelper.doesClearNeedToCheckForOffHeap();
+        if (skipProcessOffHeap) {
+          for (int index = 0; index < size; index++) {
+            if (set[index] != null) {
+              set[index] = null;
+            }
+          }
+        } else {
+          for (int index = 0; index < size; index++) {
+            final AbstractRegionEntry e = (AbstractRegionEntry)set[index];
+            if (e == null) continue;
+            set[index] = null;
+            if (collectEntries) {
+              clearedEntries.add(e);
+            } else {
+              // It is ok to call GatewaySenderEventImpl release without being
+              // synced on the region entry. It will not create an orphan.
+              GatewaySenderEventImpl.release(e._getValue());
+            }
+          }
+        }
+
+        seg.totalSize.addAndGet(-sz);
+        seg.size = 0;
+        seg.free = size;
+      }
+    } finally {
+      seg.writeLock().unlock();
+    }
+    return clearedEntries;
   }
 
   /**

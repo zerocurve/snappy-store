@@ -23,15 +23,15 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ConcurrentMap;
 
-import junit.framework.TestCase;
-
 import com.gemstone.gemfire.distributed.DistributedSystem;
+import com.gemstone.gemfire.internal.concurrent.ConcurrentTHashSetMapAdapter;
 import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap;
+import junit.framework.TestCase;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class ConcurrentHashMapIteratorTest extends TestCase {
 
-  public void test() throws InterruptedException {
+  public void testCHM() throws InterruptedException {
     
     //Apparently, we need a distributed system to create
     //this CHM, because it's locks use DS properties.
@@ -61,6 +61,31 @@ public class ConcurrentHashMapIteratorTest extends TestCase {
     
     randomer.cancel();
     
+    assertEquals(baselineMap, testMap);
+  }
+
+  public void testCHS() throws InterruptedException {
+
+    java.util.concurrent.ConcurrentHashMap baselineMap = new java.util.concurrent.ConcurrentHashMap();
+    ConcurrentTHashSetMapAdapter testMap = new ConcurrentTHashSetMapAdapter();
+    Map initialSet;
+
+    createBaseline(baselineMap, testMap, 0, 100);
+    assertEquals(baselineMap, testMap);
+    initialSet = new HashMap(baselineMap);
+
+//    putter = new Putter(baselineMap, testMap, 1000, 2000);
+//    putter.run();
+
+    RandomMutations randomer = new RandomMutations(baselineMap, testMap, 1001, 50000);
+    randomer.start();
+
+    for(int i = 0; i < 1000; i++) {
+      checkForInitialSet(i, testMap, initialSet);
+    }
+
+    randomer.cancel();
+
     assertEquals(baselineMap, testMap);
   }
 

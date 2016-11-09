@@ -2227,10 +2227,10 @@ public void testOneServer() throws CacheException, InterruptedException {
         
         RegionMap entries = ((LocalRegion) region).entries;
         
-        for (Object key : entries.keySet()) {
-          RegionEntry internalRegionEntry = entries.getEntry(key);
-          VersionTag tag = internalRegionEntry.getVersionStamp().asVersionTag();
-          getLogWriter().info("Entry version tag on client for " + key + ": " + tag);
+        for (RegionEntry re : entries.regionEntriesInVM()) {
+          VersionTag tag = re.getVersionStamp().asVersionTag();
+          getLogWriter().info("Entry version tag on client for " +
+              re.getKeyCopy() + ": " + tag);
           versions.add(tag);
         }
         
@@ -2247,10 +2247,10 @@ public void testOneServer() throws CacheException, InterruptedException {
         
         RegionMap entries = ((LocalRegion) region).entries;
         
-        for (Object key : entries.keySet()) {
-          RegionEntry internalRegionEntry = entries.getEntry(key);
-          VersionTag tag = internalRegionEntry.getVersionStamp().asVersionTag();
-          getLogWriter().info("Entry version tag on client for " + key + ": " + tag);
+        for (RegionEntry re : entries.regionEntriesInVM()) {
+          VersionTag tag = re.getVersionStamp().asVersionTag();
+          getLogWriter().info("Entry version tag on client for " +
+              re.getKeyCopy() + ": " + tag);
           versions.add(tag);
         }
         return versions;
@@ -2332,11 +2332,10 @@ public void testOneServer() throws CacheException, InterruptedException {
         
           RegionMap entries = br.entries;
           
-          for (Object key : entries.keySet()) {
-            RegionEntry internalRegionEntry = entries.getEntry(key);
-            VersionTag tag = internalRegionEntry.getVersionStamp().asVersionTag();
+          for (RegionEntry re : entries.regionEntriesInVM()) {
+            VersionTag tag = re.getVersionStamp().asVersionTag();
             getLogWriter().info("Entry version tag on server1:" + tag);
-            versions.add(key + " " + tag);
+            versions.add(re.getKeyCopy() + " " + tag);
           }
         }
         
@@ -2355,12 +2354,11 @@ public void testOneServer() throws CacheException, InterruptedException {
         List<String> versions = new ArrayList<String>(numberOfEntries*2);
         
         RegionMap entries = ((LocalRegion) region).entries;
-        
-        for (Object key : entries.keySet()) {
-          RegionEntry internalRegionEntry = entries.getEntry(key);
-          VersionTag tag = internalRegionEntry.getVersionStamp().asVersionTag();
+
+        for (RegionEntry re : entries.regionEntriesInVM()) {
+          VersionTag tag = re.getVersionStamp().asVersionTag();
           tag.setMemberID(null);
-          versions.add(key + " " + tag);
+          versions.add(re.getKeyCopy() + " " + tag);
         }
         return versions;
       }
@@ -2423,10 +2421,9 @@ public void testOneServer() throws CacheException, InterruptedException {
         List<VersionTag> versions = new ArrayList<VersionTag>(numberOfEntries*2);
         
         RegionMap entries = ((LocalRegion) region).entries;
-        
-        for (Object key : entries.keySet()) {
-          RegionEntry internalRegionEntry = entries.getEntry(key);
-          VersionTag tag = internalRegionEntry.getVersionStamp().asVersionTag();
+
+        for (RegionEntry re : entries.regionEntriesInVM()) {
+          VersionTag tag = re.getVersionStamp().asVersionTag();
           getLogWriter().info("Entry version tag on client:" + tag);
           versions.add(tag);
         }
@@ -2443,11 +2440,9 @@ public void testOneServer() throws CacheException, InterruptedException {
         List<VersionTag> versions = new ArrayList<VersionTag>(numberOfEntries*2);
         
         RegionMap entries = ((LocalRegion) region).entries;
-        
-        for (Object key : entries.keySet()) {
-          RegionEntry internalRegionEntry = entries.getEntry(key);
-          
-          versions.add(internalRegionEntry.getVersionStamp().asVersionTag());
+
+        for (RegionEntry re : entries.regionEntriesInVM()) {
+          versions.add(re.getVersionStamp().asVersionTag());
         }
         return versions;
       }

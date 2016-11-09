@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.gemstone.gemfire.internal.concurrent.ConcurrentSkipListMap;
+import com.gemstone.gemfire.internal.concurrent.ConcurrentTHashSetMapAdapter;
 import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap;
 import com.gemstone.gemfire.util.JSR166TestCase;
 
@@ -60,6 +61,8 @@ public class MapLoopsJUnitTest extends JSR166TestCase {
       runMain(new String[] { CustomEntryConcurrentHashMap.class.getName() },
           false);
       runMain(new String[] { ConcurrentSkipListMap.class.getName() }, true);
+      runMain(new String[] { ConcurrentTHashSetMapAdapter.class.getName() },
+          false);
     }
 
     public static void main(String[] args) throws Exception {

@@ -24,7 +24,6 @@ import com.gemstone.gemfire.cache.PartitionAttributesFactory;
 import com.gemstone.gemfire.cache.Region;
 import com.gemstone.gemfire.cache.RegionFactory;
 import com.gemstone.gemfire.cache.RegionShortcut;
-import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap;
 
 public class HDFSRegionOperationsOffHeapJUnitTest extends HDFSRegionOperationsJUnitTest {
   static {
@@ -37,11 +36,11 @@ public class HDFSRegionOperationsOffHeapJUnitTest extends HDFSRegionOperationsJU
     PartitionedRegion pr = (PartitionedRegion)r;
     for (BucketRegion br : pr.getDataStore().getAllLocalBucketRegions()) {
       assertTrue(br.getRegionMap() instanceof HDFSRegionMap);
-      CustomEntryConcurrentHashMap chm = ((AbstractRegionMap)br.getRegionMap())._getMap();
-      Iterator it = chm.keySet().iterator();
+      ConcurrentRegionEntryHashSet chm = ((AbstractRegionMap)br.getRegionMap())._getMap();
+      Iterator it = chm.iterator();
       while (it.hasNext()) {
         Object key = it.next();
-        OffHeapRegionEntry re = (OffHeapRegionEntry) chm.remove(key);
+        OffHeapRegionEntry re = (OffHeapRegionEntry)chm.removeKey(key);
         assert re != null;
         re.release();
       }

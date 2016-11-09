@@ -103,10 +103,10 @@ import com.gemstone.org.jgroups.util.StringId;
 // which checks for RegionEntry classes of GFE and validates the same with its 
 // own classes.
 
-abstract class AbstractRegionMap implements RegionMap {
+public abstract class AbstractRegionMap implements RegionMap {
 
   /** The underlying map for this region. */
-  protected CustomEntryConcurrentHashMap<Object, Object/*RegionEntry*/> map;
+  protected ConcurrentRegionEntryHashSet map;
   /** An internal Listener for index maintenance for GemFireXD. */
   protected IndexUpdater indexUpdater;
   /** a boolean used only in GemFireXD to handle creates
@@ -182,13 +182,10 @@ abstract class AbstractRegionMap implements RegionMap {
       String provider = SystemProperties.GFXD_FACTORY_PROVIDER;
       try {
         Class<?> factoryProvider = Class.forName(provider);
-        Method method = factoryProvider.getDeclaredMethod(
-            "getHashEntryCreator");
         _setMap(createConcurrentMap(attr.initialCapacity, attr.loadFactor,
-            attr.concurrencyLevel, false,
-            (HashEntryCreator<Object, Object>)method.invoke(null)));
+            attr.concurrencyLevel));
 
-        method = factoryProvider.getDeclaredMethod("getRegionEntryFactory",
+        Method method = factoryProvider.getDeclaredMethod("getRegionEntryFactory",
             new Class[] { Boolean.TYPE, Boolean.TYPE, Boolean.TYPE,
                 Boolean.TYPE, Object.class, InternalRegionArguments.class });
         RegionEntryFactory ref = (RegionEntryFactory)method.invoke(
@@ -206,11 +203,9 @@ abstract class AbstractRegionMap implements RegionMap {
         throw new IllegalStateException("Exception in obtaining RegionEntry "
             + "Factory provider class ", e);
       }
-    }
-    else {
+    } else {
       _setMap(createConcurrentMap(attr.initialCapacity, attr.loadFactor,
-          attr.concurrencyLevel, false,
-          new AbstractRegionEntry.HashRegionEntryCreator()));
+          attr.concurrencyLevel));
       final RegionEntryFactory factory;
       if (attr.statisticsEnabled) {
         if (isLRU) {
@@ -345,17 +340,10 @@ abstract class AbstractRegionMap implements RegionMap {
     }
   }
 
-  protected CustomEntryConcurrentHashMap<Object, Object> createConcurrentMap(
-      int initialCapacity, float loadFactor, int concurrencyLevel,
-      boolean isIdentityMap, HashEntryCreator<Object, Object> entryCreator) {
-    if (entryCreator != null) {
-      return new CustomEntryConcurrentHashMap<Object, Object>(initialCapacity,
-          loadFactor, concurrencyLevel, isIdentityMap, entryCreator);
-    }
-    else {
-      return new CustomEntryConcurrentHashMap<Object, Object>(initialCapacity,
-          loadFactor, concurrencyLevel, isIdentityMap);
-    }
+  protected ConcurrentRegionEntryHashSet createConcurrentMap(
+      int initialCapacity, float loadFactor, int concurrencyLevel) {
+    return new ConcurrentRegionEntryHashSet(concurrencyLevel, initialCapacity,
+        loadFactor, null, null);
   }
 
   @Override
@@ -419,12 +407,12 @@ abstract class AbstractRegionMap implements RegionMap {
   public final void setOwner(Object r) {
     this.owner = r;
   }
-  
-  protected final CustomEntryConcurrentHashMap<Object, Object> _getMap() {
+
+  public final ConcurrentRegionEntryHashSet _getMap() {
     return this.map;
   }
 
-  protected final void _setMap(CustomEntryConcurrentHashMap<Object, Object> m) {
+  protected final void _setMap(ConcurrentRegionEntryHashSet m) {
     this.map = m;
   }
 
@@ -442,23 +430,15 @@ abstract class AbstractRegionMap implements RegionMap {
     return _getMap().isEmpty();
   }
 
-  public final Set keySet() {
-    return _getMap().keySet();
-  }
-
-  public final Set keyValueSet() {
-    return _getMap().entrySet();
-  }
-
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public Collection<RegionEntry> regionEntries() {
-    return (Collection)_getMap().values();
+    return (Collection)_getMap();
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
   @Override
   public Collection<RegionEntry> regionEntriesInVM() {
-    return (Collection)_getMap().values();
+    return (Collection)_getMap();
   }
 
   public final boolean containsKey(Object key) {
@@ -473,7 +453,7 @@ abstract class AbstractRegionMap implements RegionMap {
   }
 
   public RegionEntry getEntry(Object key) {
-    RegionEntry re = (RegionEntry)_getMap().get(key);
+    AbstractRegionEntry re = _getMap().get(key);
     if (re != null && re.isMarkedForEviction()) {
       // entry has been faulted in from HDFS
       return null;
@@ -487,12 +467,12 @@ abstract class AbstractRegionMap implements RegionMap {
 
   @Override
   public RegionEntry getEntryInVM(Object key) {
-    return (RegionEntry) _getMap().get(key);
+    return _getMap().get(key);
   }
 
   @Override
   public final RegionEntry getOperationalEntryInVM(Object key) {
-    RegionEntry re = (RegionEntry)_getMap().get(key);
+    AbstractRegionEntry re = _getMap().get(key);
     if (re != null && re.isMarkedForEviction()) {
       // entry has been faulted in from HDFS
       return null;
@@ -501,11 +481,11 @@ abstract class AbstractRegionMap implements RegionMap {
   }
 
   public final RegionEntry putEntryIfAbsent(Object key, RegionEntry re) {
-    RegionEntry value = (RegionEntry)_getMap().putIfAbsent(key, re);
+    RegionEntry value = (RegionEntry)_getMap().addKey((AbstractRegionEntry)re);
     if (value == null && (re instanceof OffHeapRegionEntry)
         && _isOwnerALocalRegion() && _getOwner().isThisRegionBeingClosedOrDestroyed()) {
       // prevent orphan during concurrent destroy (#48068)
-      if (_getMap().remove(key, re)) {
+      if (_getMap().remove(re)) {
         ((OffHeapRegionEntry)re).release();
       }
       _getOwner().checkReadiness(); // throw RegionDestroyedException
@@ -519,7 +499,7 @@ abstract class AbstractRegionMap implements RegionMap {
       return; // can't remove tombstones except from the tombstone sweeper
     }
 //    _getOwner().getLogWriterI18n().info(LocalizedStrings.DEBUG, "DEBUG: removing entry " + re, new Exception("stack trace"));
-    if (_getMap().remove(key, re)) {
+    if (_getMap().remove(re)) {
       re.removePhase2();
       if (updateStat) {
         incEntryCount(-1);
@@ -575,7 +555,7 @@ abstract class AbstractRegionMap implements RegionMap {
         }
       }
       
-      if (_getMap().remove(key, re)) {
+      if (_getMap().remove(re)) {
         re.removePhase2();
         success = true;
         if (updateStat) {
@@ -693,7 +673,7 @@ abstract class AbstractRegionMap implements RegionMap {
               }
               boolean tombstone = re.isTombstone();
               // note: it.remove() did not reliably remove the entry so we use remove(K,V) here
-              if (_getMap().remove(re.getKey(), re)) {
+              if (_getMap().remove(re)) {
                 if (OffHeapRegionEntryHelper.doesClearNeedToCheckForOffHeap()) {
                   GatewaySenderEventImpl.release(re._getValue());
                 }
@@ -843,19 +823,17 @@ abstract class AbstractRegionMap implements RegionMap {
       // Read current time to later pass it to all calls to copyRecoveredEntry.  This is 
       // needed if a dummy version tag has to be created for a region entry
       final long currentTime = ((LocalRegion)owner).getCache().cacheTimeMillis();
-      
-      CustomEntryConcurrentHashMap<Object, Object> other = ((AbstractRegionMap)rm)._getMap();
-      Iterator<Map.Entry<Object, Object>> it = other
-          .entrySetWithReusableEntries().iterator();
+
+      ConcurrentRegionEntryHashSet other = ((AbstractRegionMap)rm)._getMap();
+      Iterator<AbstractRegionEntry> it = other.iterator();
       while (it.hasNext()) {
-        Map.Entry<Object, Object> me = it.next();
+        AbstractRegionEntry oldRe = it.next();
         it.remove(); // This removes the RegionEntry from "rm" but it does not decrement its refcount to an offheap value.
-        RegionEntry oldRe = (RegionEntry)me.getValue();
-        Object key = me.getKey();
+        Object key = oldRe.getKey();
 
         if (!entriesIncompatible) {
           oldRe.setOwner(_getOwner());
-          _getMap().put(key, oldRe);
+          _getMap().put(oldRe);
           // newRe is now in this._getMap().
           if (oldRe.isTombstone()) {
             VersionTag tag = oldRe.getVersionStamp().asVersionTag();
@@ -879,7 +857,8 @@ abstract class AbstractRegionMap implements RegionMap {
           if (value == Token.TOMBSTONE && !_getOwner().getConcurrencyChecksEnabled()) {
             continue;
           }
-          RegionEntry newRe = getEntryFactory().createEntry((RegionEntryContext) _getOwnerObject(), key, value);
+          AbstractRegionEntry newRe = (AbstractRegionEntry)getEntryFactory()
+              .createEntry((RegionEntryContext)_getOwnerObject(), key, value);
           copyRecoveredEntry(oldRe, newRe, currentTime);
           // newRe is now in this._getMap().
           if (newRe.isTombstone()) {
@@ -891,7 +870,7 @@ abstract class AbstractRegionMap implements RegionMap {
           lruEntryUpdate(newRe);
         } finally {
           if (OffHeapHelper.release(value)) {
-            ((OffHeapRegionEntry)oldRe).release();
+            oldRe.release();
           }
         }
         lruUpdateCallback();
@@ -924,7 +903,8 @@ abstract class AbstractRegionMap implements RegionMap {
     
   }
   
-  protected void copyRecoveredEntry(RegionEntry oldRe, RegionEntry newRe, long dummyVersionTs) {
+  protected void copyRecoveredEntry(RegionEntry oldRe,
+      AbstractRegionEntry newRe, long dummyVersionTs) {
     long lastModifiedTime = oldRe.getLastModified();
     if (lastModifiedTime != 0) {
       newRe.setLastModified(lastModifiedTime);
@@ -948,7 +928,7 @@ abstract class AbstractRegionMap implements RegionMap {
       newDe.setDiskId(oldRe);
       _getOwner().getDiskRegion().replaceIncompatibleEntry((DiskEntry) oldRe, newDe);
     }
-    _getMap().put(newRe.getKey(), newRe);
+    _getMap().put(newRe);
   }
 
   private synchronized VersionTag createDummyTag(long dummyVersionTs) {
@@ -1808,7 +1788,7 @@ RETRY_LOOP:
                 newRe.returnToPool();
                 continue RETRY_LOOP;
               }
-              re = (RegionEntry)_getMap().putIfAbsent(event.getKey(), newRe);
+              re = (RegionEntry)_getMap().addKey((AbstractRegionEntry)newRe);
               if (re != null && re != tombstone) {
                 // concurrent change - try again
                 retry = true;
@@ -4794,7 +4774,7 @@ RETRY_LOOP:
   public void dumpMap(LogWriterI18n log) {
     StringId str = LocalizedStrings.DEBUG;
     log.info(str, "dump of concurrent map of size " + this._getMap().size() + " for region " + this._getOwner());
-    for (Iterator it = this._getMap().values().iterator(); it.hasNext(); ) {
+    for (Iterator it = this._getMap().iterator(); it.hasNext(); ) {
       log.info(str, it.next().toString());
     }
   }
@@ -5097,7 +5077,7 @@ RETRY_LOOP:
    * @param entry the entry to attempt to add to the system
    */
   protected final RegionEntry putEntryIfAbsentForTest(RegionEntry entry) {
-    return (RegionEntry)putEntryIfAbsent(entry.getKey(), entry);
+    return putEntryIfAbsent(entry.getKey(), entry);
   }
 
   public boolean isTombstoneNotNeeded(RegionEntry re, int destroyedVersion) {
@@ -5194,7 +5174,7 @@ RETRY_LOOP:
   }
 
   protected boolean removeTombstone(RegionEntry re) {
-    return _getMap().remove(re.getKey(), re);
+    return _getMap().remove(re);
   }
 
   // method used for debugging tombstone count issues
@@ -5257,8 +5237,8 @@ RETRY_LOOP:
 
   private Set<RegionEntry> getTombstones(Set<Object> ignoreKeys, Set<Object> gatherKeys) {
     Set<RegionEntry> result = new HashSet<RegionEntry>();
-    for (Iterator it=regionEntries().iterator(); it.hasNext(); ) {
-      RegionEntry re = (RegionEntry)it.next();
+    for (Iterator<RegionEntry> it = regionEntries().iterator(); it.hasNext(); ) {
+      RegionEntry re = it.next();
       if (re.isTombstone() && !ignoreKeys.contains(re.getKey())) {
         result.add(re);
         gatherKeys.add(re.getKey());
@@ -5266,7 +5246,6 @@ RETRY_LOOP:
     }
     return result;
   }
-    
 
   public final Map<Object, SuspectEntryList> getTestSuspectMap() {
     return this.suspectEntries;

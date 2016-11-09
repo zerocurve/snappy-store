@@ -17,9 +17,8 @@
 package com.gemstone.gemfire.internal.cache;
 
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -40,7 +39,6 @@ import com.gemstone.gemfire.internal.cache.versions.RegionVersionHolder;
 import com.gemstone.gemfire.internal.cache.versions.RegionVersionVector;
 import com.gemstone.gemfire.internal.cache.versions.VersionSource;
 import com.gemstone.gemfire.internal.cache.versions.VersionTag;
-import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import joptsimple.internal.Strings;
 
@@ -579,12 +577,8 @@ public abstract class AbstractDiskRegion implements DiskRegionView {
       ds.updateDiskRegion(this);
       this.entriesMapIncompatible = false;
       if (this.entries != null) {
-        CustomEntryConcurrentHashMap<Object, Object> other = ((AbstractRegionMap)this.entries)._getMap();
-        Iterator<Map.Entry<Object, Object>> it = other
-            .entrySetWithReusableEntries().iterator();
-        while (it.hasNext()) {
-          Map.Entry<Object, Object> me = it.next();
-          RegionEntry oldRe = (RegionEntry)me.getValue();
+        Collection<RegionEntry> other = this.entries.regionEntriesInVM();
+        for (RegionEntry oldRe : other) {
           if (oldRe instanceof OffHeapRegionEntry) {
             ((OffHeapRegionEntry) oldRe).release();
           } else {

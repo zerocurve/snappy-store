@@ -118,10 +118,6 @@ public final class ProxyRegionMap implements RegionMap {
     return true;
   }
 
-  public Set keySet() {
-    return Collections.EMPTY_SET;
-  }
-
   public Collection<RegionEntry> regionEntries() {
     return Collections.emptySet();
   }

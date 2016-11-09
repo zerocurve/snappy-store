@@ -120,7 +120,7 @@ public class JSR166TestCase extends TestCase {
     public static long LONG_DELAY_MS;
 
     public static Class<?> MAP_CLASS =
-        com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap.class;
+        com.gemstone.gemfire.internal.concurrent.ConcurrentTHashSetMapAdapter.class;
 
     public JSR166TestCase(String name) {
       super(name);

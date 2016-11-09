@@ -29,7 +29,6 @@ import com.gemstone.gemfire.internal.offheap.OffHeapRegionEntryHelper;
 import com.gemstone.gemfire.internal.offheap.annotations.Released;
 import com.gemstone.gemfire.internal.offheap.annotations.Retained;
 import com.gemstone.gemfire.internal.offheap.annotations.Unretained;
-import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap.HashEntry;
 @SuppressWarnings("serial")
 public class VMThinRegionEntryOffHeap extends VMThinRegionEntry
     implements OffHeapRegionEntry
@@ -44,7 +43,6 @@ public class VMThinRegionEntryOffHeap extends VMThinRegionEntry
     this.key = key;
   }
   protected int hash;
-  private HashEntry<Object, Object> next;
   @SuppressWarnings("unused")
   private volatile long lastModified;
   private static final AtomicLongFieldUpdater<VMThinRegionEntryOffHeap> lastModifiedUpdater
@@ -56,20 +54,12 @@ public class VMThinRegionEntryOffHeap extends VMThinRegionEntry
     return lastModifiedUpdater.compareAndSet(this, expectedValue, newValue);
   }
   @Override
-  public final int getEntryHash() {
+  protected final int getEntryHash() {
     return this.hash;
   }
   @Override
-  protected void setEntryHash(int v) {
+  protected final void setEntryHash(int v) {
     this.hash = v;
-  }
-  @Override
-  public final HashEntry<Object, Object> getNextEntry() {
-    return this.next;
-  }
-  @Override
-  public final void setNextEntry(final HashEntry<Object, Object> n) {
-    this.next = n;
   }
   private Object key;
   @Override

@@ -191,6 +191,6 @@ public interface CacheObserver
    */
   public boolean shouldCreateKRFIRF();
   
-  public void afterRegionCustomEntryConcurrentHashMapClear();
+  public void afterRegionConcurrentHashMapClear();
   
 }

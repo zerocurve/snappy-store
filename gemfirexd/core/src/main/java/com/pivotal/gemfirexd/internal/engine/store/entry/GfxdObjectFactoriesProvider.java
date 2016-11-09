@@ -47,30 +47,6 @@ import com.pivotal.gemfirexd.internal.engine.store.offheap.OffHeapRowWithLobs;
  */
 public final class GfxdObjectFactoriesProvider {
 
-  public static final CustomEntryConcurrentHashMap.HashEntryCreator<Object,
-      Object> getHashEntryCreator() {
-
-    return new AbstractRegionEntry.HashRegionEntryCreator() {
-
-      /**
-       * @see CustomEntryConcurrentHashMap.HashEntryCreator#keyHashCode(Object,
-       *      boolean)
-       */
-      @Override
-      public final int keyHashCode(final Object key, boolean compareValues) {
-        // This override ensures that the hash stored as the HashEntry's hash
-        // matches that stored when the same RegionEntry is used as the key
-        // (or compares against the hash of CCRK).
-        // Distribution of hashes should not be a problem since we already
-        // ensure that for the serialized hashes, while DVDs have all proper
-        // hash implementations.
-        // Alternative would be to maintain two different hash fields but
-        // that is a per entry overhead.
-        return key.hashCode();
-      }
-    };
-  }
-  
   public static ChunkFactory getChunkFactory() {
     final ChunkType[] ordinalToChunkType = new ChunkType[] {
       OffHeapRow.TYPE, // SRC_TYPE_NO_LOB_NO_DELTA

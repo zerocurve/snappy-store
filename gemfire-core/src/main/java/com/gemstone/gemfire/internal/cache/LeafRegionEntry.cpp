@@ -55,7 +55,6 @@ import com.gemstone.gemfire.internal.cache.versions.VersionSource;
 import com.gemstone.gemfire.internal.cache.versions.VersionStamp;
 import com.gemstone.gemfire.internal.cache.versions.VersionTag;
 #endif
-import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap.HashEntry;
 #if defined(DISK) && defined(LRU)
 import com.gemstone.gemfire.internal.size.ReflectionSingleObjectSizer;
 #endif
@@ -172,7 +171,6 @@ public class LEAF_CLASS extends PARENT_CLASS
   
   // common code
   protected int hash;
-  private HashEntry<Object, Object> next;
   @SuppressWarnings("unused")
   private volatile long lastModified;
   private static final AtomicLongFieldUpdater<LEAF_CLASS> lastModifiedUpdater
@@ -183,35 +181,18 @@ public class LEAF_CLASS extends PARENT_CLASS
   protected boolean compareAndSetLastModifiedField(long expectedValue, long newValue) {
     return lastModifiedUpdater.compareAndSet(this, expectedValue, newValue);
   }
-  /**
-   * @see HashEntry#getEntryHash()
-   */
   @Override
-  public final int getEntryHash() {
+  protected final int getEntryHash() {
     return this.hash;
   }
   @Override
-  protected void setEntryHash(int v) {
+  protected final void setEntryHash(int v) {
     this.hash = v;
-  }
-  /**
-   * @see HashEntry#getNextEntry()
-   */
-  @Override
-  public final HashEntry<Object, Object> getNextEntry() {
-    return this.next;
-  }
-  /**
-   * @see HashEntry#setNextEntry
-   */
-  @Override
-  public final void setNextEntry(final HashEntry<Object, Object> n) {
-    this.next = n;
   }
 #ifdef DISK
 
   // DO NOT modify this class. It was generated from LeafRegionEntry.cpp
-  
+
   // disk code
 #ifdef LRU
   protected void initialize(RegionEntryContext drs, Object value) {

@@ -36,6 +36,7 @@ import java.util.IdentityHashMap;
 import java.util.Enumeration;
 
 import com.gemstone.gemfire.internal.concurrent.ConcurrentSkipListMap;
+import com.gemstone.gemfire.internal.concurrent.ConcurrentTHashSetMapAdapter;
 import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap;
 import com.gemstone.gemfire.util.JSR166TestCase;
 
@@ -58,6 +59,7 @@ public class IntMapCheckJUnitTest extends JSR166TestCase {
     public void testIntMapCheck() throws Exception {
       main(new String[] { CustomEntryConcurrentHashMap.class.getName() });
       main(new String[] { ConcurrentSkipListMap.class.getName() });
+      main(new String[] { ConcurrentTHashSetMapAdapter.class.getName() });
     }
 
     public static void main(String[] args) throws Exception {

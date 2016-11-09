@@ -31,7 +31,6 @@ import com.gemstone.gemfire.internal.cache.persistence.DiskRecoveryStore;
 import com.gemstone.gemfire.internal.InternalStatisticsDisabledException;
 import com.gemstone.gemfire.internal.cache.lru.LRUClockNode;
 import com.gemstone.gemfire.internal.cache.lru.NewLRUClockHand;
-import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap.HashEntry;
 import com.gemstone.gemfire.internal.size.ReflectionSingleObjectSizer;
 @SuppressWarnings("serial")
 public class VMStatsDiskLRURegionEntryHeap extends VMStatsDiskLRURegionEntry
@@ -46,7 +45,6 @@ public class VMStatsDiskLRURegionEntryHeap extends VMStatsDiskLRURegionEntry
     this.key = key;
   }
   protected int hash;
-  private HashEntry<Object, Object> next;
   @SuppressWarnings("unused")
   private volatile long lastModified;
   private static final AtomicLongFieldUpdater<VMStatsDiskLRURegionEntryHeap> lastModifiedUpdater
@@ -58,20 +56,12 @@ public class VMStatsDiskLRURegionEntryHeap extends VMStatsDiskLRURegionEntry
     return lastModifiedUpdater.compareAndSet(this, expectedValue, newValue);
   }
   @Override
-  public final int getEntryHash() {
+  protected final int getEntryHash() {
     return this.hash;
   }
   @Override
-  protected void setEntryHash(int v) {
+  protected final void setEntryHash(int v) {
     this.hash = v;
-  }
-  @Override
-  public final HashEntry<Object, Object> getNextEntry() {
-    return this.next;
-  }
-  @Override
-  public final void setNextEntry(final HashEntry<Object, Object> n) {
-    this.next = n;
   }
   protected void initialize(RegionEntryContext drs, Object value) {
     boolean isBackup;

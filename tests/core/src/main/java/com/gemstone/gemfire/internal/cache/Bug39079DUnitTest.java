@@ -25,15 +25,7 @@ import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.Properties;
 
-import com.gemstone.gemfire.cache.AttributesFactory;
-import com.gemstone.gemfire.cache.Cache;
-import com.gemstone.gemfire.cache.CacheFactory;
-import com.gemstone.gemfire.cache.DataPolicy;
-import com.gemstone.gemfire.cache.DiskAccessException;
-import com.gemstone.gemfire.cache.EntryEvent;
-import com.gemstone.gemfire.cache.Region;
-import com.gemstone.gemfire.cache.RegionAttributes;
-import com.gemstone.gemfire.cache.Scope;
+import com.gemstone.gemfire.cache.*;
 import com.gemstone.gemfire.cache.client.PoolManager;
 import com.gemstone.gemfire.cache.client.internal.PoolImpl;
 import com.gemstone.gemfire.cache.util.BridgeServer;
@@ -43,8 +35,6 @@ import com.gemstone.gemfire.distributed.DistributedSystem;
 import com.gemstone.gemfire.distributed.internal.DistributionConfig;
 import com.gemstone.gemfire.internal.AvailablePort;
 import com.gemstone.gemfire.internal.cache.lru.EnableLRU;
-import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap.HashEntry;
-
 import dunit.Host;
 import dunit.SerializableRunnable;
 import dunit.VM;
@@ -336,18 +326,6 @@ public class Bug39079DUnitTest extends CacheTestCase {
     public int getEntryHash() {
       // TODO Auto-generated method stub
       return 0;
-    }
-
-    @Override
-    public HashEntry<Object, Object> getNextEntry() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public void setNextEntry(HashEntry<Object, Object> n) {
-      // TODO Auto-generated method stub
-      
     }
 
     @Override

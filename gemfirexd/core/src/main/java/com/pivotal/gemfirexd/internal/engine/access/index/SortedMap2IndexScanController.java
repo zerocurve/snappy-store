@@ -24,17 +24,7 @@ import java.util.Set;
 
 import com.gemstone.gemfire.cache.Operation;
 import com.gemstone.gemfire.cache.Region;
-import com.gemstone.gemfire.internal.cache.AbstractRegionEntry;
-import com.gemstone.gemfire.internal.cache.DistributedRegion;
-import com.gemstone.gemfire.internal.cache.LocalRegion;
-import com.gemstone.gemfire.internal.cache.OffHeapRegionEntry;
-import com.gemstone.gemfire.internal.cache.PartitionedRegion;
-import com.gemstone.gemfire.internal.cache.RegionEntry;
-import com.gemstone.gemfire.internal.cache.TXEntryState;
-import com.gemstone.gemfire.internal.cache.TXId;
-import com.gemstone.gemfire.internal.cache.TXManagerImpl;
-import com.gemstone.gemfire.internal.cache.TXState;
-import com.gemstone.gemfire.internal.cache.TXStateInterface;
+import com.gemstone.gemfire.internal.cache.*;
 import com.gemstone.gemfire.internal.concurrent.ConcurrentSkipListMap;
 import com.gemstone.gemfire.internal.concurrent.ConcurrentSkipListMap.SimpleReusableEntry;
 import com.gemstone.gemfire.internal.concurrent.ConcurrentTHashSet;
@@ -44,8 +34,8 @@ import com.gemstone.gemfire.internal.shared.FinalizeObject;
 import com.gemstone.gemfire.internal.util.ArrayUtils;
 import com.pivotal.gemfirexd.internal.engine.GemFireXDQueryObserver;
 import com.pivotal.gemfirexd.internal.engine.GfxdConstants;
-import com.pivotal.gemfirexd.internal.engine.access.MemConglomerate;
 import com.pivotal.gemfirexd.internal.engine.access.GfxdTXStateProxy;
+import com.pivotal.gemfirexd.internal.engine.access.MemConglomerate;
 import com.pivotal.gemfirexd.internal.engine.access.operations.MemIndexOperation;
 import com.pivotal.gemfirexd.internal.engine.access.operations.SortedMap2IndexDeleteOperation;
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.GemFireXDUtils;
@@ -1036,7 +1026,7 @@ public final class SortedMap2IndexScanController extends MemIndexScanController
     private Object[] itrCache;
     private int itrPos;
 
-    private ConcurrentTHashSet<?>.Itr itr;
+    private Iterator<?> itr;
     private RSLockManager lockManager;
 
     RowLocationSetIterator(final ConcurrentTHashSet<?> vals,
@@ -1048,7 +1038,7 @@ public final class SortedMap2IndexScanController extends MemIndexScanController
 
     @Override
     public RowLocation next() throws StandardException {
-      final ConcurrentTHashSet<?>.Itr itr;
+      final Iterator<?> itr;
       final Object[] itrCache;
 
       if ((itrCache = this.itrCache) != null) {

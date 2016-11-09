@@ -58,8 +58,8 @@ import com.gemstone.gnu.trove.TObjectHashingStrategy;
  *          the type of objects in the segment
  */
 @SuppressWarnings("serial")
-final class ConcurrentTHashSegment<E> extends ReentrantReadWriteLock implements
-    MapResult {
+public final class ConcurrentTHashSegment<E>
+    extends ReentrantReadWriteLock implements MapResult {
 
   static final Object REMOVED = THashSet.REMOVED;
 
@@ -75,13 +75,13 @@ final class ConcurrentTHashSegment<E> extends ReentrantReadWriteLock implements
   /**
    * The maximum number of elements allowed without allocating more space.
    */
-  int maxSize;
+  private int maxSize;
 
   /** for {@link MapResult} */
-  boolean newValueInsert;
+  private boolean newValueInsert;
 
   /** parameters used for hashing */
-  final THashParameters params;
+  private final THashParameters params;
 
   /** tracks the total size of the top-level ConcurrentTHash structure */
   final AtomicLong totalSize;

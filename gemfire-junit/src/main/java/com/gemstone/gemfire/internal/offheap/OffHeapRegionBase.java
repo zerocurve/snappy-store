@@ -489,7 +489,7 @@ public abstract class OffHeapRegionBase extends TestCase {
     }
 
     @Override
-    public void afterRegionCustomEntryConcurrentHashMapClear() {
+    public void afterRegionConcurrentHashMapClear() {
       synchronized (this) {
         ++this.currentCallCount;
         if (this.currentCallCount == this.numExpectedRegionClearCalls) {

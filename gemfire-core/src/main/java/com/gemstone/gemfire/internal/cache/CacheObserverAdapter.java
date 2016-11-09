@@ -152,7 +152,7 @@ public class CacheObserverAdapter implements CacheObserver {
     return true;
   }
   
-  public void afterRegionCustomEntryConcurrentHashMapClear() {
+  public void afterRegionConcurrentHashMapClear() {
     
   }
 
