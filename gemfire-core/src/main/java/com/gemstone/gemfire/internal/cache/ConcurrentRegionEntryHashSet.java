@@ -238,7 +238,7 @@ final class ConcurrentRegionEntryHashSet
         final Runnable cleanTask = new Runnable() {
           public void run() {
             ArrayList<RegionEntry> regionEntries =
-                cleaner != null ? new ArrayList<>() : null;
+                cleaner != null ? new ArrayList<RegionEntry>() : null;
             for (AbstractRegionEntry e : clearedEntries) {
               // noinspection SynchronizationOnLocalVariableOrMethodParameter
               synchronized (e) {
@@ -316,6 +316,7 @@ final class ConcurrentRegionEntryHashSet
         // release lock if acquired
         if (batchCount > 0) {
           cleanerLock.releaseReadLock();
+          batchCount = 0;
         }
         // clear finalizer
         final FinalizeIterator finalizer = this.finalizer;
