@@ -17,8 +17,7 @@
 
 package com.gemstone.gemfire.internal.cache.partitioned;
 
-import java.util.Iterator;
-
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.cache.BucketRegion;
 import com.gemstone.gemfire.internal.cache.PartitionedRegion;
 
@@ -30,7 +29,7 @@ import com.gemstone.gemfire.internal.cache.PartitionedRegion;
  * 
  * @author Asif, swale
  */
-public interface PREntriesIterator<T> extends Iterator<T> {
+public interface PREntriesIterator<T> extends CloseableIterator<T> {
 
   /**
    * @return the PartitionedRegion being iterated

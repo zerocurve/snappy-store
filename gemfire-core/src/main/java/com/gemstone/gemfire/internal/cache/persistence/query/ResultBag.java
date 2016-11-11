@@ -16,6 +16,7 @@
  */
 package com.gemstone.gemfire.internal.cache.persistence.query;
 
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.cache.CachedDeserializable;
 
 /**

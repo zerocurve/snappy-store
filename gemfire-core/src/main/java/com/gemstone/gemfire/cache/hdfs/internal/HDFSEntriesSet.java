@@ -29,6 +29,7 @@ import com.gemstone.gemfire.cache.hdfs.internal.HDFSBucketRegionQueue.SortedEven
 import com.gemstone.gemfire.cache.hdfs.internal.hoplog.HoplogOrganizer;
 import com.gemstone.gemfire.cache.hdfs.internal.hoplog.HoplogSetReader.HoplogIterator;
 import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedMember;
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.cache.BucketRegion;
 import com.gemstone.gemfire.internal.cache.EntryEventImpl;
 import com.gemstone.gemfire.internal.cache.HDFSRegionMap;
@@ -123,7 +124,7 @@ public class HDFSEntriesSet extends AbstractSet {
     return true;
   }
 
-  public class HDFSIterator implements Iterator {
+  public class HDFSIterator implements CloseableIterator {
     private final IteratorType type;
     private final boolean deserialize;
     

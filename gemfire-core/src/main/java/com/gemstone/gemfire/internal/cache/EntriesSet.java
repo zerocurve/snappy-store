@@ -17,16 +17,17 @@
 
 package com.gemstone.gemfire.internal.cache;
 
-import com.gemstone.gemfire.cache.IllegalTransactionStateException;
-import com.gemstone.gemfire.internal.cache.LocalRegion.IteratorType;
-import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
-
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+
+import com.gemstone.gemfire.cache.IllegalTransactionStateException;
+import com.gemstone.gemfire.internal.CloseableIterator;
+import com.gemstone.gemfire.internal.cache.LocalRegion.IteratorType;
+import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 
 /** Set view of entries */
 public class EntriesSet extends AbstractSet<Object> {
@@ -104,7 +105,7 @@ public class EntriesSet extends AbstractSet<Object> {
   }
 
   @Override
-  public Iterator<Object> iterator() {
+  public CloseableIterator<Object> iterator() {
     checkTX();
     TXState txState = null;
     if (this.myTX != null) {
@@ -115,7 +116,7 @@ public class EntriesSet extends AbstractSet<Object> {
         this.allowTombstones, this.iterType != IteratorType.KEYS);
   }
 
-  static final class EntriesIterator implements Iterator<Object> {
+  static final class EntriesIterator implements CloseableIterator<Object> {
 
     final List<LocalRegion> regions;
 
@@ -204,6 +205,14 @@ public class EntriesSet extends AbstractSet<Object> {
         return result;
       }
       throw new NoSuchElementException();
+    }
+
+    @Override
+    public void close() {
+      final Iterator<?> iterator = this.currItr;
+      if (iterator instanceof CloseableIterator<?>) {
+        ((CloseableIterator<?>)iterator).close();
+      }
     }
 
     private Object moveNext() {

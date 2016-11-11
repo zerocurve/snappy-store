@@ -25,16 +25,12 @@ import java.util.TreeMap;
 import junit.framework.TestCase;
 
 import com.gemstone.gemfire.internal.cache.CachedDeserializable;
-import com.gemstone.gemfire.internal.cache.persistence.query.CloseableIterator;
-import com.gemstone.gemfire.internal.cache.persistence.query.IndexMap;
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.cache.persistence.query.IndexMap.IndexEntry;
 import com.gemstone.gemfire.internal.cache.persistence.query.mock.IndexMapImpl;
 import com.gemstone.gemfire.internal.cache.persistence.query.mock.NaturalComparator;
 import com.gemstone.gemfire.internal.cache.persistence.query.mock.Pair;
 import com.gemstone.gemfire.internal.cache.persistence.query.mock.PairComparator;
-import com.gemstone.gemfire.internal.cache.persistence.query.ResultBag;
-import com.gemstone.gemfire.internal.cache.persistence.query.ResultSet;
-import com.gemstone.gemfire.internal.cache.persistence.query.TemporaryResultSetFactory;
 
 public class TemporaryResultSetFactoryJUnitTest extends TestCase {
 

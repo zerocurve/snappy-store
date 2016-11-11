@@ -74,7 +74,7 @@ import com.gemstone.gemfire.internal.cache.locks.ExclusiveSharedSynchronizer;
 import com.gemstone.gemfire.internal.cache.locks.LockMode;
 import com.gemstone.gemfire.internal.cache.locks.LockingPolicy;
 import com.gemstone.gemfire.internal.cache.partitioned.PREntriesIterator;
-import com.gemstone.gemfire.internal.cache.persistence.query.CloseableIterator;
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.offheap.annotations.Unretained;
 import com.gemstone.gemfire.internal.util.ArrayUtils;
 import com.pivotal.gemfirexd.internal.engine.Misc;
@@ -1015,7 +1015,11 @@ public class MemHeapScanController implements MemScanController, RowCountable,
     return updated;
   }
 
-  private final void closeScan() throws StandardException {
+  private void closeScan() throws StandardException {
+    final Iterator<?> iterator = this.entryIterator;
+    if (iterator instanceof CloseableIterator<?>) {
+      ((CloseableIterator<?>)iterator).close();
+    }
     // If we are closed due to catching an error in the middle of init,
     // xact_manager may not be set yet.
     if (this.tran != null) {

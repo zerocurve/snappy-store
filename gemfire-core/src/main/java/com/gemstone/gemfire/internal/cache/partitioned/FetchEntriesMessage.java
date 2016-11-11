@@ -46,6 +46,7 @@ import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.Assert;
 import com.gemstone.gemfire.internal.HeapDataOutputStream;
 import com.gemstone.gemfire.internal.cache.*;
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.cache.versions.RegionVersionVector;
 import com.gemstone.gemfire.internal.cache.versions.VersionSource;
 import com.gemstone.gemfire.internal.cache.versions.VersionStamp;
@@ -354,6 +355,10 @@ public final class FetchEntriesMessage extends PartitionMessage
 
         // if this region is destroyed while we are sending data, then abort.
       } while (keepGoing && it.hasNext());
+
+      if (it instanceof CloseableIterator<?>) {
+        ((CloseableIterator<?>)it).close();
+      }
 
       // return false if we were told to abort
       return sentLastChunk;

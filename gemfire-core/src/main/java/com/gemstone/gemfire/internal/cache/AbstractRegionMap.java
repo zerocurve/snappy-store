@@ -106,7 +106,7 @@ import com.gemstone.org.jgroups.util.StringId;
 public abstract class AbstractRegionMap implements RegionMap {
 
   /** The underlying map for this region. */
-  protected ConcurrentRegionEntryHashSet map;
+  protected ConcurrentRegionEntryMap map;
   /** An internal Listener for index maintenance for GemFireXD. */
   protected IndexUpdater indexUpdater;
   /** a boolean used only in GemFireXD to handle creates
@@ -340,9 +340,9 @@ public abstract class AbstractRegionMap implements RegionMap {
     }
   }
 
-  protected ConcurrentRegionEntryHashSet createConcurrentMap(
+  protected ConcurrentRegionEntryMap createConcurrentMap(
       int initialCapacity, float loadFactor, int concurrencyLevel) {
-    return new ConcurrentRegionEntryHashSet(concurrencyLevel, initialCapacity,
+    return new ConcurrentRegionEntryMap(concurrencyLevel, initialCapacity,
         loadFactor, null, null);
   }
 
@@ -408,11 +408,11 @@ public abstract class AbstractRegionMap implements RegionMap {
     this.owner = r;
   }
 
-  public final ConcurrentRegionEntryHashSet _getMap() {
+  public final ConcurrentRegionEntryMap _getMap() {
     return this.map;
   }
 
-  protected final void _setMap(ConcurrentRegionEntryHashSet m) {
+  protected final void _setMap(ConcurrentRegionEntryMap m) {
     this.map = m;
   }
 
@@ -824,7 +824,7 @@ public abstract class AbstractRegionMap implements RegionMap {
       // needed if a dummy version tag has to be created for a region entry
       final long currentTime = ((LocalRegion)owner).getCache().cacheTimeMillis();
 
-      ConcurrentRegionEntryHashSet other = ((AbstractRegionMap)rm)._getMap();
+      ConcurrentRegionEntryMap other = ((AbstractRegionMap)rm)._getMap();
       Iterator<AbstractRegionEntry> it = other.iterator();
       while (it.hasNext()) {
         AbstractRegionEntry oldRe = it.next();

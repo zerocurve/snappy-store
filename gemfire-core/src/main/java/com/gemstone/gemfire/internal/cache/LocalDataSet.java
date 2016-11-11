@@ -24,26 +24,11 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
-import com.gemstone.gemfire.cache.AttributesMutator;
-import com.gemstone.gemfire.cache.CacheLoaderException;
-import com.gemstone.gemfire.cache.CacheStatistics;
-import com.gemstone.gemfire.cache.CacheWriterException;
-import com.gemstone.gemfire.cache.EntryDestroyedException;
-import com.gemstone.gemfire.cache.EntryExistsException;
-import com.gemstone.gemfire.cache.EntryNotFoundException;
-import com.gemstone.gemfire.cache.InterestResultPolicy;
-import com.gemstone.gemfire.cache.Operation;
-import com.gemstone.gemfire.cache.Region;
-import com.gemstone.gemfire.cache.RegionAttributes;
-import com.gemstone.gemfire.cache.RegionDestroyedException;
-import com.gemstone.gemfire.cache.RegionExistsException;
-import com.gemstone.gemfire.cache.RegionService;
-import com.gemstone.gemfire.cache.StatisticsDisabledException;
-import com.gemstone.gemfire.cache.TimeoutException;
+import com.gemstone.gemfire.cache.*;
 import com.gemstone.gemfire.cache.query.FunctionDomainException;
 import com.gemstone.gemfire.cache.query.NameResolutionException;
 import com.gemstone.gemfire.cache.query.QueryInvocationTargetException;
@@ -54,14 +39,14 @@ import com.gemstone.gemfire.cache.query.internal.DefaultQuery;
 import com.gemstone.gemfire.cache.query.internal.QueryExecutor;
 import com.gemstone.gemfire.cache.query.internal.QueryObserver;
 import com.gemstone.gemfire.cache.snapshot.RegionSnapshotService;
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.NanoTimer;
 import com.gemstone.gemfire.internal.cache.LocalRegion.IteratorType;
+import com.gemstone.gemfire.internal.cache.LocalRegion.NonTXEntry;
 import com.gemstone.gemfire.internal.cache.execute.BucketMovedException;
 import com.gemstone.gemfire.internal.cache.execute.InternalRegionFunctionContext;
 import com.gemstone.gemfire.internal.cache.snapshot.RegionSnapshotServiceImpl;
-import com.gemstone.gemfire.internal.cache.tier.sockets.ClientProxyMembershipID;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
-import com.gemstone.gemfire.internal.cache.LocalRegion.NonTXEntry;
 
 
 /**
@@ -615,11 +600,11 @@ public final class LocalDataSet implements Region, QueryExecutor {
     }
 
     @Override
-    public Iterator<Object> iterator() {
+    public CloseableIterator<Object> iterator() {
       return new LocalEntriesSetIterator();
     }
 
-    protected class LocalEntriesSetIterator implements Iterator<Object> {
+    protected class LocalEntriesSetIterator implements CloseableIterator<Object> {
       Iterator curBucketIter = null;
       Integer curBucketId;
       List<Integer> localBuckets = new ArrayList<Integer>(buckets);
@@ -704,12 +689,19 @@ public final class LocalDataSet implements Region, QueryExecutor {
       }
 
       @Override
+      public void close() {
+        final Iterator<?> iterator = curBucketIter;
+        if (iterator instanceof CloseableIterator<?>) {
+          ((CloseableIterator<?>)iterator).close();
+        }
+      }
+
+      @Override
       public void remove() {
         throw new UnsupportedOperationException(LocalizedStrings
             .LocalRegion_THIS_ITERATOR_DOES_NOT_SUPPORT_MODIFICATION
             .toLocalizedString());
       }
-
     }
 
     @Override

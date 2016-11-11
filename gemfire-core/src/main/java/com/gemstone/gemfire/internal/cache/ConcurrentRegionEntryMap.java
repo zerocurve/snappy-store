@@ -16,35 +16,38 @@
  */
 package com.gemstone.gemfire.internal.cache;
 
+import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.gemstone.gemfire.CancelException;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.cache.locks.NonReentrantReadWriteLock;
-import com.gemstone.gemfire.internal.concurrent.ConcurrentTHashSegment;
+import com.gemstone.gemfire.internal.cache.wan.GatewaySenderEventImpl;
 import com.gemstone.gemfire.internal.concurrent.ConcurrentTHashSet;
-import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap;
-import com.gemstone.gemfire.internal.concurrent.MapCallback;
+import com.gemstone.gemfire.internal.offheap.OffHeapRegionEntryHelper;
 import com.gemstone.gemfire.internal.shared.FinalizeHolder;
 import com.gemstone.gemfire.internal.shared.FinalizeObject;
+import com.gemstone.gemfire.internal.size.SingleObjectSizer;
 import com.gemstone.gnu.trove.HashingStats;
 import com.gemstone.gnu.trove.TObjectHashingStrategy;
 
-@SuppressWarnings({"unused", "Convert2Lambda", "NullableProblems", "ForLoopReplaceableByForEach"})
-final class ConcurrentRegionEntryHashSet
-    extends ConcurrentTHashSet<AbstractRegionEntry> {
+@SuppressWarnings({"unused", "Convert2Lambda", "NullableProblems", "WeakerAccess"})
+final class ConcurrentRegionEntryMap
+    extends AbstractSet<AbstractRegionEntry> {
 
   private static final float DEFAULT_LOAD_FACTOR = 0.6f;
-  public static final int DEFAULT_INITIAL_CAPACITY = 1000;
+  private static final int DEFAULT_INITIAL_CAPACITY = 1000;
+  private static final int DEFAULT_CONCURRENCY = 16;
 
   private static final int MAX_CLEAN_PERCENT = 10;
-  private static final int CLEAN_BATCHSIZE = 20;
+  private static final int CLEAN_BATCHSIZE = 40;
 
+  private final ConcurrentTHashSet<AbstractRegionEntry> map;
   private AbstractRegionEntry head;
   private final Object headLock = new Object();
   private final AtomicLong removedCount = new AtomicLong(0);
@@ -74,6 +77,12 @@ final class ConcurrentRegionEntryHashSet
             // release the lock
             cleanerLock.releaseWriteLock();
             batchCount = 0;
+            // check if map is still valid
+            synchronized (headLock) {
+              if (head == null) {
+                break;
+              }
+            }
             // reacquire the lock
             cleanerLock.attemptWriteLock(-1);
             batchCount = 1;
@@ -88,30 +97,31 @@ final class ConcurrentRegionEntryHashSet
     }
   };
 
-  ConcurrentRegionEntryHashSet() {
+  ConcurrentRegionEntryMap() {
     this(DEFAULT_CONCURRENCY, DEFAULT_INITIAL_CAPACITY,
         DEFAULT_LOAD_FACTOR, null, null);
   }
 
-  ConcurrentRegionEntryHashSet(TObjectHashingStrategy strategy) {
+  ConcurrentRegionEntryMap(TObjectHashingStrategy strategy) {
     this(DEFAULT_CONCURRENCY, DEFAULT_INITIAL_CAPACITY,
         DEFAULT_LOAD_FACTOR, strategy, null);
   }
 
-  ConcurrentRegionEntryHashSet(int concurrency) {
+  ConcurrentRegionEntryMap(int concurrency) {
     this(concurrency, DEFAULT_INITIAL_CAPACITY,
         DEFAULT_LOAD_FACTOR, null, null);
   }
 
-  ConcurrentRegionEntryHashSet(TObjectHashingStrategy strategy,
+  ConcurrentRegionEntryMap(TObjectHashingStrategy strategy,
       HashingStats stats) {
     this(DEFAULT_CONCURRENCY, DEFAULT_INITIAL_CAPACITY,
         DEFAULT_LOAD_FACTOR, strategy, stats);
   }
 
-  ConcurrentRegionEntryHashSet(int concurrency, int initialCapacity,
+  ConcurrentRegionEntryMap(int concurrency, int initialCapacity,
       float loadFactor, TObjectHashingStrategy strategy, HashingStats stats) {
-    super(concurrency, initialCapacity, loadFactor, strategy, stats);
+    this.map = new ConcurrentTHashSet<>(concurrency, initialCapacity,
+        loadFactor, strategy, stats);
   }
 
   private void addToList(final AbstractRegionEntry re) {
@@ -129,7 +139,7 @@ final class ConcurrentRegionEntryHashSet
         // increment count but if its large then reset and submit clean task
         while (true) {
           long numRemoved = removedCount.get();
-          if (numRemoved >= longSize() * MAX_CLEAN_PERCENT / 100) {
+          if (numRemoved >= map.longSize() * MAX_CLEAN_PERCENT / 100) {
             if (removedCount.compareAndSet(numRemoved, 0)) {
               submitRunnable(cleanerTask);
               break;
@@ -147,7 +157,7 @@ final class ConcurrentRegionEntryHashSet
 
   @Override
   public boolean add(AbstractRegionEntry re) {
-    if (super.add(re)) {
+    if (map.add(re)) {
       addToList(re);
       return true;
     } else {
@@ -155,9 +165,8 @@ final class ConcurrentRegionEntryHashSet
     }
   }
 
-  @Override
   public Object addKey(AbstractRegionEntry re) {
-    Object current = super.addKey(re);
+    Object current = map.addKey(re);
     if (current == null) {
       addToList(re);
       return null;
@@ -166,17 +175,25 @@ final class ConcurrentRegionEntryHashSet
     }
   }
 
-  @Override
   public Object put(AbstractRegionEntry re) {
-    Object current = super.put(re);
+    Object current = map.put(re);
     // multiple threads trying to put on same entry will block in addToList
     addToList(re);
     return current;
   }
 
   @Override
+  public boolean contains(Object o) {
+    return map.contains(o);
+  }
+
+  public AbstractRegionEntry get(Object o) {
+    return map.get(o);
+  }
+
+  @Override
   public boolean remove(Object o) {
-    if (super.remove(o)) {
+    if (map.remove(o)) {
       removeFromList((AbstractRegionEntry)o);
       return true;
     } else {
@@ -185,7 +202,7 @@ final class ConcurrentRegionEntryHashSet
   }
 
   public AbstractRegionEntry removeKey(Object o) {
-    AbstractRegionEntry current = super.removeKey(o);
+    AbstractRegionEntry current = map.removeKey(o);
     if (current != null) {
       removeFromList(current);
       return current;
@@ -194,16 +211,14 @@ final class ConcurrentRegionEntryHashSet
     }
   }
 
-  public boolean replace(Object o, AbstractRegionEntry re) {
-    // not used in region operations
-    throw new UnsupportedOperationException();
+  @Override
+  public int size() {
+    return map.size();
   }
 
-  public <K, C, P> AbstractRegionEntry create(final K key,
-      final MapCallback<K, AbstractRegionEntry, C, P> valueCreator,
-      final C context, final P createParams) {
-    // not used in region operations
-    throw new UnsupportedOperationException();
+  @Override
+  public boolean isEmpty() {
+    return map.isEmpty();
   }
 
   @Override
@@ -215,8 +230,12 @@ final class ConcurrentRegionEntryHashSet
   @Override
   public ListItr iterator() {
     // iterate using next pointer rather than hash set based to get much
-    // better performance (CPU pre-fetch works better upto 4-7X faster)
+    // better performance (CPU pre-fetch works better upto 4-8X faster)
     return new ListItr();
+  }
+
+  public long estimateMemoryOverhead(SingleObjectSizer sizer) {
+    return map.estimateMemoryOverhead(sizer);
   }
 
   @Override
@@ -229,14 +248,51 @@ final class ConcurrentRegionEntryHashSet
     }
     final CacheObserver observer = CacheObserverHolder.getInstance();
     try {
-      for (ConcurrentTHashSegment<AbstractRegionEntry> seg : this.segments) {
-        entries = CustomEntryConcurrentHashMap.clearTHashSegment(seg, entries);
+      synchronized (headLock) {
+        AbstractRegionEntry current = head;
+        // read lock the cleaner list
+        cleanerLock.attemptReadLock(-1);
+        try {
+          while (current != null) {
+            if (entries == null) {
+              // see if we have a map with off-heap region entries
+              if (current instanceof OffHeapRegionEntry) {
+                entries = new ArrayList<>();
+              }
+              // after the first non-null entry break out and collect all entries
+              break;
+            }
+            current = current.getNextEntry();
+          }
+          final boolean processOffHeap = entries != null ||
+              OffHeapRegionEntryHelper.doesClearNeedToCheckForOffHeap();
+          if (processOffHeap) {
+            current = head;
+            while (current != null) {
+              if (entries != null) {
+                entries.add(current);
+              } else {
+                // It is ok to call GatewaySenderEventImpl release without being
+                // synced on the region entry. It will not create an orphan.
+                GatewaySenderEventImpl.release(current._getValue());
+              }
+              current = current.getNextEntry();
+            }
+          }
+          // clear the head
+          this.head = null;
+        } finally {
+          cleanerLock.releaseReadLock();
+        }
       }
+      // clear the map
+      map.clear();
     } finally {
       if (entries != null) {
         final ArrayList<AbstractRegionEntry> clearedEntries = entries;
         final Runnable cleanTask = new Runnable() {
           public void run() {
+            // noinspection Convert2Diamond
             ArrayList<RegionEntry> regionEntries =
                 cleaner != null ? new ArrayList<RegionEntry>() : null;
             for (AbstractRegionEntry e : clearedEntries) {
@@ -259,11 +315,6 @@ final class ConcurrentRegionEntryHashSet
           }
         };
         submitRunnable(cleanTask);
-      } else {
-        if (LocalRegion.ISSUE_CALLBACKS_TO_CACHE_OBSERVER &&
-            observer != null && isOffHeapEnabled) {
-          observer.afterRegionConcurrentHashMapClear();
-        }
       }
     }
   }
@@ -290,7 +341,7 @@ final class ConcurrentRegionEntryHashSet
     }
   }
 
-  private final class ListItr implements Iterator<AbstractRegionEntry> {
+  public final class ListItr implements CloseableIterator<AbstractRegionEntry> {
 
     private FinalizeIterator finalizer;
     private AbstractRegionEntry current;
@@ -313,17 +364,7 @@ final class ConcurrentRegionEntryHashSet
       if (this.current != null) {
         return true;
       } else {
-        // release lock if acquired
-        if (batchCount > 0) {
-          cleanerLock.releaseReadLock();
-          batchCount = 0;
-        }
-        // clear finalizer
-        final FinalizeIterator finalizer = this.finalizer;
-        if (finalizer != null) {
-          finalizer.clearAll();
-          this.finalizer = null;
-        }
+        close();
         return false;
       }
     }
@@ -341,16 +382,43 @@ final class ConcurrentRegionEntryHashSet
           if (finalizer != null) {
             finalizer.isLocked = false;
           }
-          // reacquire the lock
-          cleanerLock.attemptReadLock(-1);
-          batchCount = 1;
-          if (finalizer != null) {
-            finalizer.isLocked = true;
+          // check if map is still valid
+          if (current != null) {
+            synchronized (headLock) {
+              if (head == null) {
+                current = null;
+              }
+            }
+          }
+          if (current == null) {
+            close();
+          } else {
+            // reacquire the lock
+            cleanerLock.attemptReadLock(-1);
+            batchCount = 1;
+            if (finalizer != null) {
+              finalizer.isLocked = true;
+            }
           }
         }
         return entry;
       } else {
         throw new NoSuchElementException();
+      }
+    }
+
+    @Override
+    public void close() {
+      // release lock if acquired
+      if (batchCount > 0) {
+        cleanerLock.releaseReadLock();
+        batchCount = 0;
+      }
+      // clear finalizer
+      final FinalizeIterator finalizer = this.finalizer;
+      if (finalizer != null) {
+        finalizer.clearAll();
+        this.finalizer = null;
       }
     }
 

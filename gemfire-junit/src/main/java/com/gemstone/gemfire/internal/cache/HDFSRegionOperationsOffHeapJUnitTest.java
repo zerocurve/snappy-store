@@ -36,7 +36,7 @@ public class HDFSRegionOperationsOffHeapJUnitTest extends HDFSRegionOperationsJU
     PartitionedRegion pr = (PartitionedRegion)r;
     for (BucketRegion br : pr.getDataStore().getAllLocalBucketRegions()) {
       assertTrue(br.getRegionMap() instanceof HDFSRegionMap);
-      ConcurrentRegionEntryHashSet chm = ((AbstractRegionMap)br.getRegionMap())._getMap();
+      ConcurrentRegionEntryMap chm = ((AbstractRegionMap)br.getRegionMap())._getMap();
       Iterator it = chm.iterator();
       while (it.hasNext()) {
         Object key = it.next();

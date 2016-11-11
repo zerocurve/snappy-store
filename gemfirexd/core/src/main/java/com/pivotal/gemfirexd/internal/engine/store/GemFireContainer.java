@@ -36,6 +36,7 @@ import com.gemstone.gemfire.cache.wan.GatewaySender;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
 import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.Assert;
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.DSCODE;
 import com.gemstone.gemfire.internal.InternalDataSerializer;
 import com.gemstone.gemfire.internal.cache.*;
@@ -2315,6 +2316,11 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
     }
 
     @Override
+    public void close() {
+      this.entriesItr.close();
+    }
+
+    @Override
     public void remove() {
       throw new UnsupportedOperationException("Unsupported Operation remove!");
     }
@@ -2403,7 +2409,8 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
           Object val = rl.getValueWithoutFaultIn(this);
           if (val != null) {
             assert val instanceof GlobalRowLocation;
-            return ((GlobalRowLocation)val).estimateMemoryUsage();
+            newRowSize = ((GlobalRowLocation)val).estimateMemoryUsage();
+            break;
           }
         }
         final ExecRow row = rl.getRowWithoutFaultIn(this);
@@ -2415,12 +2422,14 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
           this.rowSize = newRowSize;
           break;
         }
-      } catch (StandardException se) {
-        // move on to the next entry.
-      } catch (PrimaryBucketException pe) {
+      } catch (StandardException | PrimaryBucketException se) {
         // move on to the next entry.
       }
     } // while loop
+
+    if (itr instanceof CloseableIterator<?>) {
+      ((CloseableIterator<?>)itr).close();
+    }
 
     return newRowSize;
   }

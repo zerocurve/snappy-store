@@ -232,7 +232,7 @@ import com.gemstone.gemfire.internal.cache.partitioned.RemoveIndexesMessage;
 import com.gemstone.gemfire.internal.cache.partitioned.SizeMessage;
 import com.gemstone.gemfire.internal.cache.partitioned.SizeMessage.SizeResponse;
 import com.gemstone.gemfire.internal.cache.persistence.PRPersistentConfig;
-import com.gemstone.gemfire.internal.cache.persistence.query.CloseableIterator;
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.cache.tier.InterestType;
 import com.gemstone.gemfire.internal.cache.tier.sockets.ClientProxyMembershipID;
 import com.gemstone.gemfire.internal.cache.tier.sockets.VersionedObjectList;
@@ -6743,7 +6743,7 @@ public class PartitionedRegion extends LocalRegion implements
     }
 
     @Override
-    public Iterator iterator() {
+    public CloseableIterator<Object> iterator() {
       checkTX();
       return new EntriesSetIterator(this.bucketSet, allowTombstones);
     }
@@ -6863,6 +6863,14 @@ public class PartitionedRegion extends LocalRegion implements
         }
       }
 
+      @Override
+      public void close() {
+        final Iterator<?> iterator = this.currentBucketI;
+        if (iterator instanceof CloseableIterator<?>) {
+          ((CloseableIterator<?>)iterator).close();
+        }
+      }
+
       public void remove() {
         if (this.currentKey == null) {
           throw new IllegalStateException();
@@ -6942,7 +6950,7 @@ public class PartitionedRegion extends LocalRegion implements
     }
 
     @Override
-    public Iterator iterator() {
+    public CloseableIterator<Object> iterator() {
       checkTX();
       return new KeysSetIterator(this.bucketSet, this.allowTombstones);
     }
@@ -7026,14 +7034,13 @@ public class PartitionedRegion extends LocalRegion implements
     }
 
     @Override
-    public Iterator iterator() {
+    public CloseableIterator<Object> iterator() {
       checkTX();
       return new ValuesSetIterator(this.bucketSet);
     }
   }
 
-  public final class PRLocalScanIterator implements PREntriesIterator<Object>,
-      CloseableIterator<Object> {
+  public final class PRLocalScanIterator implements PREntriesIterator<Object> {
 
     private final Iterator<Integer> bucketIdsIter;
 
@@ -7169,11 +7176,12 @@ public class PartitionedRegion extends LocalRegion implements
     }
 
     public void close() {
-      if (bucketEntriesIter instanceof HDFSIterator) {
-        ((HDFSIterator) bucketEntriesIter).close();
+      final Iterator<?> iterator = this.bucketEntriesIter;
+      if (iterator instanceof CloseableIterator<?>) {
+        ((CloseableIterator<?>)iterator).close();
       }
     }
-    
+
     public boolean hasNext() {
       if (this.moveNext) {
         for (;;) {

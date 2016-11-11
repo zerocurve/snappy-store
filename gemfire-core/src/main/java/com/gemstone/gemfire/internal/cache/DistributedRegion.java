@@ -115,6 +115,7 @@ import com.gemstone.gemfire.internal.cache.persistence.PersistenceAdvisorImpl;
 import com.gemstone.gemfire.internal.cache.persistence.PersistentMemberID;
 import com.gemstone.gemfire.internal.cache.persistence.PersistentMemberManager;
 import com.gemstone.gemfire.internal.cache.persistence.PersistentMemberView;
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.cache.tier.sockets.ClientProxyMembershipID;
 import com.gemstone.gemfire.internal.cache.tier.sockets.VersionedObjectList;
 import com.gemstone.gemfire.internal.cache.versions.ConcurrentCacheModificationException;
@@ -3511,7 +3512,7 @@ public class DistributedRegion extends LocalRegion implements
    * Once the regionEntries iterator has nothing more to iterate
    * it starts iterating over, in disk order, the entries on disk.
    */
-  public static final class DiskSavyIterator implements Iterator<RegionEntry> {
+  public static final class DiskSavyIterator implements CloseableIterator<RegionEntry> {
     //private boolean usingIt = true;
     private Iterator<?> it;
     private LocalRegion region;
@@ -3722,10 +3723,22 @@ public class DistributedRegion extends LocalRegion implements
       }
     }
 
-    public void remove() {
-      throw new UnsupportedOperationException();
-    }
-  }
+     @Override
+     public void close() {
+       Iterator<?> iterator = this.sortedDiskIt;
+       if (iterator instanceof CloseableIterator<?>) {
+         ((CloseableIterator<?>)iterator).close();
+       }
+       iterator = this.it;
+       if (iterator instanceof CloseableIterator<?>) {
+         ((CloseableIterator<?>)iterator).close();
+       }
+     }
+
+     public void remove() {
+       throw new UnsupportedOperationException();
+     }
+   }
   
   public static class DiskPosition implements Comparable<DiskPosition> {
     private long oplogId;

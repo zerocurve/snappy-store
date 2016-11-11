@@ -58,7 +58,7 @@ import com.gemstone.gnu.trove.TObjectProcedure;
  * @param <T> the type of elements maintained by this set
  */
 @SuppressWarnings({"serial", "WeakerAccess", "unused", "NullableProblems"})
-public class ConcurrentTHashSet<T> extends THashParameters implements
+public final class ConcurrentTHashSet<T> extends THashParameters implements
     Set<T>, TObjectHashingStrategy {
 
   public static final int DEFAULT_CONCURRENCY = 16;
@@ -113,7 +113,7 @@ public class ConcurrentTHashSet<T> extends THashParameters implements
     }
   }
 
-  public final long longSize() {
+  public long longSize() {
     return this.totalSize.get();
   }
 
@@ -121,12 +121,12 @@ public class ConcurrentTHashSet<T> extends THashParameters implements
    * {@inheritDoc}
    */
   @Override
-  public final int size() {
+  public int size() {
     final long size = this.totalSize.get();
     return size < Integer.MAX_VALUE ? (int)size : Integer.MAX_VALUE;
   }
 
-  public final long capacity() {
+  public long capacity() {
     long capacity = 0;
     acquireAllLocks(false);
     try {
@@ -143,7 +143,7 @@ public class ConcurrentTHashSet<T> extends THashParameters implements
    * {@inheritDoc}
    */
   @Override
-  public final boolean isEmpty() {
+  public boolean isEmpty() {
     return this.totalSize.get() == 0;
   }
 
@@ -151,7 +151,7 @@ public class ConcurrentTHashSet<T> extends THashParameters implements
    * {@inheritDoc}
    */
   @Override
-  public final boolean contains(Object o) {
+  public boolean contains(Object o) {
     if (o != null) {
       final int hash = computeHashCode(o, this.hashingStrategy);
       return segmentFor(hash).contains(o, hash);
@@ -167,7 +167,7 @@ public class ConcurrentTHashSet<T> extends THashParameters implements
    * the object in set.
    */
   @SuppressWarnings("unchecked")
-  public final T get(Object o) {
+  public T get(Object o) {
     if (o != null) {
       final int hash = computeHashCode(o, this.hashingStrategy);
       return (T)segmentFor(hash).getKey(o, hash);
@@ -182,7 +182,7 @@ public class ConcurrentTHashSet<T> extends THashParameters implements
    * not wait for locks and is not affected much by inaccurate results.
    */
   @SuppressWarnings("unchecked")
-  public final T getUnsafe(Object o) {
+  public T getUnsafe(Object o) {
     if (o != null) {
       final int hash = computeHashCode(o, this.hashingStrategy);
       Object result = segmentFor(hash).getKeyNoLock(o, hash);
@@ -358,7 +358,7 @@ public class ConcurrentTHashSet<T> extends THashParameters implements
    * {@inheritDoc}
    */
   @Override
-  public final boolean containsAll(Collection<?> c) {
+  public boolean containsAll(Collection<?> c) {
     for (Object o : c) {
       if (!contains(o)) {
         return false;
@@ -433,7 +433,7 @@ public class ConcurrentTHashSet<T> extends THashParameters implements
    * Usually you will want to use this when size of collection is greater than
    * the concurreny level of the map.
    */
-  public final boolean bulkRemoveAll(Collection<?> c) {
+  public boolean bulkRemoveAll(Collection<?> c) {
     if (c != null) {
       boolean result = false;
       // segregate by segment
@@ -496,7 +496,7 @@ public class ConcurrentTHashSet<T> extends THashParameters implements
    * {@inheritDoc}
    */
   @Override
-  public Iterator<T> iterator() {
+  public Itr iterator() {
     return new Itr();
   }
 
@@ -513,7 +513,7 @@ public class ConcurrentTHashSet<T> extends THashParameters implements
    * operation on this set directly from inside the body of procedure itself
    * else it will result in a deadlock.
    */
-  public final boolean forEach(TObjectProcedure proc) {
+  public boolean forEach(TObjectProcedure proc) {
     acquireAllLocks(false);
     try {
       for (ConcurrentTHashSegment<T> seg : this.segments) {
@@ -690,7 +690,7 @@ public class ConcurrentTHashSet<T> extends THashParameters implements
     }
   }
 
-  final class Itr implements Iterator<T> {
+  public final class Itr implements Iterator<T> {
 
     private ConcurrentTHashSegment<T> seg;
     private int segIndex;

@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import com.gemstone.gemfire.internal.cache.CachedDeserializable;
 import com.gemstone.gemfire.internal.cache.EntryEventImpl;
 import com.gemstone.gemfire.internal.cache.PreferBytesCachedDeserializable;
-import com.gemstone.gemfire.internal.cache.persistence.query.CloseableIterator;
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.cache.persistence.query.IndexMap;
 
 import com.gemstone.gemfire.cache.query.internal.types.ExtendedNumericComparator;

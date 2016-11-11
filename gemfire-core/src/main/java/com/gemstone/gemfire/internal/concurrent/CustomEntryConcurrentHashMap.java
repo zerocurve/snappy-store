@@ -53,14 +53,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.RejectedExecutionException;
 
-import com.gemstone.gemfire.CancelException;
-import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
-import com.gemstone.gemfire.internal.cache.*;
 import com.gemstone.gemfire.internal.cache.locks.NonReentrantReadWriteLock;
-import com.gemstone.gemfire.internal.cache.wan.GatewaySenderEventImpl;
-import com.gemstone.gemfire.internal.offheap.OffHeapRegionEntryHelper;
 import com.gemstone.gemfire.internal.size.SingleObjectSizer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -1088,48 +1082,13 @@ RETRYLOOP:
     /**
      * GemStone added the clearedEntries param and the result
      */
-    final ArrayList<HashEntry<?,?>> clear(ArrayList<HashEntry<?,?>> clearedEntries) {
+    final void clear() {
       if (this.count != 0) {
         attemptWriteLock(-1);
         try {
           final HashEntry<K, V>[] tab = this.table;
-          // GemStone changes BEGIN
-          boolean collectEntries = clearedEntries != null;
-          if (!collectEntries) {
-            // see if we have a map with off-heap region entries
-            for (HashEntry<K, V> he : tab) {
-              if (he != null) {
-                collectEntries = he instanceof OffHeapRegionEntry;
-                if (collectEntries) {
-                  clearedEntries = new ArrayList<HashEntry<?, ?>>();
-                }
-                // after the first non-null entry we are done
-                break;
-              }
-            }
-          }
-          final boolean checkForGatewaySenderEvent = OffHeapRegionEntryHelper.doesClearNeedToCheckForOffHeap();
-          final boolean skipProcessOffHeap = !collectEntries && !checkForGatewaySenderEvent;
-          if (skipProcessOffHeap) {
-            Arrays.fill(tab, null);
-          } else {
-            for (int i = 0; i < tab.length; i++) {
-              HashEntry<K, V> he = tab[i];
-              if (he == null) continue;
-              tab[i] = null;
-              if (collectEntries) {
-                clearedEntries.add(he);
-              } else {
-                for (HashEntry<K, V> p = he; p != null; p = p.getNextEntry()) {
-                  if (p instanceof RegionEntry) {
-                    // It is ok to call GatewaySenderEventImpl release without being synced
-                    // on the region entry. It will not create an orphan.
-                    GatewaySenderEventImpl.release(((RegionEntry) p)._getValue());
-                  }
-                }
-              }
-            }
-            // GemStone changes END
+          for (int i = 0; i < tab.length ; i++) {
+            tab[i] = null;
           }
           ++this.modCount;
           this.count = 0; // write-volatile
@@ -1137,7 +1096,6 @@ RETRYLOOP:
           releaseWriteLock();
         }
       }
-      return clearedEntries; // GemStone change
     }
 
     /**
@@ -1916,129 +1874,9 @@ RETRYLOOP:
    */
   @Override
   public final void clear() {
-    ArrayList<HashEntry<?,?>> entries = null;
-    final BucketRegionIndexCleaner cleaner = BucketRegion.getIndexCleaner();
-    final boolean isOffHeapEnabled = LocalRegion.getAndClearOffHeapEnabled();
-    if(cleaner != null || isOffHeapEnabled) {
-      entries = new ArrayList<HashEntry<?,?>>();
+    for (Segment<K, V> seg : segments) {
+      seg.clear();
     }
-    final CacheObserver observer = CacheObserverHolder.getInstance();
-
-    try {
-      for (int i = 0; i < this.segments.length; ++i) {
-        entries = this.segments[i].clear(entries);
-      }
-    } finally {
-      if (entries != null) {
-        final ArrayList<HashEntry<?,?>> clearedEntries = entries;
-        
-        final Runnable runnable = new Runnable() {
-          public void run() {
-            ArrayList<RegionEntry> regionEntries =  cleaner != null?
-                new ArrayList<RegionEntry>() : null;
-            for (HashEntry<?,?> he: clearedEntries) {
-              for (HashEntry<?, ?> p = he; p != null; p = p.getNextEntry()) {
-                synchronized (p) {
-                  if(cleaner != null) {
-                    regionEntries.add((RegionEntry)p); 
-                  }else {
-                    ((AbstractRegionEntry)p).release();
-                  }
-                }
-              }
-            }
-            if(cleaner != null) {
-              cleaner.clearEntries(regionEntries);
-            }
-            if(LocalRegion.ISSUE_CALLBACKS_TO_CACHE_OBSERVER && 
-                observer != null && isOffHeapEnabled) {
-              observer.afterRegionConcurrentHashMapClear();
-            }
-          }
-        };
-        boolean submitted = false;
-        InternalDistributedSystem ids = InternalDistributedSystem.getConnectedInstance();
-        if (ids != null && !ids.isLoner()) {
-          try {
-            ids.getDistributionManager().getWaitingThreadPool().submit(runnable);
-            submitted = true;
-          } catch (RejectedExecutionException e) {
-            // fall through with submitted false
-          } catch (CancelException e) {
-            // fall through with submitted false
-          } catch (NullPointerException e) {
-            // fall through with submitted false
-          }
-        }
-        if (!submitted) {
-          String name = this.getClass().getSimpleName()+"@"+this.hashCode()+" Clear Thread";
-          Thread thread = new Thread(runnable, name);
-          thread.setDaemon(true);
-          thread.start();
-        }
-      }else {
-        if(LocalRegion.ISSUE_CALLBACKS_TO_CACHE_OBSERVER && 
-            observer != null && isOffHeapEnabled) {
-          observer.afterRegionConcurrentHashMapClear();
-        }
-      }
-    }
-  }
-
-  public static ArrayList<AbstractRegionEntry> clearTHashSegment(
-      ConcurrentTHashSegment<AbstractRegionEntry> seg,
-      ArrayList<AbstractRegionEntry> clearedEntries) {
-    seg.writeLock().lock();
-    try {
-      final int sz = seg.size;
-      if (sz > 0) {
-        final Object[] set = seg.set;
-        final int size = set.length;
-        boolean collectEntries = clearedEntries != null;
-        if (!collectEntries) {
-          // see if we have a map with off-heap region entries
-          for (int index = 0; index < size; index++) {
-            final Object e = set[index];
-            if (e == null) continue;
-            if (e instanceof OffHeapRegionEntry) {
-              collectEntries = true;
-              clearedEntries = new ArrayList<>();
-            }
-            // after the first non-null entry we are done
-            break;
-          }
-        }
-        final boolean skipProcessOffHeap = !collectEntries &&
-            !OffHeapRegionEntryHelper.doesClearNeedToCheckForOffHeap();
-        if (skipProcessOffHeap) {
-          for (int index = 0; index < size; index++) {
-            if (set[index] != null) {
-              set[index] = null;
-            }
-          }
-        } else {
-          for (int index = 0; index < size; index++) {
-            final AbstractRegionEntry e = (AbstractRegionEntry)set[index];
-            if (e == null) continue;
-            set[index] = null;
-            if (collectEntries) {
-              clearedEntries.add(e);
-            } else {
-              // It is ok to call GatewaySenderEventImpl release without being
-              // synced on the region entry. It will not create an orphan.
-              GatewaySenderEventImpl.release(e._getValue());
-            }
-          }
-        }
-
-        seg.totalSize.addAndGet(-sz);
-        seg.size = 0;
-        seg.free = size;
-      }
-    } finally {
-      seg.writeLock().unlock();
-    }
-    return clearedEntries;
   }
 
   /**

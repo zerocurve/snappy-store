@@ -19,7 +19,7 @@ package com.gemstone.gemfire.cache.query.internal.index;
 import java.util.Collection;
 
 import com.gemstone.gemfire.internal.cache.RegionEntry;
-import com.gemstone.gemfire.internal.cache.persistence.query.CloseableIterator;
+import com.gemstone.gemfire.internal.CloseableIterator;
 
 /**
  * 

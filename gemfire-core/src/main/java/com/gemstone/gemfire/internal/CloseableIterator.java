@@ -14,7 +14,7 @@
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
  */
-package com.gemstone.gemfire.internal.cache.persistence.query;
+package com.gemstone.gemfire.internal;
 
 import java.util.Iterator;
 

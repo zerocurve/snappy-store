@@ -1026,7 +1026,7 @@ public final class SortedMap2IndexScanController extends MemIndexScanController
     private Object[] itrCache;
     private int itrPos;
 
-    private Iterator<?> itr;
+    private ConcurrentTHashSet<?>.Itr itr;
     private RSLockManager lockManager;
 
     RowLocationSetIterator(final ConcurrentTHashSet<?> vals,
@@ -1038,7 +1038,7 @@ public final class SortedMap2IndexScanController extends MemIndexScanController
 
     @Override
     public RowLocation next() throws StandardException {
-      final Iterator<?> itr;
+      final ConcurrentTHashSet<?>.Itr itr;
       final Object[] itrCache;
 
       if ((itrCache = this.itrCache) != null) {

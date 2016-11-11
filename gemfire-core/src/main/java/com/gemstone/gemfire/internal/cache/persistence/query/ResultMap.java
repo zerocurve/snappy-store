@@ -16,6 +16,7 @@
  */
 package com.gemstone.gemfire.internal.cache.persistence.query;
 
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.cache.CachedDeserializable;
 
 /**
@@ -71,7 +72,7 @@ public interface ResultMap {
    * If end < start, this will return a descending iterator going from end
    * to start. 
    */
-  CloseableIterator<Entry> iterator(Object start, boolean startInclusive, 
+  CloseableIterator<Entry> iterator(Object start, boolean startInclusive,
       Object end, boolean endInclusive);
   
   /**

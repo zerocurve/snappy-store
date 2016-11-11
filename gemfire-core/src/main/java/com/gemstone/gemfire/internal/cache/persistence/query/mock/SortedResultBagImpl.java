@@ -19,7 +19,7 @@ package com.gemstone.gemfire.internal.cache.persistence.query.mock;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.gemstone.gemfire.internal.cache.CachedDeserializable;
-import com.gemstone.gemfire.internal.cache.persistence.query.CloseableIterator;
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.internal.cache.persistence.query.IdentityExtractor;
 import com.gemstone.gemfire.internal.cache.persistence.query.ResultBag;
 import com.gemstone.gemfire.internal.cache.persistence.query.SortKeyExtractor;

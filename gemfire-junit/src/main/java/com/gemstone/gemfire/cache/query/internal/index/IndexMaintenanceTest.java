@@ -55,12 +55,10 @@ import com.gemstone.gemfire.cache.query.internal.QueryObserver;
 import com.gemstone.gemfire.cache.query.internal.QueryObserverAdapter; 
 import com.gemstone.gemfire.cache.query.internal.index.IndexStore.IndexStoreEntry;
 import com.gemstone.gemfire.cache.query.internal.index.MemoryIndexStore.MemoryIndexStoreEntry;
-import com.gemstone.gemfire.cache.query.internal.index.RangeIndex;
-import com.gemstone.gemfire.cache.query.internal.index.CompactRangeIndex;
 import com.gemstone.gemfire.cache.query.internal.index.AbstractIndex.RegionEntryToValuesMap;
 import com.gemstone.gemfire.internal.cache.LocalRegion;
 import com.gemstone.gemfire.internal.cache.RegionEntry;
-import com.gemstone.gemfire.internal.cache.persistence.query.CloseableIterator;
+import com.gemstone.gemfire.internal.CloseableIterator;
 
 /**
  * 

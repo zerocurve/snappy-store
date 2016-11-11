@@ -45,7 +45,7 @@ import com.gemstone.gemfire.cache.query.internal.index.IndexStore.IndexStoreEntr
 import com.gemstone.gemfire.internal.cache.BucketRegion;
 import com.gemstone.gemfire.internal.cache.LocalDataSet;
 import com.gemstone.gemfire.internal.cache.PartitionedRegion;
-import com.gemstone.gemfire.internal.cache.persistence.query.CloseableIterator;
+import com.gemstone.gemfire.internal.CloseableIterator;
 import com.gemstone.gemfire.pdx.PdxInstance;
 
 /**

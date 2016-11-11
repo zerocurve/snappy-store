@@ -19,7 +19,7 @@ package com.gemstone.gemfire.internal.cache.persistence.query.mock;
 import java.util.Iterator;
 
 import com.gemstone.gemfire.internal.cache.CachedDeserializable;
-import com.gemstone.gemfire.internal.cache.persistence.query.CloseableIterator;
+import com.gemstone.gemfire.internal.CloseableIterator;
 
 /**
  * An adapter from a java.util.iterator to a closable iterator.
