@@ -776,7 +776,7 @@ public class GenericStatement
                                             // order is important. cost should be last criteria
                                             if (cc.getExecutionEngine() == ExecutionEngine.SPARK
                                                 || engineArbiter.getExecutionEngine((DMLQueryInfo)qinfo) == ExecutionEngine.SPARK
-                                                || engineArbiter.getExecutionEngine(qt, this, routeQuery) == ExecutionEngine.SPARK) {
+                                                /*|| engineArbiter.getExecutionEngine(qt, this, routeQuery) == ExecutionEngine.SPARK*/) {
                                               if (qinfo.isSelect()) {
                                                 if (observer != null) {
                                                   observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);

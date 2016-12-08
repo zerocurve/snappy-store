@@ -73,7 +73,7 @@ public class ExecutionEngineArbiter {
     return  ExecutionEngine.STORE;
   }
 
-  public ExecutionEngine getExecutionEngine(StatementNode qt, GenericStatement gs, boolean routeQuery)
+/*  public ExecutionEngine getExecutionEngine(StatementNode qt, GenericStatement gs, boolean routeQuery)
       throws StandardException {
     if (enableRoutingArbitor) {
       if (qt instanceof DMLStatementNode) {
@@ -90,7 +90,7 @@ public class ExecutionEngineArbiter {
       }
     }
     return ExecutionEngine.STORE;
-  }
+  }*/
 
   public static void setTestHookCostThreshold(int threshold){
     testHookCostThresHold = threshold;
