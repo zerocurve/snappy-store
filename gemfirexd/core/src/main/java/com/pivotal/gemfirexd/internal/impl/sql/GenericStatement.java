@@ -335,9 +335,11 @@ public class GenericStatement
 		boolean foundInCache = false;
 		if (preparedStmt == null)
 		{
-			if (cacheMe)
-				preparedStmt = (GenericPreparedStatement)((GenericLanguageConnectionContext)lcc).lookupStatement(this);
-
+                        boolean isRemoteDDLAndSnappyStore = lcc.isConnectionForRemoteDDL() && !routeQuery;
+                        if (cacheMe && !isRemoteDDLAndSnappyStore) {
+                                preparedStmt = (GenericPreparedStatement)((GenericLanguageConnectionContext)lcc).lookupStatement(this);
+                        }
+      
 			if (preparedStmt == null)
 			{
 				preparedStmt = new GenericPreparedStatement(this);
@@ -888,9 +890,10 @@ public class GenericStatement
 				    qt = p.parseStatement(getQueryStringForParse(lcc), paramDefaults);
 				    continue;
           } else if (routeQuery &&
-            (messgId.equals(SQLState.NOT_COLOCATED_WITH)
-               || messgId.equals(SQLState.COLOCATION_CRITERIA_UNSATISFIED) ||
-                  messgId.equals(SQLState.REPLICATED_PR_CORRELATED_UNSUPPORTED))) {
+            (messgId.equals(SQLState.NOT_COLOCATED_WITH) ||
+                messgId.equals(SQLState.COLOCATION_CRITERIA_UNSATISFIED) ||
+                messgId.equals(SQLState.REPLICATED_PR_CORRELATED_UNSUPPORTED) ||
+                messgId.equals(SQLState.NOT_IMPLEMENTED))) {
             return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
           }
 // GemStone changes END
