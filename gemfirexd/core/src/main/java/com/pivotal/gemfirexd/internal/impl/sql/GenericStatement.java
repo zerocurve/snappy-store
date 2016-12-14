@@ -261,6 +261,8 @@ public class GenericStatement
 		Timestamp			endTimestamp = null;
 		StatementContext	statementContext = null;
 // GemStone changes BEGIN
+    boolean routeQuery = Misc.getMemStore().isSnappyStore() && lcc.isQueryRoutingEnabled()
+        && (!EXECUTION_ENGINE_STORE_HINT.matcher(getSource()).matches());
 		GeneratedClass ac = null;
                 QueryInfo qinfo = null;
                 boolean createGFEPrepStmt = false;
@@ -482,9 +484,6 @@ public class GenericStatement
 			*/
 			final CompilerContext cc = lcc.pushCompilerContext(compilationSchema, true);
 // GemStone changes BEGIN
-      boolean routeQuery = Misc.getMemStore().isSnappyStore() && lcc.isQueryRoutingEnabled()
-          //&& (cc.getExecutionEngine() == ExecutionEngine.SPARK)
-          && (!EXECUTION_ENGINE_STORE_HINT.matcher(getSource()).matches());
                        //reset queryHDFS to default value: false
 			cc.setHasQueryHDFS(false);
 			cc.setQueryHDFS(false);

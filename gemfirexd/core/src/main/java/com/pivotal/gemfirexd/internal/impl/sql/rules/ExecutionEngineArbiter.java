@@ -40,13 +40,13 @@ public class ExecutionEngineArbiter {
       PropertyUtil.getSystemProperty(
   GfxdConstants.GFXD_ROUTE_SELECTED_STORE_QUERIES_TO_SPARK , "true"));
 
-  public static final int DEFAULT_COST_BASED_OPTIMIZED_ROUTING_THRESHOLD = 1000000;
+  //public static final int DEFAULT_COST_BASED_OPTIMIZED_ROUTING_THRESHOLD = 1000000;
 
-  public static int testHookCostThresHold = DEFAULT_COST_BASED_OPTIMIZED_ROUTING_THRESHOLD;
+  //public static int testHookCostThresHold = DEFAULT_COST_BASED_OPTIMIZED_ROUTING_THRESHOLD;
 
-  private static int costBasedOptimizationThreshold = PropertyUtil.
-      getSystemInt(GfxdConstants.GFXD_COST_OPTIMIZED_ROUTING_THRESHOLD,
-          DEFAULT_COST_BASED_OPTIMIZED_ROUTING_THRESHOLD);
+  //private static int costBasedOptimizationThreshold = PropertyUtil.
+  //    getSystemInt(GfxdConstants.GFXD_COST_OPTIMIZED_ROUTING_THRESHOLD,
+  //        DEFAULT_COST_BASED_OPTIMIZED_ROUTING_THRESHOLD);
 
   public ExecutionEngineArbiter() {
     //Rules That needs to be applied regardless of the GFXD_ROUTE_SELECTED_STORE_QUERIES_TO_SPARK flag
@@ -92,7 +92,7 @@ public class ExecutionEngineArbiter {
     return ExecutionEngine.STORE;
   }*/
 
-  public static void setTestHookCostThreshold(int threshold){
-    testHookCostThresHold = threshold;
-  }
+  //public static void setTestHookCostThreshold(int threshold){
+  //  testHookCostThresHold = threshold;
+  //}
 }
