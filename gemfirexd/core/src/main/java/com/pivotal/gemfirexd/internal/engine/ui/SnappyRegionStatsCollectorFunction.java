@@ -18,6 +18,7 @@ package com.pivotal.gemfirexd.internal.engine.ui;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -28,11 +29,7 @@ import com.gemstone.gemfire.cache.DataPolicy;
 import com.gemstone.gemfire.cache.Declarable;
 import com.gemstone.gemfire.cache.execute.Function;
 import com.gemstone.gemfire.cache.execute.FunctionContext;
-import com.gemstone.gemfire.internal.cache.BucketRegion;
-import com.gemstone.gemfire.internal.cache.LocalRegion;
-import com.gemstone.gemfire.internal.cache.PartitionedRegion;
-import com.gemstone.gemfire.internal.cache.PartitionedRegionDataStore;
-import com.gemstone.gemfire.internal.cache.RegionEntry;
+import com.gemstone.gemfire.internal.cache.*;
 import com.gemstone.gemfire.internal.snappy.CallbackFactoryProvider;
 import com.gemstone.gemfire.internal.snappy.StoreCallbacks;
 import com.gemstone.gemfire.management.ManagementService;
@@ -126,6 +123,15 @@ public class SnappyRegionStatsCollectorFunction implements Function, Declarable 
     return collectDataFromBeanImpl(lr, bean, false);
   }
 
+  private long getEntryOverhead(RegionEntry entry,
+      GemFireXDInstrumentation sizer) {
+    long entryOverhead = sizer.sizeof(entry);
+    if (entry instanceof DiskEntry) {
+      entryOverhead += sizer.sizeof(((DiskEntry)entry).getDiskId());
+    }
+    return entryOverhead;
+  }
+
   private SnappyRegionStats collectDataFromBeanImpl(LocalRegion lr, RegionMXBean bean, boolean isReservoir) {
     String regionName = (Misc.getFullTableNameFromRegionPath(bean.getFullPath()));
     SnappyRegionStats tableStats =
@@ -140,25 +146,76 @@ public class SnappyRegionStatsCollectorFunction implements Function, Declarable 
       tableStats.setRowCount(isColumnTable ? bean.getRowsInCachedBatches() : bean.getEntryCount());
     }
 
+    GemFireXDInstrumentation sizer = GemFireXDInstrumentation.getInstance();
     if (isReplicatedTable(lr.getDataPolicy())) {
-      java.util.Iterator<RegionEntry> ri = lr.getBestLocalIterator(true);
-      long size = 0;
+      long entryCount = 0L;
+      Iterator<RegionEntry> ri = lr.entries.regionEntries().iterator();
+      long size = lr.estimateMemoryOverhead(sizer);
+      long entryOverhead = -1;
       while (ri.hasNext()) {
-        size += GemFireXDInstrumentation.getInstance().sizeof(ri.next());
+        RegionEntry re = ri.next();
+        if (entryOverhead < 0) {
+          entryOverhead = getEntryOverhead(re, sizer);
+        }
+        size += entryOverhead;
+        Object key = re.getRawKey();
+        Object value = re._getValue();
+        if (key != null) {
+          size += CachedDeserializableFactory.calcMemSize(key);
+        }
+        if (value != null) {
+          size += CachedDeserializableFactory.calcMemSize(value);
+        }
+        entryCount++;
       }
       tableStats.setSizeInMemory(size);
+      DiskRegion dr = lr.getDiskRegion();
+      if (dr != null) {
+        DiskRegionStats stats = dr.getStats();
+        long diskBytes = stats.getBytesWritten();
+        if (lr.getDataPolicy().withPersistence()) {
+          // find the number of entries only on disk and adjust the size
+          // in proportion to the in-memory size since the per-entry size
+          // of in-memory vs on-disk will be different
+          long numOverflow = stats.getNumOverflowOnDisk();
+          if (numOverflow > 0) {
+            double avgDiskEntrySize = Math.max(1.0, (double)diskBytes / entryCount);
+            size += (long)(avgDiskEntrySize * numOverflow);
+          }
+        } else {
+          size += diskBytes;
+        }
+      }
+      tableStats.setTotalSize(size);
     } else {
       PartitionedRegionDataStore datastore = ((PartitionedRegion)lr).getDataStore();
-      int sizeOfRegion =0;
+      long sizeInMemory = 0L;
+      long sizeOfRegion = 0L;
+      long entryOverhead = 0L;
+      long entryCount = 0L;
       if (datastore != null) {
         Set<BucketRegion> bucketRegions = datastore.getAllLocalBucketRegions();
         for (BucketRegion br : bucketRegions) {
-          sizeOfRegion += br.getTotalBytes();
+          long constantOverhead = br.estimateMemoryOverhead(sizer);
+          // get overhead of one entry and extrapolate it for all entries
+          if (entryOverhead == 0) {
+            Iterator<RegionEntry> iter = br.entries.regionEntries().iterator();
+            if (iter.hasNext()) {
+              RegionEntry re = iter.next();
+              entryOverhead = getEntryOverhead(re, sizer);
+            }
+          }
+          sizeInMemory += constantOverhead + br.getSizeInMemory();
+          sizeOfRegion += constantOverhead + br.getTotalBytes();
+          entryCount += br.entryCount();
         }
       }
+      if (entryOverhead > 0) {
+        entryOverhead *= entryCount;
+      }
 
-      tableStats.setSizeInMemory(bean.getEntrySize());
-      tableStats.setTotalSize(sizeOfRegion);
+      tableStats.setSizeInMemory(sizeInMemory + entryOverhead);
+      tableStats.setTotalSize(sizeOfRegion + entryOverhead);
     }
     return tableStats;
   }
