@@ -56,6 +56,7 @@ import com.pivotal.gemfirexd.internal.iapi.reference.SQLState;
 import com.pivotal.gemfirexd.internal.iapi.sql.Activation;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.TableDescriptor;
+import com.pivotal.gemfirexd.internal.iapi.types.DataType;
 import com.pivotal.gemfirexd.internal.iapi.types.DataTypeDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
 import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedConnection;
@@ -111,6 +112,8 @@ public final class GfxdPartitionByExpressionResolver extends
   private String toStringString;
 
   private int[] typeFormatIdArray;
+
+  private DataTypeDescriptor[] dtdsArray;
 
   private boolean snappyStore = Misc.getMemStore().isSnappyStore();
 
@@ -1051,10 +1054,23 @@ public final class GfxdPartitionByExpressionResolver extends
 
   private void fillTypeFormatId(TableDescriptor td) {
     this.typeFormatIdArray = new int[this.partitionColumnNames.length];
+    this.dtdsArray = new DataTypeDescriptor[this.partitionColumnNames.length];
     for (int i = 0; i < this.partitionColumnNames.length; i++) {
-      this.typeFormatIdArray[i] = td
-          .getColumnDescriptor(this.partitionColumnNames[i]).getType()
-          .getDVDTypeFormatId();
+      DataTypeDescriptor dtd = td.getColumnDescriptor(this.partitionColumnNames[i]).
+              getType();
+      this.dtdsArray[i] = dtd;
+      this.typeFormatIdArray[i] = dtd.getDVDTypeFormatId();
     }
+  }
+
+  public DataValueDescriptor[] convertPartitioningValuesToDVD(Object[] values) throws
+          StandardException{
+    DataValueDescriptor[] dvdArray = new DataValueDescriptor[this.partitionColumnNames.length];
+    for (int i = 0; i < this.partitionColumnNames.length; i++) {
+      DataValueDescriptor dvd =  dtdsArray[i].getNull();
+      dvd.setValue(values[i].toString());
+      dvdArray[i] =dvd;
+    }
+    return dvdArray;
   }
 }
