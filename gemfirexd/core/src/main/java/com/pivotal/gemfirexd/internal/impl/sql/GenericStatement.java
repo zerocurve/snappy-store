@@ -151,7 +151,7 @@ public class GenericStatement
             Pattern.compile(".*PUT\\s+INTO\\s+(TABLE)?.*SELECT\\s+.*",
                 Pattern.CASE_INSENSITIVE);
         private static final Pattern EXECUTION_ENGINE_STORE_HINT =
-            Pattern.compile(".*EXECUTIONENGINE(\\s+)?+=(\\s+)?+STORE\\s+.*",
+            Pattern.compile(".*EXECUTIONENGINE(\\s+)?+=(\\s+)?+STORE.*[\\r\\n].*",
                 Pattern.CASE_INSENSITIVE);
 
 
@@ -263,6 +263,7 @@ public class GenericStatement
 // GemStone changes BEGIN
     boolean routeQuery = Misc.getMemStore().isSnappyStore() && lcc.isQueryRoutingEnabled()
         && (!EXECUTION_ENGINE_STORE_HINT.matcher(getSource()).matches());
+
 		GeneratedClass ac = null;
                 QueryInfo qinfo = null;
                 boolean createGFEPrepStmt = false;
@@ -608,6 +609,9 @@ public class GenericStatement
 				if (routeQuery && cc.isForcedDDLrouting())
 				{
 					//SanityManager.DEBUG_PRINT("DEBUG","Parse: force routing sql=" + this.getSource());
+                                   if (observer != null) {
+                                     observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
+                                   }
 				    return getPreparedStatementForSnappy(false, statementContext, lcc, true, checkCancellation);
 				}
 				//GemStone changes END
@@ -674,6 +678,9 @@ public class GenericStatement
 					}
 					catch(StandardException ex) {
 						if (routeQuery) {
+                                                       if (observer != null) {
+                                                         observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
+                                                       }
 							return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
 						}
 						throw ex;
@@ -739,6 +746,9 @@ public class GenericStatement
 					}
 					catch(StandardException ex) {
 						if (routeQuery) {
+                                                       if (observer != null) {
+                                                         observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
+                                                       }
 							return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
 						}
 						throw ex;
@@ -782,7 +792,6 @@ public class GenericStatement
                                                 if (observer != null) {
                                                   observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
                                                 }
-
                                                 return getPreparedStatementForSnappy(true,
                                                     statementContext, lcc, false, checkCancellation);
 
@@ -895,6 +904,9 @@ public class GenericStatement
                 messgId.equals(SQLState.COLOCATION_CRITERIA_UNSATISFIED) ||
                 messgId.equals(SQLState.REPLICATED_PR_CORRELATED_UNSUPPORTED) ||
                 messgId.equals(SQLState.NOT_IMPLEMENTED))) {
+            if (observer != null) {
+              observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
+            }
             return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
           }
 // GemStone changes END
