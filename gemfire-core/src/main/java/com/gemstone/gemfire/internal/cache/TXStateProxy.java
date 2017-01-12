@@ -1674,6 +1674,13 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
       throws EntryNotFoundException {
     checkTXState();
     final LocalRegion r = event.getLocalRegion();
+
+    // This is to make SNAPSHOT isolation writes go to region whereas read go through txState
+    if (lockPolicy == LockingPolicy.SNAPSHOT) {
+      r.getSharedDataView().destroyExistingEntry(event, cacheWrite, expectedOldValue);
+      return;
+    }
+
     if (r.getPartitionAttributes() != null) {
       final PartitionedRegion pr = (PartitionedRegion)r;
       final ProxyBucketRegion pbr = PartitionedRegionHelper
@@ -1841,6 +1848,7 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
         allowTombstones, allowReadFromHDFS);
   }
 
+  // read operations come here..
   public final Object getLocally(Object key, Object callbackArg, int bucketId,
       LocalRegion localRegion, boolean doNotLockEntry, boolean localExecution,
       TXStateInterface lockState, EntryEventImpl clientEvent,
@@ -2747,6 +2755,7 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
         "getValueForIterator", false);
   }
 
+  //TODO: Suranjan allowTombstones should be true when snapshot isolation is enabled.
   private final Object findObject(final KeyInfo keyInfo, final LocalRegion r,
       boolean isCreate, boolean generateCallbacks, final Object value,
       final boolean updateStats, final boolean disableCopyOnRead,
@@ -2882,7 +2891,16 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
       boolean ifOld, Object expectedOldValue, boolean requireOldValue,
       boolean cacheWrite, long lastModified, boolean overwriteDestroyed) {
     checkTXState();
+
     final LocalRegion r = event.getLocalRegion();
+
+    // This is to make SNAPSHOT isolation writes go to region whereas read go through txState
+    // For remote operation, we need to send txId even if it goes through primary
+
+    if (lockPolicy == LockingPolicy.SNAPSHOT) {
+      return r.getSharedDataView().putEntry(event, ifNew, ifOld, expectedOldValue, requireOldValue,
+          cacheWrite, lastModified, overwriteDestroyed);
+    }
 
     // create the flags for performOp()
     int flags = 0;

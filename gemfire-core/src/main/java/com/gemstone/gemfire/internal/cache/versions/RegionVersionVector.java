@@ -80,8 +80,13 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
   /** map of member to version h older.  This is the actual version "vector" */
   private ConcurrentHashMap<T, RegionVersionHolder<T>> memberToVersion;
 
+  /** we need to create a memberToSnapshotVersion **/
+  private ConcurrentHashMap<T, Long> memberToSnapshotVersion;
+
   /** current version in the local region for generating next version */
   private AtomicLong localVersion = new AtomicLong(0);
+  private AtomicLong localVersionForSnapshot = new AtomicLong(0);
+  private AtomicLong localVersionForWrite = new AtomicLong(0);
   /**
    * The list of exceptions for the local member. The version held
    * in this RegionVersionHolder may not be accurate, but the exception list
@@ -138,6 +143,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * additional work.
    */
   private transient final ReentrantReadWriteLock versionLock = new ReentrantReadWriteLock();
+  private transient final ReentrantReadWriteLock snapshotLock = new ReentrantReadWriteLock();
   private transient volatile boolean locked; // this is only modified by the version locking thread
   private transient volatile boolean doUnlock; // this is only modified by the version locking thread
   private transient InternalDistributedMember lockOwner; // guarded by lockWaitSync
@@ -154,14 +160,36 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     this.memberToVersion = new ConcurrentHashMap<T, RegionVersionHolder<T>>(INITIAL_CAPACITY, LOAD_FACTOR, CONCURRENCY_LEVEL);
     this.memberToGCVersion = new ConcurrentHashMap<T, Long> (INITIAL_CAPACITY, LOAD_FACTOR, CONCURRENCY_LEVEL);
   }
-  
+
+  // this has to make sure that no other thread is modifying the memberToSnapshotVersion
+  // What we can take advantage is of the fact that a transaction will have only one co-ordinator
+  // so they will be writing new version for that member only
+  // so take lock on that holder object and then write.
+//  public RegionVersionVector<T> getCloneForSnapshot() {
+//    Map<T, Long> snapshotHolders;
+//    snapshotHolders = new HashMap<T, Long>(this.memberToSnapshotVersion);
+//    ConcurrentHashMap<T, RegionVersionHolder<T>> clonedHolders = new ConcurrentHashMap<T, RegionVersionHolder<T>>(
+//        snapshotHolders.size(), LOAD_FACTOR, CONCURRENCY_LEVEL);
+//    for (Map.Entry<T, Long> entry : snapshotHolders.entrySet()) {
+//      clonedHolders.put(entry.getKey(), entry.getValue().clone());
+//    }
+//    RegionVersionHolder<T> clonedLocalHolder;
+//    clonedLocalHolder = this.localExceptions.clone();
+//    // do we need gcVersions and clonedlocalHolder
+//    return createCopy(this.myId, clonedHolders, this.localVersion.get(),
+//        null, this.localGCVersion.get(), false,
+//        clonedLocalHolder);
+//  }
   /**
-   * Retrieve a vector that can be sent to another member.  This clones all
-   * of the version information to protect against concurrent modification
-   * during serialization
+   * Retrieve a vector that can be used as a SnapShot information.
+   * Basically we need low cost copy of memberToVersion and localVersion.
+   * Also calling method should synchronize on cache level lock
+   * if it wants consistent view of snapshot across cache
    */
   public RegionVersionVector<T> getCloneForTransmission() {
     Map<T,RegionVersionHolder<T>> liveHolders;
+    // we need to take a lock? so that memberToVersion is not modifed as we copy them
+    // Find out
     liveHolders = new HashMap<T,RegionVersionHolder<T>>(this.memberToVersion);
     ConcurrentHashMap<T, RegionVersionHolder<T>> clonedHolders = new ConcurrentHashMap<T, RegionVersionHolder<T>>(
         liveHolders.size(), LOAD_FACTOR, CONCURRENCY_LEVEL);
@@ -178,6 +206,13 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     return createCopy(this.myId, clonedHolders, this.localVersion.get(),
         gcVersions, this.localGCVersion.get(), false, 
         clonedLocalHolder);
+  }
+
+  // just call the above method but with a lock so that
+  // memberToversion is not modified.
+  public RegionVersionVector<T> getCloneForSnapshot() {
+    // take lock
+    return getCloneForTransmission();
   }
   
   protected abstract RegionVersionVector<T> createCopy(T ownerId,
@@ -397,6 +432,26 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
   }
 
   /**
+   * reserves the next delta version numbers
+   * required for tx when
+   */
+  private final long getNextVersion(int delta, boolean checkLocked) {
+    if (checkLocked && this.locked) {
+      // this should never be the case.  If version generation is locked and we get here
+      // then the path to this point is not protected by getting the version generation
+      // lock from the RVV but it should be
+      LogWriterI18n log = getLoggerI18n();
+      if (log != null && log.fineEnabled()) {
+        log.fine("generating a version tag when version generation is locked by " + this.lockOwner, new Exception("Stack trace"));
+      }
+    }
+    long new_version = localVersion.addAndGet(delta);
+    // since there could be special exception, we have to use recordVersion()
+    recordVersion(getOwnerId(), new_version);
+    return new_version;
+  }
+
+  /**
    * Return the next version number for given remote VersionSource (assumes that
    * given member is a remote one).
    */
@@ -444,6 +499,14 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
   public void lockForCacheModification(LocalRegion owner) {
     if (owner.getServerProxy() == null) {
       this.versionLock.readLock().lock();
+    }
+  }
+
+  /** obtain a lock to prevent other tx or snapshot to happend concurrently */
+  /** This should be optmized later */
+  public void lockForSnapshot(LocalRegion owner) {
+    if (owner.getServerProxy() == null) {
+      this.versionLock.writeLock().lock();
     }
   }
 
@@ -639,7 +702,41 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     
     recordVersion(member, tag.getRegionVersion());
   }
-  
+
+  /**
+   * Records a region-version for snapshotting. This should be called after tx has committed all the
+   * change set locally.
+   *
+   * (TODO:Suranjan ) When a node recovers from disk, its snapshot version and record version should
+   * be same? Find out
+   *
+   * @param member the peer that performed the operation
+   * @param version the version of the peers region that reflects the operation
+   */
+  public void recordSnapshotVersion(T member, long version) {
+    // versions are to be recorded for snapshot only when it is guaranteed that
+    // they are already recorded.
+    // TODO: Suranjan Either the caller or this method has to ensure that version to snapshot is higher than existing
+    // version to snapshot
+    T mbr = member;
+    LogWriterI18n logger = getLoggerI18n();
+    if (mbr == null) {
+      logger.info(LocalizedStrings.DEBUG, "recording region version for local event", new Exception("stack trace"));
+      return;
+    }
+
+    if (mbr.equals(this.myId)) {
+      this.localVersionForSnapshot.set(version);
+    } else {
+      mbr = getCanonicalId(mbr);
+      //record only when older is smaller than new one
+      assert this.memberToSnapshotVersion.get(member) < version;
+      this.memberToSnapshotVersion.put(member, version);
+    }
+    if (DEBUG && logger != null) {
+      logger.info(LocalizedStrings.DEBUG, "recording snapshot version " + version + " for " + mbr);
+    }
+  }
   /**
    * Records a received region-version.  These are transmitted in VersionTags
    * in messages between peers and from servers to clients.  In general you

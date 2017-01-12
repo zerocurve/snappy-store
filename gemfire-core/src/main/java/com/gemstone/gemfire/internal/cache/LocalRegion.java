@@ -6499,6 +6499,11 @@ public class LocalRegion extends AbstractRegion
     updateStatsForPut(startPut);
   }
 
+  final RegionVersionVector takeSnapshot() {
+    return getVersionVector().getCloneForTransmission();
+  }
+
+
   /**
    * update stats
    */

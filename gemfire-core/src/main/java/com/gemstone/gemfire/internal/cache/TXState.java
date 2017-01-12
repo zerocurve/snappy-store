@@ -45,6 +45,7 @@ import com.gemstone.gemfire.cache.TransactionWriter;
 import com.gemstone.gemfire.cache.TransactionWriterException;
 import com.gemstone.gemfire.cache.UnsupportedOperationInTransactionException;
 import com.gemstone.gemfire.distributed.internal.DM;
+import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
 import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedMember;
 import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.Assert;
@@ -63,6 +64,9 @@ import com.gemstone.gemfire.internal.cache.locks.NonReentrantLock;
 import com.gemstone.gemfire.internal.cache.tier.sockets.ClientProxyMembershipID;
 import com.gemstone.gemfire.internal.cache.tier.sockets.VersionedObjectList;
 import com.gemstone.gemfire.internal.cache.versions.RegionVersionVector;
+import com.gemstone.gemfire.internal.cache.versions.VersionSource;
+import com.gemstone.gemfire.internal.cache.versions.VersionStamp;
+import com.gemstone.gemfire.internal.cache.versions.VersionTag;
 import com.gemstone.gemfire.internal.concurrent.ConcurrentTHashSet;
 import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap;
 import com.gemstone.gemfire.internal.concurrent.MapCallback;
@@ -130,6 +134,8 @@ public final class TXState implements TXStateInterface {
   };
 
   volatile State state;
+
+  Map<Region, RegionVersionVector> snapshot;
 
   /*
   private TXLockRequest locks = null;
@@ -394,6 +400,12 @@ public final class TXState implements TXStateInterface {
     this.txLocked = new AtomicBoolean(false);
     this.isGFXD = this.proxy.isGFXD;
     this.state = State.OPEN;
+
+    if (getCache().snaphshotEnabled() && (lockPolicy == LockingPolicy.SNAPSHOT)) {
+      snapshot = getCache().getSnapshotRVV();
+    } else {
+      snapshot = null;
+    }
 
     if (TXStateProxy.LOG_FINE) {
       this.txManager.getLogger().info(LocalizedStrings.DEBUG,
@@ -1024,16 +1036,44 @@ public final class TXState implements TXStateInterface {
 
     final TXRegionState[] finalRegions = this.finalizeRegions;
     boolean hasRVVLocks = false;
+    boolean hasSnapshotLocks = false;
     Map<String, TObjectLongHashMapDSFID> publishEvents = getProxy()
         .getToBePublishedEvents();
     if (publishEvents != null && !publishEvents.isEmpty()) {
       final SetKeyRegionContext setContext = new SetKeyRegionContext();
+      // TODO: Suranjan MVCC
+      /**
+       * Either the regionVersion should be generated at once(not possible as each entry
+       * has to be set a region version too, will have to see the effect if we generate
+       * a region version which includes all the changes by a tx.(delta GII)
+       * or we should take a lock such that no other reader can take snapshot of regionVersion
+       * till a tx has locally committed all the change set.
+       * Otherwise, we will still be reading partial commit of one tx.
+       * Other approach could be to not change the region version but increase it by total number
+       * of entries in txState atomically.
+       * And then for each of the entries in the txState we can set the regionVersion by incrementing one by one.
+       */
+      if (GemFireCacheImpl.getInstance().snaphshotEnabled()) {
+        GemFireCacheImpl.getInstance().lockForSnapshot();
+        hasSnapshotLocks = true;
+      }
       for (TXRegionState txrs : finalRegions) {
         final LocalRegion dataRegion = txrs.region;
         final RegionVersionVector<?> rvv = dataRegion.getVersionVector();
         if (rvv != null) {
           rvv.lockForCacheModification(dataRegion);
           hasRVVLocks = true;
+          if(GemFireCacheImpl.getInstance().snaphshotEnabled()) {
+            // deadlock as other tx can take lock on regions in different order.
+            // so take lock above at cache level.
+            //rvv.lockForSnapshot(dataRegion);
+            //TODO: Suranjan think of optimization later
+            // Some ideas:
+            // Reserve the versions here for each region so that
+            // other tx can continue their commit.
+            // for the time being we can take a lock and add optimizations later.
+            //txrs.getChanges();
+          }
         }
         // initialize tail keys if required
         if (txrs.tailKeysForParallelWAN == null
@@ -1053,6 +1093,13 @@ public final class TXState implements TXStateInterface {
         final LocalRegion dataRegion = txr.region;
         final RegionVersionVector<?> rvv = dataRegion.getVersionVector();
         if (rvv != null) {
+          if(GemFireCacheImpl.getInstance().snaphshotEnabled()) {
+            // Suranjan: Reserve the versions here for each region so that
+            // other tx can continue their commit.
+            // for the time being we can take a lock and add optimizations later.
+            //txr.getChanges();
+            //rvv.lockForSnapshot(dataRegion);
+          }
           rvv.lockForCacheModification(dataRegion);
           hasRVVLocks = true;
         }
@@ -1060,6 +1107,7 @@ public final class TXState implements TXStateInterface {
     }
 
     boolean firstTime = true;
+
     try {
       while (currentEntry != head) {
         cbEvent = commitEntryPhase2(currentEntry, cbEvent, eventsToFree,
@@ -1079,6 +1127,10 @@ public final class TXState implements TXStateInterface {
             rvv.releaseCacheModificationLock(dataRegion);
           }
         }
+      }
+      if (hasSnapshotLocks) {
+        // Figure out how to remove cache level locks in future.
+        GemFireCacheImpl.getInstance().releaseSnapshotLocks();
       }
       if (reuseEV) {
         cbEvent.release();
@@ -2198,6 +2250,7 @@ public final class TXState implements TXStateInterface {
   }
   */
 
+  // we can read entry here and return old entry if the read entry is omitted due to version
   /**
    * Lock the given RegionEntry for reading as per the provided
    * {@link LockingPolicy}.
@@ -2974,6 +3027,7 @@ public final class TXState implements TXStateInterface {
     return val;
   }
 
+  //Suranjan compare here for snapshot.
   @Retained
   public Object getLocally(Object key, Object callbackArg, int bucketId,
       LocalRegion localRegion, boolean doNotLockEntry, boolean localExecution,
@@ -3344,6 +3398,10 @@ public final class TXState implements TXStateInterface {
         allowTombstones, allowReadFromHDFS);
   }
 
+  // TODO: Suranjan for snapshot isolation, allowTombstones should be true
+  // also check for version of the entry with TOMBSTONES so that only those
+  // should be checked in oldEntryMap.
+
   public Region.Entry<?, ?> getEntryForIterator(final KeyInfo keyInfo,
       final LocalRegion region, boolean allowTombstones) {
     // for local/distributed regions, the key is the RegionEntry itself
@@ -3433,6 +3491,8 @@ public final class TXState implements TXStateInterface {
     }
   }
 
+  // For snapshot return the key for tombstone as well
+  // at higher level check if the key is present in the oldEntryMap
   public Object getKeyForIterator(final KeyInfo keyInfo,
       final LocalRegion region, boolean allowTombstones) {
     // only invoked for Local/Distributed Regions
@@ -3630,6 +3690,7 @@ public final class TXState implements TXStateInterface {
   public final Object getLocalEntry(final LocalRegion region,
       LocalRegion dataRegion, final int bucketId, final AbstractRegionEntry re) {
 
+    // suranjan.check version here.
     // for local/distributed regions, the key is the RegionEntry itself
     // getDataRegion will work correctly neverthless
 
@@ -3653,6 +3714,7 @@ public final class TXState implements TXStateInterface {
         try {
           final Object txEntry = txr.readEntry(key);
           if (txEntry instanceof TXEntryState) {
+            // I have modified it.
             final TXEntryState tx = (TXEntryState)txEntry;
             if (TXStateProxy.LOG_FINEST) {
               final LogWriterI18n logger = dataRegion.getLogWriterI18n();
@@ -3670,14 +3732,80 @@ public final class TXState implements TXStateInterface {
             // It was destroyed by the transaction so skip
             // this key and try the next one
             return null; // fix for bug 34583
+          } else {
+            // the re has not been modified by this tx
+            // check the re version with the snapshot version and then search in oldEntry
+            if (!checkEntryVersion(dataRegion, re)) {
+              // txr should be created by other writer if not created by this region.
+              final Object oldEntry = txr.readOldEntry(key);
+              return oldEntry;
+            }
           }
         } finally {
           txr.unlock();
         }
       }
+    } else {
+      //Suranjan: should always read from txr?
+      final Object key = re.getKey();
+      if (dataRegion == null) {
+        dataRegion = region.getDataRegionForRead(key, null, bucketId,
+            Operation.GET_ENTRY);
+      }
+      final TXRegionState txr = readRegion(dataRegion);
+      // if null, then should we create it? as old value will be in txr only.
+      // so, we should check version first and then get the old value from txr or some common location
+      if (txr != null) {
+        txr.lock();
+        try {
+          // the re has not been modified by this tx
+          // check the re version with the snapshot version and then search in oldEntry
+          if (!checkEntryVersion(dataRegion, re)) {
+            // txr should be created by other writer if not created by this region.
+            final Object oldEntry = txr.readOldEntry(key);
+            return oldEntry;
+          }
+
+        } finally {
+          txr.unlock();
+        }
+      } else {
+        if (!checkEntryVersion(dataRegion, re)) {
+          // May be reading old entry can be moved to common place like..txr.readEntry. Explore that.
+          // txr should be created by other writer if not created by this region.
+          // Writer should add old entry with tombstone with region version in the common map
+          //TODO: for the time being wait till writer has written to txr
+          //final Object oldEntry = txr.readOldEntry(key);
+          //return oldEntry;
+          return NonLocalRegionEntry.newEntry(key, Token.TOMBSTONE,
+              dataRegion, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+        }
+      }
     }
     return re;
   }
+
+  public boolean checkEntryVersion(Region region, AbstractRegionEntry entry) {
+    if (getCache().snaphshotEnabled()) {
+      VersionStamp stamp = ((RegionEntry)entry).getVersionStamp();
+
+      VersionSource id = stamp.getMemberID();
+      // could be diskID or memeberID
+      if (id == null) {
+// locally generated.
+        id = InternalDistributedSystem.getAnyInstance().getDistributedMember();
+      }
+      // if rvv is not present then
+      if ((snapshot != null) && snapshot.get(region.getFullPath())!= null) {
+        if(snapshot.get(region.getFullPath()).contains(id, stamp.getRegionVersion()))
+        //then return in the iterator
+        return true;
+      }
+      return false;
+    }
+    return true;
+  }
+
 
   public final boolean isEmpty() {
     return this.regions.isEmpty();

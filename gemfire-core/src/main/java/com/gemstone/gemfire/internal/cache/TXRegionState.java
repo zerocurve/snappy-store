@@ -20,7 +20,9 @@ package com.gemstone.gemfire.internal.cache;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.gemstone.gemfire.CancelException;
@@ -36,6 +38,7 @@ import com.gemstone.gemfire.internal.cache.locks.ExclusiveSharedSynchronizer;
 import com.gemstone.gemfire.internal.cache.locks.LockMode;
 import com.gemstone.gemfire.internal.cache.locks.LockingPolicy;
 import com.gemstone.gemfire.internal.cache.versions.VersionSource;
+import com.gemstone.gemfire.internal.cache.versions.VersionStamp;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.util.ArrayUtils;
 import com.gemstone.gemfire.internal.util.concurrent.StoppableReentrantReadWriteLock;
@@ -69,6 +72,8 @@ public final class TXRegionState extends ReentrantLock {
 
   // A map of Objects (entry keys) -> TXEntryState
   private final THashMapWithCreate entryMods;
+
+  private final Map oldEntryMap;
 
   TObjectLongHashMapDSFID tailKeysForParallelWAN;
 
@@ -147,6 +152,7 @@ public final class TXRegionState extends ReentrantLock {
     this.isPersistent = r.getDataPolicy().withPersistence();
     this.txState = tx;
     this.entryMods = new THashMapWithCreate(4);
+    this.oldEntryMap = new ConcurrentHashMap();
     this.expiryReadLock = r.getTxEntryExpirationReadLock();
     this.isValid = true;
 
@@ -178,6 +184,17 @@ public final class TXRegionState extends ReentrantLock {
       }
     });
     return keys;
+  }
+
+
+  public Map getOldEntryMap() {
+    if (this.isValid)
+      return oldEntryMap;
+    else {
+      throw new IllegalTransactionStateException(
+          LocalizedStrings.TRANSACTION_0_IS_NO_LONGER_ACTIVE
+              .toLocalizedString(this.txState.getTransactionId()));
+    }
   }
 
   /**
@@ -233,9 +250,15 @@ public final class TXRegionState extends ReentrantLock {
    * Returns either a {@link TXEntryState} object for a transactional entry
    * locked for write, while returns {@link RegionEntry} object for a
    * transactional entry locked for read.
+   *
+   * It should return old entry or new entry depending on version
    */
   public final Object readEntry(final Object entryKey) {
     return readEntry(entryKey, true);
+  }
+
+  public final Object readOldEntry(final Object entryKey) {
+    return readOldEntry(entryKey, true);
   }
 
   /**
@@ -260,6 +283,8 @@ public final class TXRegionState extends ReentrantLock {
                 + ",type=" + entryKey.getClass().getSimpleName() + "] for "
                 + toString() + ": " + txEntry);
       }
+
+      // suranjan we can check the version here, no need to check..as any entry in txr will have to be read anyway.
       return txEntry;
     }
     else {
@@ -268,6 +293,35 @@ public final class TXRegionState extends ReentrantLock {
               .toLocalizedString(this.txState.getTransactionId()));
     }
   }
+
+  public final Object readOldEntry(final Object entryKey,
+      final boolean checkValid) {
+    if (!checkValid || this.isValid) {
+      final Map entryMap = this.oldEntryMap;
+      //TODO: Suranjan handle the case where there could be muliple write operations
+      // on the same key later.
+      final Object txEntry = entryMap.size() > 0 ? entryMap.get(entryKey)
+          : null;
+
+      if (TXStateProxy.LOG_FINEST) {
+        final LogWriterI18n logger = this.txState.getCache().getLoggerI18n();
+        logger.info(LocalizedStrings.DEBUG,
+            "TXRegionState#readOldEntry: return TX entry for key [" + entryKey
+                + ",type=" + entryKey.getClass().getSimpleName() + "] for "
+                + toString() + ": " + txEntry);
+      }
+
+      // we can check the version here
+      return txEntry;
+    }
+    else {
+      throw new IllegalTransactionStateException(
+          LocalizedStrings.TRANSACTION_0_IS_NO_LONGER_ACTIVE
+              .toLocalizedString(this.txState.getTransactionId()));
+    }
+  }
+
+
 
   public final TXEntryState createEntry(final Object entryKey,
       final RegionEntry re, final Object val, final boolean doFullValueFlush) {
@@ -860,5 +914,10 @@ public final class TXRegionState extends ReentrantLock {
         + ",dataRegion=" + this.region.getFullPath() + ','
         + this.txState.txId.shortToString() + ",TXState@0x"
         + Integer.toHexString(System.identityHashCode(txState));
+  }
+
+  // Can put it into a
+  public void addOldEntry(NonLocalRegionEntry re) {
+    oldEntryMap.put(re.getKey(), re);
   }
 }

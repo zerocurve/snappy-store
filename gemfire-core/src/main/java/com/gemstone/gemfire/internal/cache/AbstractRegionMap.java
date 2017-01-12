@@ -107,6 +107,11 @@ abstract class AbstractRegionMap implements RegionMap {
 
   /** The underlying map for this region. */
   protected CustomEntryConcurrentHashMap<Object, Object/*RegionEntry*/> map;
+
+  /** A transient map to store old entries for mvcc.*/
+  // TODO: where to maintain this. Should there be a delegates etc.
+      // we need to see how to integrate it into txRead. or we should just add it to
+  protected CustomEntryConcurrentHashMap<Object, Object/*RegionEntry*/> oldEntryMap;
   /** An internal Listener for index maintenance for GemFireXD. */
   protected IndexUpdater indexUpdater;
   /** a boolean used only in GemFireXD to handle creates
@@ -127,6 +132,8 @@ abstract class AbstractRegionMap implements RegionMap {
   protected AbstractRegionMap(InternalRegionArguments internalRegionArgs) {
     if (internalRegionArgs != null) {
       this.indexUpdater = internalRegionArgs.getIndexUpdater();
+      // when it should be cleaned up.
+      this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
     }
     else {
       this.indexUpdater = null;
@@ -3941,11 +3948,34 @@ RETRY_LOOP:
                           || !re.isRemoved()
                           || replaceOnClient) {
                         // update
+                        if (owner.concurrencyChecksEnabled) {
+                          // we need to do the same for secondary as well.
+                          RegionEntry oldRe = NonLocalRegionEntry.newEntry(event.getKey(), re._getValue(),
+                              owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+                          //RegionEntry oldRe = getEntryFactory().createEntry((RegionEntryContext)owner, event.getKey(),
+                          //    re._getValue());
+                          // need to set the version information.
+                          oldEntryMap.put(event.getKey(), oldRe);
+                        }
                         updateEntry(event, requireOldValue, oldValueForDelta, re);
+                        // need to put old entry in oldEntryMap for MVCC
                       } else {
+                        if (owner.concurrencyChecksEnabled) {
+                          // we need to do the same for secondary as well.
+                          RegionEntry oldRe = NonLocalRegionEntry.newEntry(event.getKey(), Token.TOMBSTONE,
+                              owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+                          // if value already present then we should add a list of RE.
+                          oldEntryMap.put(event.getKey(), oldRe);
+                          // just put tombstone for MVCC so that others also take lock.
+//                        RegionEntry oldRe = getEntryFactory().createEntry((RegionEntryContext)owner, event.getKey(),
+//                            Token.TOMBSTONE);
+                        }
                         // create
                         createEntry(event, owner, re);
                       }
+
+                      //suranjan event should be recorded??
+                      // or should it be postponed.
                       owner.recordEvent(event);
                       eventRecorded = true;
                     } catch (RegionClearedException rce) {
@@ -4308,11 +4338,17 @@ RETRY_LOOP:
       boolean createdForDestroy, boolean removeRecoveredEntry)
       throws CacheWriterException, TimeoutException, EntryNotFoundException,
       RegionClearedException {
+    RegionEntry oldRe = NonLocalRegionEntry.newEntry(event.getKey(), re.getValueOffHeapOrDiskWithoutFaultIn(_getOwner()),
+        _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+
     processVersionTag(re, event);
     final int oldSize = _getOwner().calculateRegionEntryValueSize(re);
     boolean retVal = re.destroy(event.getLocalRegion(), event, inTokenMode,
         cacheWrite, expectedOldValue, createdForDestroy, removeRecoveredEntry);
+    // we can add the old value to
     if (retVal) {
+      // we need to keep it at one place.
+      oldEntryMap.put(event.getKey(), oldRe);
       EntryLogger.logDestroy(event);
       _getOwner().updateSizeOnRemove(event.getKey(), oldSize);
     }
@@ -4465,6 +4501,19 @@ RETRY_LOOP:
       boolean clearOccured = false;
       boolean isCreate = false;
       try {
+        //TODO: Suranjan create a copy. Find out all the concurrent running tx
+        // Put the copy to all the concurrent running tx region state.
+        // mostly will have to copy it into common place instead of all the running tx.
+        // as there is a race. what if the tx started after this setting the value.
+        // The regionVersions will be recorded later. In that case we will miss the old version
+        // corresponding to this change.
+        /*for (TXStateProxy proxy : owner.getCache().getCacheTransactionManager().getHostedTransactionsInProgress()) {
+          TXRegionState[] regionStates = proxy.getLocalTXState().getTXRegionStatesSnap();
+          for (int i = 0; i < regionStates.length; i++) {
+            regionStates[i].addOldEntry(NonLocalRegionEntry.newEntry(re, owner, true));
+          }
+        }*/
+
         re.setValue(owner, re.prepareValueForCache(owner, newValue, !putOp.isCreate(), false));
         if (putOp.isCreate()) {
           isCreate = true;

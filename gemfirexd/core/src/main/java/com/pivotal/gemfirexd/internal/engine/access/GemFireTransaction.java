@@ -2898,7 +2898,7 @@ public final class GemFireTransaction extends RawTransaction implements
         this.txManager.commit(tx, this.connectionID, TXManagerImpl.FULL_COMMIT,
             null, false);
       }
-      if (isolationLevel != IsolationLevel.NONE) {
+      if (isolationLevel != IsolationLevel.NONE || true) {
         // clear old GemFire TXState in thread-local, if any
         final TXManagerImpl.TXContext context = TXManagerImpl
             .getOrCreateTXContext();

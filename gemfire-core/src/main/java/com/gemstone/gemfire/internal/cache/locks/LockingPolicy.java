@@ -186,6 +186,11 @@ public enum LockingPolicy {
     }
 
     @Override
+    public boolean readCanStartTX() {
+      return true;
+    }
+
+    @Override
     public final boolean isFailFast() {
       return true;
     }
@@ -461,6 +466,82 @@ public enum LockingPolicy {
       return lockObj.hasExclusiveLock(owner, context);
     }
   },
+  /**
+   * Defines a snapshot locking policy. i.e. no lock.
+   * we can add lock later for write to detect write write conflict.
+   * read can start tx
+   */
+  SNAPSHOT {
+
+    @Override
+    public LockMode getReadLockMode() {
+      return null;//LockMode.SH;
+    }
+
+    @Override
+    public LockMode getWriteLockMode() {
+      return null;//LockMode.EX_SH;
+    }
+
+    @Override
+    public LockMode getReadOnlyLockMode() {
+      return null;
+    }
+
+    @Override
+    public boolean readCanStartTX() {
+      return true;
+    }
+
+    @Override
+    public boolean readOnlyCanStartTX() {
+      return true;
+    }
+
+    @Override
+    public final void acquireLock(ExclusiveSharedLockObject lockObj,
+        LockMode mode, int flags, Object lockOwner, Object context,
+        AbstractOperationMessage msg) throws ConflictException,
+        LockTimeoutException {
+      acquireLockFailFast(lockObj, mode, flags, lockOwner, context, msg);
+    }
+
+    @Override
+    public final long getTimeout(Object lockObj, LockMode newMode,
+        LockMode currentMode, int flags, final long msecs) {
+      return msecs;
+    }
+
+    @Override
+    public final IsolationLevel getIsolationLevel() {
+      return IsolationLevel.NONE;
+    }
+
+    @Override
+    public final boolean isFailFast() {
+      return true;
+    }
+
+    @Override
+    public final Object lockForRead(final ExclusiveSharedLockObject lockObj,
+        LockMode mode, Object lockOwner, final Object context,
+        final int iContext, AbstractOperationMessage msg,
+        boolean allowTombstones, ReadEntryUnderLock reader) {
+      // no locking to be done
+      // try to see if we can add versioning information here and read
+      //return reader.readEntry(lockObj, context, iContext, allowTombstones);
+      if (mode == LockMode.SH) {
+        //return reader.readEntry(lockObj, context, iContext, allowTombstones);
+      }
+      else {
+        //return reader.readEntry(lockObj, context, iContext, allowTombstones);
+        //can we read version here and return
+      }
+      return reader.readEntry(lockObj, context, iContext, allowTombstones);
+    }
+
+  },
+  ;
   ;
 
   /**

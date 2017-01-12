@@ -68,6 +68,7 @@ import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.naming.Context;
 
@@ -195,6 +196,7 @@ import com.gemstone.gemfire.internal.cache.tier.sockets.CacheClientNotifier;
 import com.gemstone.gemfire.internal.cache.tier.sockets.CacheClientProxy;
 import com.gemstone.gemfire.internal.cache.tier.sockets.ClientHealthMonitor;
 import com.gemstone.gemfire.internal.cache.tier.sockets.ClientProxyMembershipID;
+import com.gemstone.gemfire.internal.cache.versions.RegionVersionVector;
 import com.gemstone.gemfire.internal.cache.versions.VersionTag;
 import com.gemstone.gemfire.internal.cache.wan.AbstractGatewaySender;
 import com.gemstone.gemfire.internal.cache.wan.GatewayReceiverFactoryImpl;
@@ -472,6 +474,10 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   private EventTracker.ExpiryTask recordedEventSweeper;
 
   private TombstoneService tombstoneService;
+
+  private Map<Region,RegionVersionVector> snapshotRVV = new ConcurrentHashMap<Region,RegionVersionVector>();
+
+  private final ReentrantReadWriteLock snapshotLock = new ReentrantReadWriteLock();
 
   /**
    * DistributedLockService for PartitionedRegions. Remains null until the first PartitionedRegion is created. Destroyed
@@ -1185,6 +1191,45 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
    */
   public DiskStoreFactory createDiskStoreFactory(DiskStoreAttributes attrs) {
     return new DiskStoreFactoryImpl(this, attrs);
+  }
+
+  // this snapshot is different from snapshot for export.
+  // however this can be used for that purpose.
+  public boolean snaphshotEnabled() {
+    return true;
+  }
+
+  // currently it will wait for a long time
+  // we can have differnt ds or read write locks to avoid waiting of read operations.
+  //TODO: As an optimizations we can change the ds and maintain it at cache level and punish writes.
+  //return snapshotRVV;
+  public Map getSnapshotRVV() {
+    lockForSnapshot();
+    try {
+      Map<String, RegionVersionVector> snapshot = new HashMap();
+      for (LocalRegion region : getApplicationRegions()) {
+        if (region.getPartitionAttributes() != null) {
+          for (BucketRegion br : ((PartitionedRegion)region).getDataStore().getAllLocalBucketRegions()) {
+            // if null then create the rvv for that bucket.!
+            snapshot.put(br.getFullPath(), br.getVersionVector().getCloneForTransmission());
+          }
+        } else if (region.getVersionVector() != null) {
+          // if null then create the rvv for that region.!
+          snapshot.put(region.getFullPath(), region.getVersionVector().getCloneForTransmission());
+        }
+      }
+      return snapshot;
+    } finally {
+      releaseSnapshotLocks();
+    }
+  }
+
+  public void lockForSnapshot() {
+    this.snapshotLock.writeLock().lock();
+  }
+
+  public void releaseSnapshotLocks() {
+    this.snapshotLock.writeLock().unlock();
   }
 
   protected final class Stopper extends CancelCriterion {

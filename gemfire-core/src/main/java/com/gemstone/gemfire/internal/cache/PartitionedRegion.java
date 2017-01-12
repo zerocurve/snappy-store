@@ -238,6 +238,7 @@ import com.gemstone.gemfire.internal.cache.tier.sockets.ClientProxyMembershipID;
 import com.gemstone.gemfire.internal.cache.tier.sockets.VersionedObjectList;
 import com.gemstone.gemfire.internal.cache.versions.ConcurrentCacheModificationException;
 import com.gemstone.gemfire.internal.cache.versions.RegionVersionVector;
+import com.gemstone.gemfire.internal.cache.versions.VersionSource;
 import com.gemstone.gemfire.internal.cache.versions.VersionStamp;
 import com.gemstone.gemfire.internal.cache.versions.VersionTag;
 import com.gemstone.gemfire.internal.cache.wan.AbstractGatewaySender;
@@ -7107,6 +7108,7 @@ public class PartitionedRegion extends LocalRegion implements
       this.diskIteratorInitialized = false;
       this.includeHDFS = includeHDFSResults();
       this.cb = GemFireCacheImpl.getInternalProductCallbacks();
+
     }
 
     public PRLocalScanIterator(final Set<Integer> bucketIds, final TXState tx,
@@ -7172,7 +7174,8 @@ public class PartitionedRegion extends LocalRegion implements
         ((HDFSIterator) bucketEntriesIter).close();
       }
     }
-    
+
+    // For snapshot isolation, Get the iterator on the txRegionstate maps entry iterator too
     public boolean hasNext() {
       if (this.moveNext) {
         for (;;) {
@@ -7194,6 +7197,8 @@ public class PartitionedRegion extends LocalRegion implements
             }
             //TODO: Suranjan How will it work for tx? There will be no BucketRegion for NonLocalRegionEntry
             // Ideally for tx there shouldn't be a case of iterator fetching remote entry
+            // For snapshot make sure that it returns either the old entry or new entry depending on the
+            // version in snapshot
             if (this.txState != null) {
               this.currentEntry = this.txState.getLocalEntry(
                   PartitionedRegion.this, this.currentBucketRegion,
@@ -7202,9 +7207,9 @@ public class PartitionedRegion extends LocalRegion implements
             else {
               this.currentEntry = val;
             }
-            if (this.currentEntry != null) {
-              // check if
-
+            // For snapshot Isolation do the check here.
+            // get the snapshot information from TxState.TxRegionState.
+            if (this.currentEntry != null /*&& !checkIfCorrectVersion(this.currentEntry)*/) {
               this.moveNext = false;
               return true;
             }
