@@ -78,10 +78,10 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
 
     //start a read tx and another tx for insert, current tx shouldn't see new entry
     rs = st.executeQuery("Select * from t1");
-    ResultSet rs2 = st.executeQuery("Select * from t1 where c1 = 10");
-    ResultSet rs3 = st.executeQuery("Select * from t1 where c1 > 5");
-    ResultSet rs4 = st.executeQuery("Select * from t1 where c2 > 20");
-    ResultSet rs5 = st.executeQuery("Select * from t1 where c2 = 20");
+    //ResultSet rs2 = st.executeQuery("Select * from t1 where c1 = 10");
+    //ResultSet rs3 = st.executeQuery("Select * from t1 where c1 > 5");
+    //ResultSet rs4 = st.executeQuery("Select * from t1 where c2 > 20");
+    // rs5 = st.executeQuery("Select * from t1 where c2 = 20");
     // do some insert operation in different transaction
     doInsertOpsInTx();
     // even after commit of above tx, as the below was started earlier
@@ -92,11 +92,11 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     }
     assertEquals("ResultSet should contain one row ", 1, numRows);
 
-    numRows = 0;
-    while (rs2.next()) {
-      numRows++;
-    }
-    assertEquals("ResultSet should contain one row ", 1, numRows);
+//    numRows = 0;
+//    while (rs2.next()) {
+//      numRows++;
+//    }
+//    assertEquals("ResultSet should contain one row ", 1, numRows);
 
     conn.commit();
     // start a read tx, it should see all the changes.
@@ -275,19 +275,99 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
   // test putAll path
   // test contains path
   // test local index path
-
   //foreign key?
 
 
   public void testSnapshotAgainstUpdateOperations() throws Exception {
+    Connection conn = getConnection();
+    Statement st = conn.createStatement();
+    st.execute("Create table t1 (c1 int not null , c2 int not null, c3 int not null,"
+        + "primary key(c1)) partition by column (c1) enable concurrency checks "+getSuffix());
+    conn.commit();
+    conn = getConnection();
+    conn.setTransactionIsolation(getIsolationLevel());
+    //conn.setAutoCommit(false);
 
+    st = conn.createStatement();
+
+    st.execute("insert into t1 values (10, 10, 20)");
+    st.execute("insert into t1 values (20, 20, 20)");
+
+    ResultSet rs = st.executeQuery("Select * from t1");
+    int numRows = 0;
+    while (rs.next()) {
+      numRows++;
+    }
+    // within tx also the row count should be 2
+    assertEquals("ResultSet should contain two row ", 2, numRows);
+
+    rs = st.executeQuery("Select * from t1 where c1=10");
+    numRows = 0;
+    while (rs.next()) {
+      numRows++;
+    }
+    // withing tx also the row count should be 1
+    assertEquals("ResultSet should contain one row ", 1, numRows);
+    conn.commit(); // commit two rows.
+
+    // start a read tx
+    rs = st.executeQuery("Select * from t1");
+    // another thread update all row
+    doUpdateOpsInTx();
+
+    // iterate over the ResultSet
+    numRows = 0;
+    while (rs.next()) {
+      numRows++;
+      int c2 = rs.getInt("c3");
+      assertEquals("C3 should be  20 ", 20, c2);
+    }
+    assertEquals("ResultSet should contain two rows ", 2, numRows);
+    //assert that old value is returned
   }
 
   public void testSnapshotAgainstDeleteOperations() throws Exception {
+    Connection conn = getConnection();
+    Statement st = conn.createStatement();
+    st.execute("Create table t1 (c1 int not null , c2 int not null, c3 int not null, "
+        + "primary key(c1)) partition by column (c1) enable concurrency checks "+getSuffix());
+    conn.commit();
+    conn = getConnection();
+    conn.setTransactionIsolation(getIsolationLevel());
+    conn.setAutoCommit(false);
 
+    st = conn.createStatement();
+
+    st.execute("insert into t1 values (10, 20, 10)");
+    st.execute("insert into t1 values (20, 30, 20)");
+
+    ResultSet rs = st.executeQuery("Select * from t1");
+    int numRows = 0;
+    while (rs.next()) {
+      numRows++;
+    }
+    // withing tx also the row count should be 2
+    assertEquals("ResultSet should contain two row ", 2, numRows);
+
+    conn.commit(); // commit two rows.
+
+    // start a read tx
+    rs = st.executeQuery("Select * from t1");
+
+    // another thread delete one row
+    doDeleteOpsInTx();
+
+    // iterate over the ResultSet
+    numRows = 0;
+    while (rs.next()) {
+      numRows++;
+    }
+    assertEquals("ResultSet should contain two row ", 2, numRows);
+    //assert that old value is returned
   }
 
   public void testSnapshotAgainstMultipleTable() throws Exception {
+
 
   }
 
@@ -323,6 +403,63 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
             numRows++;
           }
           assertEquals("ResultSet should contain eight rows ", 8, numRows);
+          conn2.commit();
+        } catch (SQLException e) {
+          e.printStackTrace();
+        }
+      }
+    };
+    Thread t = new Thread(r);
+    t.start();
+    t.join();
+  }
+
+  // do both..point update and scan update
+  private void doUpdateOpsInTx() throws SQLException, InterruptedException {
+    final Connection conn2 = getConnection();
+    Runnable r = new Runnable(){
+      @Override
+      public void run() {
+        try {
+          Statement st = conn2.createStatement();
+          conn2.setTransactionIsolation(Connection.TRANSACTION_NONE);
+          conn2.setAutoCommit(false);
+          st.execute("update t1 set c3=50 where c2 = 20");
+          conn2.commit();
+          ResultSet rs = st.executeQuery("Select * from t1");
+          int numRows = 0;
+          while (rs.next()) {
+            numRows++;
+          }
+          assertEquals("ResultSet should contain eight rows ", 2, numRows);
+          conn2.commit();
+        } catch (SQLException e) {
+          e.printStackTrace();
+        }
+      }
+    };
+    Thread t = new Thread(r);
+    t.start();
+    t.join();
+  }
+
+  private void doDeleteOpsInTx() throws SQLException, InterruptedException {
+    final Connection conn2 = getConnection();
+    Runnable r = new Runnable(){
+      @Override
+      public void run() {
+        try {
+          Statement st = conn2.createStatement();
+          conn2.setTransactionIsolation(Connection.TRANSACTION_NONE);
+          conn2.setAutoCommit(false);
+          st.execute("delete from t1 where c2 = 20");
+          conn2.commit();
+          ResultSet rs = st.executeQuery("Select * from t1");
+          int numRows = 0;
+          while (rs.next()) {
+            numRows++;
+          }
+          assertEquals("ResultSet should contain eight rows ", 1, numRows);
           conn2.commit();
         } catch (SQLException e) {
           e.printStackTrace();

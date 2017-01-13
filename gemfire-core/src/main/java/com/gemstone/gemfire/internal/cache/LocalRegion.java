@@ -232,6 +232,10 @@ public class LocalRegion extends AbstractRegion
              DiskExceptionHandler, DiskRecoveryStore
 {
 
+  public RegionEntry getLocalOldEntry(Object key, RegionVersionVector rvv) {
+    return getRegionMap().getOldVersionedEntry(key, rvv);
+  }
+
   /**
    * Internal interface used to simulate failures when performing entry operations
    * @author Mitch Thomas
@@ -1799,13 +1803,24 @@ public class LocalRegion extends AbstractRegion
       this.diskRegion.setClearCountReference();
     }
     try {
-      if (re == null) {
-        if (allowReadFromHDFS) {
-          re = this.entries.getEntry(key);
-        } else {
-          re = this.entries.getOperationalEntryInVM(key);
+      if (lockState!= null && (lockState.getLockingPolicy() == LockingPolicy.SNAPSHOT)) {
+        if (re == null) {
+          if (allowReadFromHDFS) {
+            re = this.entries.getEntry(key);
+          } else {
+            re = this.entries.getOperationalEntryInVM(key);
+          }
+        }
+      } else {
+        if (re == null) {
+          if (allowReadFromHDFS) {
+            re = this.entries.getEntry(key);
+          } else {
+            re = this.entries.getOperationalEntryInVM(key);
+          }
         }
       }
+
       //skip updating the stats if the value is null
       // TODO - We need to clean up the callers of the this class so that we can
       // update the statistics here, where it would make more sense.
@@ -2612,6 +2627,7 @@ public class LocalRegion extends AbstractRegion
     return txGetEntry(re, key, access, tx, allowTombstones);
   }
 
+  // compare the version and get the old Entry if possible.
   private final Region.Entry<?, ?> txGetEntry(final RegionEntry re,
       final Object key, boolean access, final TXStateInterface lockState,
       boolean allowTombstones) {
@@ -2998,6 +3014,7 @@ public class LocalRegion extends AbstractRegion
         // for txns, acquire read lock if required
         if (tx != null) {
           Object val = tx.lockEntryForRead(re, key, this, 0, false, READ_TOKEN);
+          //TODO: Need to check the version of re and then check for
           return !Token.isRemoved(val);
         }
         else {
@@ -3033,6 +3050,7 @@ public class LocalRegion extends AbstractRegion
     }
     try {
       final RegionEntry entry = this.entries.getEntry(key);
+      //TODO:suranjan check for version here
       if (entry != null) {
         @Retained Object val;
         if (lockState != null) {

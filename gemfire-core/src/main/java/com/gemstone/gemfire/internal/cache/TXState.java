@@ -137,6 +137,8 @@ public final class TXState implements TXStateInterface {
 
   Map<Region, RegionVersionVector> snapshot;
 
+  protected CustomEntryConcurrentHashMap<Object, Object/*RegionEntry*/> oldEntryMap;
+
   /*
   private TXLockRequest locks = null;
 
@@ -202,6 +204,10 @@ public final class TXState implements TXStateInterface {
    */
   final NonReentrantLock txLock;
   private final AtomicBoolean txLocked;
+
+  public void addOldEntry(RegionEntry oldRe) {
+    this.oldEntryMap.put(oldRe.getKey(), oldRe);
+  }
 
   /**
    * Denotes the state of this TXState.
@@ -402,10 +408,12 @@ public final class TXState implements TXStateInterface {
     this.state = State.OPEN;
 
     if (getCache().snaphshotEnabled() && (lockPolicy == LockingPolicy.SNAPSHOT)) {
-      snapshot = getCache().getSnapshotRVV();
+      this.snapshot = getCache().getSnapshotRVV();
     } else {
-      snapshot = null;
+      this.snapshot = null;
     }
+
+    this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
 
     if (TXStateProxy.LOG_FINE) {
       this.txManager.getLogger().info(LocalizedStrings.DEBUG,
@@ -2923,6 +2931,7 @@ public final class TXState implements TXStateInterface {
         txr.unlock();
       }
     }
+    // compare the version and then return correct re.
     return localRegion.txGetEntry(keyInfo, access, this, allowTombstones);
   }
 
@@ -2989,6 +2998,7 @@ public final class TXState implements TXStateInterface {
         disableCopyOnRead, preferCD, false, clientEvent, allowTombstones, allowReadFromHDFS);
   }
 
+
   private Object getDeserializedValue(Object key, Object callbackArg,
       LocalRegion localRegion, boolean updateStats, boolean disableCopyOnRead,
       boolean preferCD, boolean doCopy, EntryEventImpl clientEvent,
@@ -3027,7 +3037,7 @@ public final class TXState implements TXStateInterface {
     return val;
   }
 
-  //Suranjan compare here for snapshot.
+  //Suranjan compare here for snapshot. This is for primary key based.
   @Retained
   public Object getLocally(Object key, Object callbackArg, int bucketId,
       LocalRegion localRegion, boolean doNotLockEntry, boolean localExecution,
@@ -3064,6 +3074,7 @@ public final class TXState implements TXStateInterface {
         txr.unlock();
       }
     }
+    // Get the entry
     return localRegion.getSharedDataView().getLocally(key, callbackArg,
         bucketId, localRegion, doNotLockEntry, localExecution, this,
         clientEvent, allowTombstones, allowReadFromHDFS);
@@ -3777,16 +3788,54 @@ public final class TXState implements TXStateInterface {
           //TODO: for the time being wait till writer has written to txr
           //final Object oldEntry = txr.readOldEntry(key);
           //return oldEntry;
-          return NonLocalRegionEntry.newEntry(key, Token.TOMBSTONE,
-              dataRegion, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+          // getOldEntry
+          if ((snapshot != null) && snapshot.get(dataRegion.getFullPath())!= null) {
+            RegionEntry oldEntry = (RegionEntry)this.oldEntryMap.get(key);
+            if (oldEntry != null) {
+              return oldEntry;
+            }
+            else {
+              //wait till it is populated..
+              // The update/destroy guy can update the region version first and then modify the RE
+              // later copy it to running tx so that when tx misses the entry it is sure that
+              // it will be copied by writer thread
+              // If we copy first and then update the region version and RE then there is a window where
+              // concurrent tx can miss the old entry.
+              // 1. Copy of the old value
+              // 2. New tx starts and takes the snapshot
+              // 3. old tx increments the regionVersion
+              // 4. old tx changes the RE
+              // 5. New tx scans and misses the changed RE as its version is higher than the snapshot.
+            }
+            // For Transaction NONE we can get locally. For tx isolation level RC/RR
+            // we will have to get from a common DS.
+            //dataRegion.getLocalOldEntry(re.getKey(), snapshot.get(region.getFullPath()));
+          }
+          else {
+            Assert.fail("There must have been old Entry corresponding to re " + re);
+              // there is a problema//FAIL
+            // we should wait here to get from the oldEntryMap as writer thread will be eventually going
+            // to put it into the map.
+            //return NonLocalRegionEntry.newEntry(key, Token.TOMBSTONE,
+            //    dataRegion, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+          }
+
         }
       }
     }
     return re;
   }
 
+  /**
+   * Either this should go and check from the oldEntry Map and read the old Entry for the entry
+   * it missed.
+   * Or the iterator should return the oldEntry map.
+   * @param region
+   * @param entry
+   * @return
+   */
   public boolean checkEntryVersion(Region region, AbstractRegionEntry entry) {
-    if (getCache().snaphshotEnabled()) {
+    if (getCache().snaphshotEnabled() && ((LocalRegion)region).concurrencyChecksEnabled) {
       VersionStamp stamp = ((RegionEntry)entry).getVersionStamp();
 
       VersionSource id = stamp.getMemberID();

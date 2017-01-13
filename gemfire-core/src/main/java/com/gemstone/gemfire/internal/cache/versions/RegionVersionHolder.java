@@ -244,29 +244,29 @@ public final class RegionVersionHolder<T> implements Cloneable, DataSerializable
           + "; bits=" + this.bitSet.toString());
     }
   }
-  
-  
+
+
   /** merge bit-set exceptions into the regular exceptions list */
   private synchronized void mergeBitSet() {
     if (this.bitSet != null && this.bitSetVersion < this.version) {
       addBitSetExceptions((int)(this.version-this.bitSetVersion), this.version, null);
     }
   }
-  
+
   /**
    * Add exceptions from the BitSet array to the exceptions list.  Assumes that
    * the BitSet[0] corresponds to this.bitSetVersion.  This scans the bitset
    * looking for gaps that are recorded as RVV exceptions.  The scan terminates
    * at numBits or when the last set bit is found.  The bitSet is adjusted and
    * a new bitSetVersion is established.
-   * 
+   *
    * @param newVersion  the desired new bitSetVersion, which may be > the max representable in the bitset
    * @param numBits the desired number of bits to flush from the bitset
    * @param logger
    */
   private void addBitSetExceptions(int numBits, long newVersion, LogWriterI18n logger) {
     int lastSetIndex = -1;
-    
+
     if (RegionVersionVector.DEBUG && logger != null) {
       logger.info(LocalizedStrings.DEBUG, "addBitSetExceptions("+numBits+","+newVersion+")");
     }
@@ -278,7 +278,7 @@ public final class RegionVersionHolder<T> implements Cloneable, DataSerializable
       }
 
       lastSetIndex = nextMissingIndex-1;
-      
+
       int nextReceivedIndex = this.bitSet.nextSetBit(nextMissingIndex+1);
       long nextReceivedVersion = -1;
       if (nextReceivedIndex > 0) {
@@ -314,7 +314,7 @@ public final class RegionVersionHolder<T> implements Cloneable, DataSerializable
       this.bitSetVersion = this.bitSetVersion + (long)lastSetIndex;
     }
   }
-  
+
   synchronized void recordVersion(long version, LogWriterI18n logger) {
     updateVersion(version, logger);
   }

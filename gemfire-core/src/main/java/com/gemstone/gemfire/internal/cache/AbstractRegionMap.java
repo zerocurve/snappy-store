@@ -50,6 +50,7 @@ import com.gemstone.gemfire.internal.cache.FilterRoutingInfo.FilterInfo;
 import com.gemstone.gemfire.internal.cache.delta.Delta;
 import com.gemstone.gemfire.internal.cache.ha.HAContainerWrapper;
 import com.gemstone.gemfire.internal.cache.ha.HARegionQueue;
+import com.gemstone.gemfire.internal.cache.locks.LockingPolicy;
 import com.gemstone.gemfire.internal.cache.locks.NonReentrantReadWriteLock;
 import com.gemstone.gemfire.internal.cache.lru.LRUEntry;
 import com.gemstone.gemfire.internal.cache.tier.sockets.CacheClientNotifier;
@@ -109,8 +110,13 @@ abstract class AbstractRegionMap implements RegionMap {
   protected CustomEntryConcurrentHashMap<Object, Object/*RegionEntry*/> map;
 
   /** A transient map to store old entries for mvcc.*/
-  // TODO: where to maintain this. Should there be a delegates etc.
-      // we need to see how to integrate it into txRead. or we should just add it to
+  // TODO: where to maintain this. Should there be a delegate model like HDFS.
+  // we need to see how to integrate it into txRead. or we should just add it to
+  // This map needs to be MultiValue map. the value too should be sorted according to the versions
+  // In case there are multiple values, the reader has to get the
+  // we can have a getter with the version information which will return the highest version entry less than
+  // the provided version
+  // any operation on this map for a re should happen under the lock of corresponding re in above map
   protected CustomEntryConcurrentHashMap<Object, Object/*RegionEntry*/> oldEntryMap;
   /** An internal Listener for index maintenance for GemFireXD. */
   protected IndexUpdater indexUpdater;
@@ -503,6 +509,19 @@ abstract class AbstractRegionMap implements RegionMap {
     if (re != null && re.isMarkedForEviction()) {
       // entry has been faulted in from HDFS
       return null;
+    }
+    // we should return the correct version here
+    return re;
+  }
+
+  @Override
+  public final RegionEntry getOldVersionedEntry(Object key, RegionVersionVector rvv) {
+    RegionEntry re = (RegionEntry)oldEntryMap.get(key);
+    if(re instanceof List){
+      // compare the entry and get the highes versioned less or equal to rvv.
+    }
+    else {
+      // if there is only one then just return that one
     }
     return re;
   }
@@ -3944,38 +3963,49 @@ RETRY_LOOP:
                   notifyIndex(re, owner, true);
                   try {
                     try {
+                      RegionEntry oldRe = null;
                       if ((cacheWrite && event.getOperation().isUpdate()) // if there is a cacheWriter, type of event has already been set
                           || !re.isRemoved()
                           || replaceOnClient) {
                         // update
-                        if (owner.concurrencyChecksEnabled) {
+                        if (owner.concurrencyChecksEnabled &&
+                            event.getTXState().getLockingPolicy() == LockingPolicy.SNAPSHOT) {
                           // we need to do the same for secondary as well.
-                          RegionEntry oldRe = NonLocalRegionEntry.newEntry(event.getKey(), re._getValue(),
+                          oldRe = NonLocalRegionEntry.newEntry(event.getKey(), re._getValue(),
                               owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
                           //RegionEntry oldRe = getEntryFactory().createEntry((RegionEntryContext)owner, event.getKey(),
                           //    re._getValue());
                           // need to set the version information.
-                          oldEntryMap.put(event.getKey(), oldRe);
                         }
                         updateEntry(event, requireOldValue, oldValueForDelta, re);
-                        // need to put old entry in oldEntryMap for MVCC
                       } else {
-                        if (owner.concurrencyChecksEnabled) {
+                        if (owner.concurrencyChecksEnabled && (event.getTXState() != null) &&
+                            event.getTXState().getLockingPolicy() == LockingPolicy.SNAPSHOT) {
                           // we need to do the same for secondary as well.
-                          RegionEntry oldRe = NonLocalRegionEntry.newEntry(event.getKey(), Token.TOMBSTONE,
+                          oldRe = NonLocalRegionEntry.newEntry(event.getKey(), Token.TOMBSTONE,
                               owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
                           // if value already present then we should add a list of RE.
-                          oldEntryMap.put(event.getKey(), oldRe);
+                          // TODO: SuranjanFor tx case we will have to maintain common ds.
+                          //oldEntryMap.put(event.getKey(), oldRe);
                           // just put tombstone for MVCC so that others also take lock.
-//                        RegionEntry oldRe = getEntryFactory().createEntry((RegionEntryContext)owner, event.getKey(),
-//                            Token.TOMBSTONE);
+                        //RegionEntry oldRe = getEntryFactory().createEntry((RegionEntryContext)owner, event.getKey(),
+                        //    Token.TOMBSTONE);
                         }
                         // create
                         createEntry(event, owner, re);
                       }
-
-                      //suranjan event should be recorded??
-                      // or should it be postponed.
+                      // need to put old entry in oldEntryMap for MVCC
+                      // TODO: For tx case we will have to maintain common ds.
+                      //oldEntryMap.put(event.getKey(), oldRe);
+                      // after create/update put the oldRe in all the running tx
+                      if (owner.concurrencyChecksEnabled && (event.getTXState() != null) &&
+                          event.getTXState().getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+                        for (TXStateProxy tx : owner.getCache().getCacheTransactionManager().
+                            getHostedTransactionsInProgress()) {
+                          if (tx.txId != event.getTXState().getTransactionId())
+                            tx.addOldEntry(oldRe);
+                        }
+                      }
                       owner.recordEvent(event);
                       eventRecorded = true;
                     } catch (RegionClearedException rce) {
@@ -4341,14 +4371,33 @@ RETRY_LOOP:
     RegionEntry oldRe = NonLocalRegionEntry.newEntry(event.getKey(), re.getValueOffHeapOrDiskWithoutFaultIn(_getOwner()),
         _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
 
+    if (_getOwner().concurrencyChecksEnabled && (event.getTXState() != null) &&
+        event.getTXState().getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+      // we need to do the same for secondary as well.
+      oldRe = NonLocalRegionEntry.newEntry(event.getKey(), re._getValue(),
+          _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+    }
     processVersionTag(re, event);
     final int oldSize = _getOwner().calculateRegionEntryValueSize(re);
+
     boolean retVal = re.destroy(event.getLocalRegion(), event, inTokenMode,
         cacheWrite, expectedOldValue, createdForDestroy, removeRecoveredEntry);
     // we can add the old value to
     if (retVal) {
+      if (_getOwner().concurrencyChecksEnabled && (event.getTXState() != null) &&
+          event.getTXState().getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+        // TODO: For tx case we will have to maintain common ds.
+        //oldEntryMap.put(event.getKey(), oldRe);
+        // after create/update put the oldRe in all the running tx
+        for (TXStateProxy tx : _getOwner().getCache().getCacheTransactionManager().
+            getHostedTransactionsInProgress()) {
+          if (tx.txId != event.getTXState().getTransactionId())
+            tx.addOldEntry(oldRe);
+        }
+      }
       // we need to keep it at one place.
-      oldEntryMap.put(event.getKey(), oldRe);
+      // oldEntry map will be used once we provide Transaction support
+      //oldEntryMap.put(event.getKey(), oldRe);
       EntryLogger.logDestroy(event);
       _getOwner().updateSizeOnRemove(event.getKey(), oldSize);
     }

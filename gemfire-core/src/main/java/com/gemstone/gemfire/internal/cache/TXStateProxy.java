@@ -425,6 +425,12 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
     }
   };
 
+  public void addOldEntry(RegionEntry oldRe) {
+    if (this.localTXState != null) {
+      this.localTXState.addOldEntry(oldRe);
+    }
+  }
+
   public static final class MemberToGIIRegions implements
       THashMapWithCreate.ValueCreator {
     final THashMapWithCreate members;
@@ -1848,7 +1854,7 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
         allowTombstones, allowReadFromHDFS);
   }
 
-  // read operations come here..
+  // primary key based read operations come here..
   public final Object getLocally(Object key, Object callbackArg, int bucketId,
       LocalRegion localRegion, boolean doNotLockEntry, boolean localExecution,
       TXStateInterface lockState, EntryEventImpl clientEvent,
@@ -1938,6 +1944,7 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
     return getEntry(null, key, callbackArg, localRegion, true, false, false);
   }
 
+  // TODO: Suranjan: should snapshot apply to these operations
   private Region.Entry<?, ?> getEntry(KeyInfo keyInfo, Object key,
       Object callbackArg, final LocalRegion region, final boolean access,
       final boolean forIterator, final boolean allowTombstones) {
@@ -2755,7 +2762,7 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
         "getValueForIterator", false);
   }
 
-  //TODO: Suranjan allowTombstones should be true when snapshot isolation is enabled.
+  //TODO: Suranjan find out if snapshot is enabled for these operations.
   private final Object findObject(final KeyInfo keyInfo, final LocalRegion r,
       boolean isCreate, boolean generateCallbacks, final Object value,
       final boolean updateStats, final boolean disableCopyOnRead,
