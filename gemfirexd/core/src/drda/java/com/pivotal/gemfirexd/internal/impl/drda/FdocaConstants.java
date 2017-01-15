@@ -211,7 +211,7 @@ class FdocaConstants
 				break;
 			case java.sql.Types.TIMESTAMP:
 				drdaType = DRDAConstants.DRDA_TYPE_NTIMESTAMP;
-				outlen[0] = 26;
+				outlen[0] = 8;//26;
 				break;
 			case java.sql.Types.CHAR:
 //				drdaType = DRDAConstants.DRDA_TYPE_NCHAR;

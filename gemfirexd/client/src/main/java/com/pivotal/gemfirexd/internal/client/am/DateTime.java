@@ -190,18 +190,22 @@ public class DateTime {
     throws UnsupportedEncodingException
     {
         int year, month, day, hour, minute, second, fraction;
-        String timestamp = new String(buffer, offset, 
-                DateTime.timestampRepresentationLength,encoding);
+        long timeMillis = com.pivotal.gemfirexd.internal.client.am.SignedBinary.getLong(buffer,
+                offset);
+       /* String timestamp = new String(buffer, offset,
+                DateTime.timestampRepresentationLength,encoding);*/
        
         Calendar cal = getCleanCalendar(recyclableCal);
 
         /* java.sql.Timestamp has nanosecond precision, so we have to keep
          * the parsed microseconds value and use that to set nanos.
          */
-        int micros = parseTimestampString(timestamp, cal);
+        java.sql.Timestamp ts = new java.sql.Timestamp(timeMillis);
+        return ts;
+        /*int micros = parseTimestampString(timestamp, cal);
         java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
         ts.setNanos(micros * 1000);
-        return ts;
+        return ts;*/
     }
 
     /**

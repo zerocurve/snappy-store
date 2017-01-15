@@ -114,6 +114,7 @@ import com.pivotal.gemfirexd.internal.iapi.services.stream.HeaderPrintWriter;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.tools.i18n.LocalizedResource;
 import com.pivotal.gemfirexd.internal.iapi.types.HarmonySerialClob;
+import com.pivotal.gemfirexd.internal.iapi.types.MyBigDecimal;
 import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedResultSet;
 import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedResultSetMetaData;
 import com.pivotal.gemfirexd.internal.impl.jdbc.Util;
@@ -8874,6 +8875,12 @@ class DRDAConnThread extends Thread {
 						default:
 // GemStone changes BEGIN
 							Object obj = rs.getObject(i);
+							/*System.out.println("Writing object of class = " + (obj != null? obj
+									.getClass().toString(): "null"));
+							if(obj instanceof MyBigDecimal) {
+								System.out.println("bytes length = "+ ((MyBigDecimal)obj).bytes
+										.length);
+							}*/
 							writeFdocaVal(i, obj, drdaType,
 							    precision, scale,
 							    obj == null || rs.wasNull(), stmt);
@@ -9665,7 +9672,19 @@ class DRDAConnThread extends Thread {
 					if (precision == 0)
 						precision = FdocaConstants.NUMERIC_DEFAULT_PRECISION;
 					BigDecimal bd = (java.math.BigDecimal) val;
-					writer.writeBigDecimal(bd,precision,scale);
+					/*if(!(bd instanceof  MyBigDecimal)) {
+						System.out.println("Big Decimal is " + bd);
+						System.out.println("compnent 1 =" + bd.unscaledValue());
+					}*/
+					try {
+						MyBigDecimal mbd = (MyBigDecimal) bd;
+
+						//writer.writeBigDecimal(bd,precision,scale);
+						writer.writeMyBigDecimal(mbd, precision, scale);
+					}catch(ClassCastException cce) {
+						System.out.println("big decimal is =" + bd);
+					}
+
 					break;
 				case DRDAConstants.DRDA_TYPE_NDATE:
 					writer.writeString(((java.sql.Date) val).toString());
@@ -9676,7 +9695,8 @@ class DRDAConnThread extends Thread {
 				case DRDAConstants.DRDA_TYPE_NTIMESTAMP:
 					// we need to send it in a slightly different format, and pad it
 					// up to or truncate it into 26 chars
-					String ts1 = ((java.sql.Timestamp) val).toString();
+
+					/*String ts1 = ((java.sql.Timestamp) val).toString();
 					String ts2 = ts1.replace(' ','-').replace(':','.');
 					int tsLen = ts2.length();
 					if (tsLen < 26)
@@ -9686,7 +9706,9 @@ class DRDAConnThread extends Thread {
 					}
 					else if (tsLen > 26)
 						ts2 = ts2.substring(0,26);
-					writer.writeString(ts2);
+					writer.writeString(ts2);*/
+					writer.writeLong(((java.sql.Timestamp) val).getTime());
+
 					break;
 				case DRDAConstants.DRDA_TYPE_NCHAR:
 // GemStone changes BEGIN

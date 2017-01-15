@@ -88,6 +88,7 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
           ids.getDistributedMember());
     }
     Set<DistributedMember> allMembers = ids.getAllOtherMembers();
+    allMembers.add(ids.getDistributedMember());
     for (DistributedMember m : allMembers) {
       GfxdDistributionAdvisor.GfxdProfile profile = advisor
           .getProfile((InternalDistributedMember)m);

@@ -154,6 +154,9 @@ public class GenericStatement
             Pattern.compile(".*EXECUTIONENGINE(\\s+)?+=(\\s+)?+STORE\\s+.*",
                 Pattern.CASE_INSENSITIVE);
 
+	private static final Pattern EXECUTION_ENGINE_SPARK_HINT =
+			Pattern.compile(".*EXECUTIONENGINE(\\s+)?+=(\\s+)?+SPARK\\s+.*",
+					Pattern.CASE_INSENSITIVE);
 
 	      private static ExecutionEngineArbiter engineArbiter = new ExecutionEngineArbiter();
 // GemStone changes END
@@ -261,8 +264,18 @@ public class GenericStatement
 		Timestamp			endTimestamp = null;
 		StatementContext	statementContext = null;
 // GemStone changes BEGIN
-    boolean routeQuery = Misc.getMemStore().isSnappyStore() && lcc.isQueryRoutingEnabled()
+        boolean isSparkQuery = EXECUTION_ENGINE_SPARK_HINT.matcher(getSource()).matches();
+		if(isSparkQuery) {
+			boolean checkCancellation = !(SKIP_CANCEL_STMTS
+					.matcher(statementText).find() || DELETE_STMT.matcher(statementText).find());
+
+			final CompilerContext cc = lcc.pushCompilerContext(compilationSchema, true);
+			return this.getPreparedStatementForSnappy(false, statementContext, lcc, cc
+					.isMarkedAsDDLForSnappyUse(), checkCancellation);
+		}
+		boolean routeQuery = Misc.getMemStore().isSnappyStore() && lcc.isQueryRoutingEnabled()
         && (!EXECUTION_ENGINE_STORE_HINT.matcher(getSource()).matches());
+
 		GeneratedClass ac = null;
                 QueryInfo qinfo = null;
                 boolean createGFEPrepStmt = false;
