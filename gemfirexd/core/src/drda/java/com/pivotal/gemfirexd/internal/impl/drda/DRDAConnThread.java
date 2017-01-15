@@ -9672,18 +9672,8 @@ class DRDAConnThread extends Thread {
 					if (precision == 0)
 						precision = FdocaConstants.NUMERIC_DEFAULT_PRECISION;
 					BigDecimal bd = (java.math.BigDecimal) val;
-					/*if(!(bd instanceof  MyBigDecimal)) {
-						System.out.println("Big Decimal is " + bd);
-						System.out.println("compnent 1 =" + bd.unscaledValue());
-					}*/
-					try {
-						MyBigDecimal mbd = (MyBigDecimal) bd;
+        				writer.writeBigDecimal(bd,precision,scale);
 
-						//writer.writeBigDecimal(bd,precision,scale);
-						writer.writeMyBigDecimal(mbd, precision, scale);
-					}catch(ClassCastException cce) {
-						System.out.println("big decimal is =" + bd);
-					}
 
 					break;
 				case DRDAConstants.DRDA_TYPE_NDATE:
