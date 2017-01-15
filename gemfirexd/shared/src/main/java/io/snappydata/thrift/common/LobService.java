@@ -35,6 +35,8 @@
 
 package io.snappydata.thrift.common;
 
+import java.io.InputStream;
+import java.io.Reader;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
@@ -47,13 +49,13 @@ import io.snappydata.thrift.ClobChunk;
  */
 public interface LobService {
 
-  Blob createBlob(BlobChunk firstChunk) throws SQLException;
+  Blob createBlob(BlobChunk firstChunk, boolean forStream) throws SQLException;
 
-  Clob createClob(ClobChunk firstChunk) throws SQLException;
+  Clob createClob(ClobChunk firstChunk, boolean forStream) throws SQLException;
 
-  BlobChunk getBlobChunk(int lobId, long offset, int chunkSize,
+  BlobChunk getBlobChunk(long lobId, long offset, int chunkSize,
       boolean freeLobAtEnd) throws SQLException;
 
-  ClobChunk getClobChunk(int lobId, long offset, int chunkSize,
+  ClobChunk getClobChunk(long lobId, long offset, int chunkSize,
       boolean freeLobAtEnd) throws SQLException;
 }

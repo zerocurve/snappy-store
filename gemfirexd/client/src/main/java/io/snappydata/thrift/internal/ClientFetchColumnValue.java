@@ -40,16 +40,21 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
-import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Map;
 
 import com.pivotal.gemfirexd.internal.shared.common.reference.SQLState;
-import io.snappydata.thrift.*;
+import io.snappydata.thrift.BlobChunk;
+import io.snappydata.thrift.ClobChunk;
+import io.snappydata.thrift.Row;
+import io.snappydata.thrift.RowSet;
+import io.snappydata.thrift.SnappyException;
+import io.snappydata.thrift.SnappyType;
 import io.snappydata.thrift.common.ColumnValueConverter;
 import io.snappydata.thrift.common.Converters;
 import io.snappydata.thrift.common.LobService;
 import io.snappydata.thrift.common.ThriftExceptionUtil;
+import io.snappydata.thrift.snappydataConstants;
 
 /**
  * Common base class to fetch various types of column values from a Row like
@@ -81,7 +86,7 @@ abstract class ClientFetchColumnValue implements LobService {
     }
   }
 
-  protected final void setCurrentSource(byte entityId, int newId, RowSet rs) {
+  protected final void setCurrentSource(byte entityId, long newId, RowSet rs) {
     ClientFinalizer finalizer = this.finalizer;
     if (newId != snappydataConstants.INVALID_ID) {
       final HostConnection currentSource = service.getCurrentHostConnection();
@@ -116,16 +121,18 @@ abstract class ClientFetchColumnValue implements LobService {
    * {@inheritDoc}
    */
   @Override
-  public final Blob createBlob(BlobChunk firstChunk) throws SQLException {
+  public final Blob createBlob(BlobChunk firstChunk,
+      boolean forStream) throws SQLException {
     return new ClientBlob(firstChunk, service, getLobSource(true,
-        "createBlob"));
+        "createBlob"), forStream);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public final Clob createClob(ClobChunk firstChunk) throws SQLException {
+  public final Clob createClob(ClobChunk firstChunk,
+      boolean forStream) throws SQLException {
     return new ClientClob(firstChunk, service, getLobSource(true,
         "createClob"));
   }
@@ -134,7 +141,7 @@ abstract class ClientFetchColumnValue implements LobService {
    * {@inheritDoc}
    */
   @Override
-  public final BlobChunk getBlobChunk(int lobId, long offset, int chunkSize,
+  public final BlobChunk getBlobChunk(long lobId, long offset, int chunkSize,
       boolean freeLobAtEnd) throws SQLException {
     try {
       return service.getBlobChunk(getLobSource(true, "getBlobChunk"), lobId,
@@ -148,7 +155,7 @@ abstract class ClientFetchColumnValue implements LobService {
    * {@inheritDoc}
    */
   @Override
-  public final ClobChunk getClobChunk(int lobId, long offset, int chunkSize,
+  public final ClobChunk getClobChunk(long lobId, long offset, int chunkSize,
       boolean freeLobAtEnd) throws SQLException {
     try {
       return service.getClobChunk(getLobSource(true, "getClobChunk"), lobId,
@@ -251,7 +258,7 @@ abstract class ClientFetchColumnValue implements LobService {
     BigDecimal v = cvc.toBigDecimal(row, columnIndex);
     if (v != null) {
       // rounding as per server side EmbedResultSet20
-      v.setScale(scale, BigDecimal.ROUND_HALF_DOWN);
+      v = v.setScale(scale, BigDecimal.ROUND_HALF_DOWN);
       this.wasNull = false;
       return v;
     } else {
@@ -355,7 +362,7 @@ abstract class ClientFetchColumnValue implements LobService {
       final Row row) throws SQLException {
     if (map == null) {
       throw ThriftExceptionUtil.newSQLException(SQLState.INVALID_API_PARAMETER,
-          null, map, "map", "FetchColumnValue.getObject(int,Map)");
+          null, null, "map", "FetchColumnValue.getObject(int,Map)");
     }
     if (map.isEmpty()) {
       // Map is empty call the normal getObject method.

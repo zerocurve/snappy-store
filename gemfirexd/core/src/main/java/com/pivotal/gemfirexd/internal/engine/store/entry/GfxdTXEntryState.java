@@ -70,7 +70,6 @@ import com.gemstone.gemfire.internal.offheap.annotations.Retained;
 import com.gemstone.gemfire.internal.offheap.annotations.Unretained;
 import com.gemstone.gemfire.internal.shared.Version;
 import com.gemstone.gemfire.internal.util.ArrayUtils;
-import com.gemstone.gemfire.pdx.internal.unsafe.UnsafeWrapper;
 import com.pivotal.gemfirexd.internal.engine.GfxdConstants;
 import com.pivotal.gemfirexd.internal.engine.Misc;
 import com.pivotal.gemfirexd.internal.engine.access.index.GfxdIndexManager;
@@ -1643,18 +1642,16 @@ public final class GfxdTXEntryState extends TXEntryState implements
   }
 
   @Override
-  public int readBytes(UnsafeWrapper unsafe, long memOffset, int columnWidth,
-      ByteSource bs) {
+  public int readBytes(long memOffset, int columnWidth, ByteSource bs) {
     throw new UnsupportedOperationException("unexpected invocation for "
         + getClass());
   }
 
   @Override
   public Object getValueWithoutFaultInOrOffHeapEntry(LocalRegion owner)   {
-    
-    return this.getValueInVMOrDiskWithoutFaultIn(owner);
+    return super.getRetainedValueInTXOrRegion();
   }
-  
+
   @Override
   public Object getValueOrOffHeapEntry(LocalRegion owner) {
    
