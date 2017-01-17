@@ -7202,7 +7202,7 @@ public class PartitionedRegion extends LocalRegion implements
             if (this.txState != null) {
               this.currentEntry = this.txState.getLocalEntry(
                   PartitionedRegion.this, this.currentBucketRegion,
-                  -1 /* not used */, (AbstractRegionEntry)val);
+                  -1 /* not used */, (AbstractRegionEntry)val, this.forUpdate);
             }
             else {
               this.currentEntry = val;

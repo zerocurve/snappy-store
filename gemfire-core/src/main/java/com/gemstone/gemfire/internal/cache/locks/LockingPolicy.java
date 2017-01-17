@@ -470,6 +470,7 @@ public enum LockingPolicy {
    * Defines a snapshot locking policy. i.e. no lock.
    * we can add lock later for write to detect write write conflict.
    * read can start tx
+   * This is default lock policy for Transaction isolation level NONE.
    */
   SNAPSHOT {
 
@@ -527,7 +528,7 @@ public enum LockingPolicy {
         LockMode mode, Object lockOwner, final Object context,
         final int iContext, AbstractOperationMessage msg,
         boolean allowTombstones, ReadEntryUnderLock reader) {
-      // no locking to be done
+      /*
       // try to see if we can add versioning information here and read
       //return reader.readEntry(lockObj, context, iContext, allowTombstones);
       if (mode == LockMode.SH) {
@@ -536,7 +537,8 @@ public enum LockingPolicy {
       else {
         //return reader.readEntry(lockObj, context, iContext, allowTombstones);
         //can we read version here and return
-      }
+      }*/
+      // no locking to be done
       return reader.readEntry(lockObj, context, iContext, allowTombstones);
     }
 

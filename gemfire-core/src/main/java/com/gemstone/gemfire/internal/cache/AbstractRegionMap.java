@@ -109,15 +109,6 @@ abstract class AbstractRegionMap implements RegionMap {
   /** The underlying map for this region. */
   protected CustomEntryConcurrentHashMap<Object, Object/*RegionEntry*/> map;
 
-  /** A transient map to store old entries for mvcc.*/
-  // TODO: where to maintain this. Should there be a delegate model like HDFS.
-  // we need to see how to integrate it into txRead. or we should just add it to
-  // This map needs to be MultiValue map. the value too should be sorted according to the versions
-  // In case there are multiple values, the reader has to get the
-  // we can have a getter with the version information which will return the highest version entry less than
-  // the provided version
-  // any operation on this map for a re should happen under the lock of corresponding re in above map
-  protected CustomEntryConcurrentHashMap<Object, Object/*RegionEntry*/> oldEntryMap;
   /** An internal Listener for index maintenance for GemFireXD. */
   protected IndexUpdater indexUpdater;
   /** a boolean used only in GemFireXD to handle creates
@@ -139,7 +130,7 @@ abstract class AbstractRegionMap implements RegionMap {
     if (internalRegionArgs != null) {
       this.indexUpdater = internalRegionArgs.getIndexUpdater();
       // when it should be cleaned up.
-      this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
+      //this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
     }
     else {
       this.indexUpdater = null;
@@ -511,18 +502,6 @@ abstract class AbstractRegionMap implements RegionMap {
       return null;
     }
     // we should return the correct version here
-    return re;
-  }
-
-  @Override
-  public final RegionEntry getOldVersionedEntry(Object key, RegionVersionVector rvv) {
-    RegionEntry re = (RegionEntry)oldEntryMap.get(key);
-    if(re instanceof List){
-      // compare the entry and get the highes versioned less or equal to rvv.
-    }
-    else {
-      // if there is only one then just return that one
-    }
     return re;
   }
 

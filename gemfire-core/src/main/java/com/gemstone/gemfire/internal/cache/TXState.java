@@ -3699,7 +3699,7 @@ public final class TXState implements TXStateInterface {
    * else return the provided region entry itself.
    */
   public final Object getLocalEntry(final LocalRegion region,
-      LocalRegion dataRegion, final int bucketId, final AbstractRegionEntry re) {
+      LocalRegion dataRegion, final int bucketId, final AbstractRegionEntry re, boolean isWrite) {
 
     // suranjan.check version here.
     // for local/distributed regions, the key is the RegionEntry itself
@@ -3743,7 +3743,7 @@ public final class TXState implements TXStateInterface {
             // It was destroyed by the transaction so skip
             // this key and try the next one
             return null; // fix for bug 34583
-          } else {
+          } else if (!isWrite) {
             // the re has not been modified by this tx
             // check the re version with the snapshot version and then search in oldEntry
             if (!checkEntryVersion(dataRegion, re)) {
@@ -3756,7 +3756,7 @@ public final class TXState implements TXStateInterface {
           txr.unlock();
         }
       }
-    } else {
+    } else if (!isWrite) {
       //Suranjan: should always read from txr?
       final Object key = re.getKey();
       if (dataRegion == null) {
@@ -3776,7 +3776,6 @@ public final class TXState implements TXStateInterface {
             final Object oldEntry = txr.readOldEntry(key);
             return oldEntry;
           }
-
         } finally {
           txr.unlock();
         }

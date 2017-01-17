@@ -506,7 +506,7 @@ public final class SortedMap2IndexScanController extends MemIndexScanController
         dataRegion = this.baseRegion.getDataRegionForRead(rl.getKey(), null,
             bucketId, Operation.GET_ENTRY);
         rl = (RowLocation)localTXState.getLocalEntry(this.baseRegion,
-            dataRegion, bucketId, (AbstractRegionEntry)rl);
+            dataRegion, bucketId, (AbstractRegionEntry)rl, this.forUpdate != 0);
         if (rl == null) {
           this.currentRowLocation = null;
           ret = false;

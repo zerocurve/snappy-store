@@ -2898,7 +2898,8 @@ public final class GemFireTransaction extends RawTransaction implements
         this.txManager.commit(tx, this.connectionID, TXManagerImpl.FULL_COMMIT,
             null, false);
       }
-      if (isolationLevel != IsolationLevel.NONE || true) {
+      // now start tx for every operation.
+      if (isolationLevel != IsolationLevel.NONE || isSnapshotEnabled()) {
         // clear old GemFire TXState in thread-local, if any
         final TXManagerImpl.TXContext context = TXManagerImpl
             .getOrCreateTXContext();
@@ -2959,6 +2960,10 @@ public final class GemFireTransaction extends RawTransaction implements
       assert this.parentTran == null: "unexpected beginTransaction on "
           + "child transaction " + toString();
     }
+  }
+
+  private boolean isSnapshotEnabled() {
+    return true;
   }
 
   public static GemFireTransaction findUserTransaction(ContextManager cm,

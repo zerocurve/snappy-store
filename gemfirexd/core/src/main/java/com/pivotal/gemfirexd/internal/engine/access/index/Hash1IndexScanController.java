@@ -502,7 +502,7 @@ public class Hash1IndexScanController extends MemIndexScanController {
       if (this.txState != null) {
         if (localTXState != null && !localTXState.isEmpty()) {
           rl = (RowLocation)localTXState.getLocalEntry(this.baseRegion,
-              dataRegion, -1 /* not used */, (AbstractRegionEntry)entry);
+              dataRegion, -1 /* not used */, (AbstractRegionEntry)entry, this.forUpdate != 0);
           // the entry may disappear due to delete or bucket destroy/rebalance
           // before or during lookup (bug #39793)
           if (rl == null) {

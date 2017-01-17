@@ -232,10 +232,6 @@ public class LocalRegion extends AbstractRegion
              DiskExceptionHandler, DiskRecoveryStore
 {
 
-  public RegionEntry getLocalOldEntry(Object key, RegionVersionVector rvv) {
-    return getRegionMap().getOldVersionedEntry(key, rvv);
-  }
-
   /**
    * Internal interface used to simulate failures when performing entry operations
    * @author Mitch Thomas

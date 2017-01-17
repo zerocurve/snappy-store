@@ -935,11 +935,6 @@ public final class ProxyRegionMap implements RegionMap {
   }
 
   @Override
-  public RegionEntry getOldVersionedEntry(Object key, RegionVersionVector rvv) {
-    return null;
-  }
-
-  @Override
   public int sizeInVM() {
     return 0;
   }
