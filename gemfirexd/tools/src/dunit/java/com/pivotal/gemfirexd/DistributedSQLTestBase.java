@@ -137,7 +137,7 @@ public class DistributedSQLTestBase extends DistributedTestBase {
   private static String currentTestName = null;
   private static String currentClassName = null;
   
-  protected static final boolean isTransactional = false;
+  protected static final boolean isTransactional = true;
   /*!(Boolean.getBoolean(SanityManager.TEST_MODE_NON_TX)
       || Boolean.parseBoolean(System.getenv(SanityManager.TEST_MODE_NON_TX)));*/
 

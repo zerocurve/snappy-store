@@ -3473,7 +3473,7 @@ public final class GemFireTransaction extends RawTransaction implements
 
   @Override
   public final boolean isTransactional() {
-    return this.isolationLevel != IsolationLevel.NONE;
+    return (this.isolationLevel != IsolationLevel.NONE) || isSnapshotEnabled();
   }
 
   public final TXStateInterface getSuspendedTXState() {

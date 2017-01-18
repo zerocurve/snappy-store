@@ -2182,7 +2182,8 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
    * otherwise.
    */
   public final boolean isDirty() {
-    return this.isDirty;
+    // we don't have write ops in snapshot isolation with isolation level NONE
+    return this.isDirty && (getLockingPolicy() != LockingPolicy.SNAPSHOT);
   }
 
   /**

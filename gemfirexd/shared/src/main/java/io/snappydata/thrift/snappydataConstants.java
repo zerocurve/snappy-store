@@ -44,7 +44,7 @@ public class snappydataConstants {
 
   public static final byte RESULTSET_TYPE_UNKNOWN = (byte)4;
 
-  public static final boolean DEFAULT_AUTOCOMMIT = false;
+  public static final boolean DEFAULT_AUTOCOMMIT = true;
 
   public static final byte DEFAULT_RESULTSET_TYPE = (byte)1;
 

@@ -1208,15 +1208,15 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     try {
       Map<String, RegionVersionVector> snapshot = new HashMap();
       for (LocalRegion region : getApplicationRegions()) {
-        if (region.getPartitionAttributes() != null) {
+        if (region.getPartitionAttributes() != null && ((PartitionedRegion)region).isDataStore()) {
           for (BucketRegion br : ((PartitionedRegion)region).getDataStore().getAllLocalBucketRegions()) {
             // if null then create the rvv for that bucket.!
-            if(br.getVersionVector()!= null)
+            if (br.getVersionVector() != null)
               snapshot.put(br.getFullPath(), br.getVersionVector().getCloneForTransmission());
           }
         } else if (region.getVersionVector() != null) {
           // if null then create the rvv for that region.!
-            snapshot.put(region.getFullPath(), region.getVersionVector().getCloneForTransmission());
+          snapshot.put(region.getFullPath(), region.getVersionVector().getCloneForTransmission());
         }
       }
       return snapshot;
