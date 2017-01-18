@@ -151,7 +151,7 @@ public class GenericStatement
             Pattern.compile(".*PUT\\s+INTO\\s+(TABLE)?.*SELECT\\s+.*",
                 Pattern.CASE_INSENSITIVE);
         private static final Pattern EXECUTION_ENGINE_STORE_HINT =
-            Pattern.compile(".*EXECUTIONENGINE(\\s+)?+=(\\s+)?+STORE.*[\\r\\n].*",
+            Pattern.compile(".*\\bEXECUTIONENGINE(\\s+)?+=(\\s+)?+STORE\\s*\\b.*[\r\n]?.*",
                 Pattern.CASE_INSENSITIVE);
 
 
