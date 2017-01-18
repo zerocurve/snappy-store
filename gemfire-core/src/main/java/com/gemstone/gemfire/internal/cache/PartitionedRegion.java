@@ -6704,6 +6704,17 @@ public class PartitionedRegion extends LocalRegion implements
         includeValues);
   }
 
+  public final Iterator<?> localEntriesIterator(
+      Set bucketSet, final boolean primaryOnly,
+      final boolean forUpdate, boolean includeValues, final TXState txState) {
+    if (bucketSet  != null) {
+      return new PRLocalScanIterator(bucketSet, txState, forUpdate,
+          includeValues, false);
+    }
+    return new PRLocalScanIterator(primaryOnly, txState, forUpdate,
+        includeValues);
+  }
+
   /**
    * Set view of entries. This currently extends the keySet iterator and
    * performs individual getEntry() operations using the keys

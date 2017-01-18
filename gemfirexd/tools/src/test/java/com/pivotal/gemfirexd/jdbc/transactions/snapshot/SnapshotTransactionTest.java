@@ -27,6 +27,71 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
   }
 
 
+  public void testCommitOnReplicatedTable1() throws Exception {
+    Connection conn = getConnection();
+    Statement st = conn.createStatement();
+    st.execute("Create table t1 (c1 int not null , c2 int not null, "
+        + "primary key(c1)) replicate"+getSuffix());
+    //conn.commit();
+    conn = getConnection();
+    //conn.setTransactionIsolation(getIsolationLevel());
+    //conn.setAutoCommit(true);
+
+    st = conn.createStatement();
+    //st.execute("insert into t1 values (10, 10)");
+
+    //conn.rollback();// rollback.
+
+    ResultSet rs = st.executeQuery("Select * from t1");
+    assertFalse("ResultSet should be empty ", rs.next());
+    rs.close();
+
+    st.execute("insert into t1 values (10, 10)");
+    st.execute("insert into t1 values (20, 20)");
+
+    Thread t = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        Connection conn = null;
+        try {
+          conn = getConnection();
+          Statement st = conn.createStatement();
+          ResultSet rs = st.executeQuery("Select * from t1");
+          int numRows = 0;
+          while (rs.next()) {
+            // Checking number of rows returned, since ordering of results
+            // is not guaranteed. We can write an order by query for this (another
+            // test).
+            numRows++;
+          }
+          assertEquals("ResultSet should contain two rows ", 2, numRows);
+          rs.close();
+        } catch (SQLException e) {
+          e.printStackTrace();
+        }
+      }
+    });
+    t.start();
+    t.join();
+
+    //conn.commit(); // commit two rows.
+    rs = st.executeQuery("Select * from t1");
+    int numRows = 0;
+    while (rs.next()) {
+      // Checking number of rows returned, since ordering of results
+      // is not guaranteed. We can write an order by query for this (another
+      // test).
+      numRows++;
+    }
+    assertEquals("ResultSet should contain two rows ", 2, numRows);
+
+    // Close connection, resultset etc...
+    rs.close();
+    st.close();
+    //conn.commit();
+    conn.close();
+  }
+
   public void testReadSnapshotOnReplicatedTable() throws Exception {
     Connection conn = getConnection();
     Statement st = conn.createStatement();

@@ -472,6 +472,10 @@ public final class TXState implements TXStateInterface {
     return this.lockPolicy;
   }
 
+  public final boolean isSnapShotIsolation() {
+    return (this.lockPolicy == LockingPolicy.SNAPSHOT);
+  }
+
   public final IsolationLevel getIsolationLevel() {
     return this.lockPolicy.getIsolationLevel();
   }
@@ -3685,6 +3689,25 @@ public final class TXState implements TXStateInterface {
     }
   }
 
+  public Iterator<?> getLocalEntriesIterator(
+      Set<Integer> bucketSet, final boolean primaryOnly,
+      final boolean forUpdate, final boolean includeValues,
+      final LocalRegion region) {
+    // for PR we pass the TX along so its iterator can itself invoke
+    // getLocalEntry with correct BucketRegion
+    if (region.getPartitionAttributes() != null) {
+      return ((PartitionedRegion)region).localEntriesIterator(bucketSet,
+          primaryOnly, forUpdate, includeValues, this);
+    }
+    else {
+      // this will in turn invoke getLocalEntry at each iteration and lookup
+      // from local TXState if required
+      return new EntriesSet.EntriesIterator(region, false,
+          IteratorType.RAW_ENTRIES, this, forUpdate, true, true, true,
+          includeValues);
+    }
+  }
+
   /**
    * @see InternalDataView#postPutAll(DistributedPutAllOperation,
    *      VersionedObjectList, LocalRegion)
@@ -3873,8 +3896,23 @@ public final class TXState implements TXStateInterface {
   public Iterator<?> getLocalEntriesIterator(Set<Integer> bucketSet,
       boolean primaryOnly, boolean forUpdate, boolean includeValues,
       LocalRegion currRegion, boolean fetchRemote) {
-    throw new IllegalStateException("TXState.getLocalEntriesIterator: "
-        + "this method is intended to be called only for PRs and no txns");
+
+    // for PR we pass the TX along so its iterator can itself invoke
+    // getLocalEntry with correct BucketRegion
+    //TODO: Suranjan ignoring fetchRemote for now.
+    if (currRegion.getPartitionAttributes() != null) {
+      return ((PartitionedRegion)currRegion).localEntriesIterator(bucketSet,
+          primaryOnly, forUpdate, includeValues, this);
+    }
+    else {
+      // this will in turn invoke getLocalEntry at each iteration and lookup
+      // from local TXState if required
+      return new EntriesSet.EntriesIterator(currRegion, false,
+          IteratorType.RAW_ENTRIES, this, forUpdate, true, true, true,
+          includeValues);
+    }
+    //throw new IllegalStateException("TXState.getLocalEntriesIterator: "
+    //    + "this method is intended to be called only for PRs and no txns");
   }
 
   /**

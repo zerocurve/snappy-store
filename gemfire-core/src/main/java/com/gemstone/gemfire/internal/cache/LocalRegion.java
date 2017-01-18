@@ -1754,6 +1754,8 @@ public class LocalRegion extends AbstractRegion
   }
 
   public final InternalDataView getDataView(final TXStateInterface tx) {
+    //TODO: Suranjan should we return sharedDataView if tx is snapshot
+    // TODO: instead of changing everywhere
     if (tx == null) {
       return this.sharedDataView;
     }

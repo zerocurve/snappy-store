@@ -740,6 +740,11 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       sync.unlock();
     }
   }
+  public enum CachedBatchCreationTestHook {
+    beforeCachedBatchInsert,
+    afterCachedBatchInsertBeforeDestroy,
+    afterCachedBatchInsertAndDestroy
+  }
 
   private boolean internalCreateAndInsertCachedBatch(boolean forceFlush) {
     // TODO: with forceFlush, ideally we should merge with an existing
@@ -762,7 +767,12 @@ public class BucketRegion extends DistributedRegion implements Bucket {
             + ", and batchID " + this.batchUUID);
       }
       Set keysToDestroy = createCachedBatchAndPutInColumnTable();
+
+      // provide a callback  to separate these two operations to test the snapshot
+
+
       destroyAllEntries(keysToDestroy);
+
       // create new batchUUID
       generateAndSetBatchIDIfNULL(true);
       return true;
@@ -860,6 +870,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       event.setKey(key);
       event.setBucketId(this.getId());
       event.setBatchUUID(this.batchUUID); // to make sure that lock is not nexessary
+
 
 
       if (getTXState() != null) {
