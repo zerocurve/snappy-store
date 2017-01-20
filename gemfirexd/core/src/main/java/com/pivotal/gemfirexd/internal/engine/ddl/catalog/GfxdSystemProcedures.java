@@ -1440,7 +1440,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
     int sz = bidToAdvsrMap.size();
     int cnt = 0;
     Map<InternalDistributedMember, String> mbrToServerMap = GemFireXDUtils
-        .getGfxdAdvisor().getAllDRDAServersAndCorrespondingMemberMapping();
+        .getGfxdAdvisor().getAllNetServersWithMembers();
     for (Integer bid : bidToAdvsrMap.keySet()) {
       cnt++;
       bucketInfo.append(bid);
