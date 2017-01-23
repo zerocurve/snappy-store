@@ -1199,28 +1199,28 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     return true;
   }
 
+
   // currently it will wait for a long time
   // we can have differnt ds or read write locks to avoid waiting of read operations.
   //TODO: As an optimizations we can change the ds and maintain it at cache level and punish writes.
   //return snapshotRVV;
   public Map getSnapshotRVV() {
-    lockForSnapshot();
     try {
-      Map<String, RegionVersionVector> snapshot = new HashMap();
+      Map<String, Map> snapshot = new HashMap();
       for (LocalRegion region : getApplicationRegions()) {
         if (region.getPartitionAttributes() != null) {
           for (BucketRegion br : ((PartitionedRegion)region).getDataStore().getAllLocalBucketRegions()) {
             // if null then create the rvv for that bucket.!
-            snapshot.put(br.getFullPath(), br.getVersionVector().getCloneForTransmission());
+            snapshot.put(br.getFullPath(), br.getVersionVector().getSnapShotOfMemberVersion());
           }
         } else if (region.getVersionVector() != null) {
           // if null then create the rvv for that region.!
-          snapshot.put(region.getFullPath(), region.getVersionVector().getCloneForTransmission());
+          snapshot.put(region.getFullPath(), region.getVersionVector().getSnapShotOfMemberVersion());
         }
       }
       return snapshot;
     } finally {
-      releaseSnapshotLocks();
+
     }
   }
 

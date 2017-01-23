@@ -465,7 +465,7 @@ public final class RegionVersionHolder<T> implements Cloneable, DataSerializable
   /**
    * returns true if this version holder has seen the given version number
    */
-  synchronized boolean contains(long v) {
+  synchronized public boolean contains(long v) {
     if (v > getVersion()) {
       return false;
     } else {
