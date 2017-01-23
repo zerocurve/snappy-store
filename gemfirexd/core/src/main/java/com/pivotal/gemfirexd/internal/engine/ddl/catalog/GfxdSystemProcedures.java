@@ -37,6 +37,7 @@ import com.gemstone.gemfire.distributed.internal.ServerLocation;
 import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedMember;
 import com.gemstone.gemfire.internal.NanoTimer;
 import com.gemstone.gemfire.internal.cache.BucketAdvisor;
+import com.gemstone.gemfire.internal.cache.DistributedRegion;
 import com.gemstone.gemfire.internal.cache.GemFireCacheImpl;
 import com.gemstone.gemfire.internal.cache.LocalRegion;
 import com.gemstone.gemfire.internal.cache.PartitionedRegion;
@@ -56,6 +57,7 @@ import com.pivotal.gemfirexd.internal.engine.ddl.GfxdDDLQueueEntry;
 import com.pivotal.gemfirexd.internal.engine.ddl.GfxdDDLRegionQueue;
 import com.pivotal.gemfirexd.internal.engine.ddl.callbacks.CallbackProcedures;
 import com.pivotal.gemfirexd.internal.engine.ddl.catalog.messages.GfxdSystemProcedureMessage;
+import com.pivotal.gemfirexd.internal.engine.ddl.resolver.GfxdPartitionByExpressionResolver;
 import com.pivotal.gemfirexd.internal.engine.ddl.wan.messages.AbstractGfxdReplayableMessage;
 import com.pivotal.gemfirexd.internal.engine.distributed.GfxdMessage;
 import com.pivotal.gemfirexd.internal.engine.distributed.QueryCancelFunction;
@@ -1326,6 +1328,77 @@ public class GfxdSystemProcedures extends SystemProcedures {
     }
   }
 
+  public static void GET_PARTITIONING_COLUMNS_AND_BUCKET_COUNT(
+      String tableName, String[] columns, int[] bucketCount)
+      throws SQLException {
+    String schema;
+    String table;
+    int dotIndex;
+    // NULL table name is illegal
+    if (tableName == null) {
+      throw Util.generateCsSQLException(SQLState.ENTITY_NAME_MISSING);
+    }
+
+    if ((dotIndex = tableName.indexOf('.')) >= 0) {
+      schema = tableName.substring(0, dotIndex);
+      table = tableName.substring(dotIndex + 1);
+    } else {
+      schema = Misc.getDefaultSchemaName(ConnectionUtil.getCurrentLCC());
+      table = tableName;
+    }
+    try {
+      final GemFireContainer container = CallbackProcedures
+          .getContainerForTable(schema, table);
+      final LocalRegion region = container.getRegion();
+      if (region.getAttributes().getPartitionAttributes() != null) {
+        PartitionedRegion pr = (PartitionedRegion)region;
+        bucketCount[0] = pr.getTotalNumberOfBuckets();
+        GfxdPartitionByExpressionResolver resolver = (GfxdPartitionByExpressionResolver)pr.getPartitionResolver();
+        StringBuffer stringBuffer = new StringBuffer();
+        for (String col : resolver.getColumnNames()) {
+          stringBuffer.append(col + ":");
+        }
+        columns[0] = stringBuffer.toString();
+      } else {
+        bucketCount[0] = 0;
+      }
+    } catch (StandardException se) {
+      throw PublicAPI.wrapStandardException(se);
+    }
+  }
+
+  public static int GET_BUCKET_COUNT(String tableName) throws SQLException,
+      StandardException {
+    String schema;
+    String table;
+    int dotIndex;
+    int numBuckets = 0;
+    // NULL table name is illegal
+    if (tableName == null) {
+      throw Util.generateCsSQLException(SQLState.ENTITY_NAME_MISSING);
+    }
+
+    if ((dotIndex = tableName.indexOf('.')) >= 0) {
+      schema = tableName.substring(0, dotIndex);
+      table = tableName.substring(dotIndex + 1);
+    }
+    else {
+      schema = Misc.getDefaultSchemaName(ConnectionUtil.getCurrentLCC());
+      table = tableName;
+    }
+    try {
+      final GemFireContainer container = CallbackProcedures
+          .getContainerForTable(schema, table);
+      final LocalRegion region = container.getRegion();
+      if (region.getAttributes().getPartitionAttributes() != null) {
+        numBuckets = ((PartitionedRegion)region).getTotalNumberOfBuckets();
+      }
+    } catch (StandardException se) {
+      throw PublicAPI.wrapStandardException(se);
+    }
+    return numBuckets;
+  }
+
   /**
    * Create all buckets in the given table.
    * 
@@ -1362,6 +1435,49 @@ public class GfxdSystemProcedures extends SystemProcedures {
     } catch (StandardException se) {
       throw PublicAPI.wrapStandardException(se);
     }
+  }
+
+  /**
+   * Create all buckets in the given table and returns the no of buckets
+   * created for table
+   *
+   * @param tableName
+   *          the fully qualified table name
+   *
+   */
+  public static int CREATE_ALL_BUCKETS2(String tableName) throws SQLException,
+      StandardException {
+    String schema;
+    String table;
+    int dotIndex;
+    // NULL table name is illegal
+    if (tableName == null) {
+      throw Util.generateCsSQLException(SQLState.ENTITY_NAME_MISSING);
+    }
+
+    if ((dotIndex = tableName.indexOf('.')) >= 0) {
+      schema = tableName.substring(0, dotIndex);
+      table = tableName.substring(dotIndex + 1);
+    }
+    else {
+      schema = Misc.getDefaultSchemaName(ConnectionUtil.getCurrentLCC());
+      table = tableName;
+    }
+    try {
+      final GemFireContainer container = CallbackProcedures
+          .getContainerForTable(schema, table);
+      final LocalRegion region = container.getRegion();
+      if (region.getAttributes().getPartitionAttributes() != null) {
+        final PartitionedRegion pr = (PartitionedRegion)region;
+        int numBuckets = pr.getRegionAdvisor().getCreatedBucketsCount();
+        if (numBuckets == 0)
+          CREATE_ALL_BUCKETS_INTERNAL(region, tableName);
+        return numBuckets;
+      }
+    } catch (StandardException se) {
+      throw PublicAPI.wrapStandardException(se);
+    }
+    return 0;
   }
 
   private static void CREATE_ALL_BUCKETS_INTERNAL(LocalRegion region,
@@ -1507,6 +1623,41 @@ public class GfxdSystemProcedures extends SystemProcedures {
       bktToServerMapping[0] = new HarmonySerialClob(mapping[0]);
     } else {
       bktToServerMapping[0] = null;
+    }
+  }
+
+  /**
+   * TODO
+   * @param fqtn
+   * @param replicaNodes
+   * @throws SQLException
+   */
+  public static void GET_INITIALIZED_REPLICAS(String fqtn,
+      Clob[] replicaNodes) throws SQLException {
+    DistributedRegion dr = (DistributedRegion)Misc.getRegionForTable(fqtn,
+        true);
+    SanityManager.DEBUG_PRINT("info", "sdeshmukh GET_INITIALIZED_REPLICAS dr =" + dr);
+    Set<InternalDistributedMember> owners =
+        dr.getDistributionAdvisor().adviseInitializedReplicates();
+    Map<InternalDistributedMember, String> mbrToServerMap = GemFireXDUtils
+        .getGfxdAdvisor().getAllNetServersWithMembers();
+
+    SanityManager.DEBUG_PRINT("info", "sdeshmukh GET_INITIALIZED_REPLICAS hasUninitializedReplicate =" + dr.getDistributionAdvisor().hasUninitializedReplicate());
+    SanityManager.DEBUG_PRINT("info", "sdeshmukh GET_INITIALIZED_REPLICAS owners =" + owners);
+
+    StringBuffer stringBuffer = new StringBuffer();
+    stringBuffer.append(owners.size() + "|");
+    for (InternalDistributedMember node : owners) {
+      String netServer = mbrToServerMap.get(node);
+      if ( netServer != null) {
+        stringBuffer.append(mbrToServerMap.get(node) + ";");
+      }
+    }
+
+    if (stringBuffer.length() > 0) {
+      replicaNodes[0] = new HarmonySerialClob(stringBuffer.toString());
+    } else {
+      replicaNodes[0] = null;
     }
   }
 
