@@ -474,6 +474,10 @@ public final class TXState implements TXStateInterface {
     return this.lockPolicy;
   }
 
+  public final boolean isSnapShotIsolation() {
+    return (this.lockPolicy == LockingPolicy.SNAPSHOT);
+  }
+
   public final IsolationLevel getIsolationLevel() {
     return this.lockPolicy.getIsolationLevel();
   }
@@ -3687,6 +3691,25 @@ public final class TXState implements TXStateInterface {
     }
   }
 
+  public Iterator<?> getLocalEntriesIterator(
+      Set<Integer> bucketSet, final boolean primaryOnly,
+      final boolean forUpdate, final boolean includeValues,
+      final LocalRegion region) {
+    // for PR we pass the TX along so its iterator can itself invoke
+    // getLocalEntry with correct BucketRegion
+    if (region.getPartitionAttributes() != null) {
+      return ((PartitionedRegion)region).localEntriesIterator(bucketSet,
+          primaryOnly, forUpdate, includeValues, this);
+    }
+    else {
+      // this will in turn invoke getLocalEntry at each iteration and lookup
+      // from local TXState if required
+      return new EntriesSet.EntriesIterator(region, false,
+          IteratorType.RAW_ENTRIES, this, forUpdate, true, true, true,
+          includeValues);
+    }
+  }
+
   /**
    * @see InternalDataView#postPutAll(DistributedPutAllOperation,
    *      VersionedObjectList, LocalRegion)
@@ -3701,7 +3724,7 @@ public final class TXState implements TXStateInterface {
    * else return the provided region entry itself.
    */
   public final Object getLocalEntry(final LocalRegion region,
-      LocalRegion dataRegion, final int bucketId, final AbstractRegionEntry re) {
+      LocalRegion dataRegion, final int bucketId, final AbstractRegionEntry re, boolean isWrite) {
 
     // suranjan.check version here.
     // for local/distributed regions, the key is the RegionEntry itself
@@ -3745,7 +3768,7 @@ public final class TXState implements TXStateInterface {
             // It was destroyed by the transaction so skip
             // this key and try the next one
             return null; // fix for bug 34583
-          } else {
+          } else if (!isWrite) {
             // the re has not been modified by this tx
             // check the re version with the snapshot version and then search in oldEntry
             if (!checkEntryVersion(dataRegion, re)) {
@@ -3758,7 +3781,7 @@ public final class TXState implements TXStateInterface {
           txr.unlock();
         }
       }
-    } else {
+    } else if (!isWrite) {
       //Suranjan: should always read from txr?
       final Object key = re.getKey();
       if (dataRegion == null) {
@@ -3778,7 +3801,6 @@ public final class TXState implements TXStateInterface {
             final Object oldEntry = txr.readOldEntry(key);
             return oldEntry;
           }
-
         } finally {
           txr.unlock();
         }
@@ -3905,8 +3927,23 @@ public final class TXState implements TXStateInterface {
   public Iterator<?> getLocalEntriesIterator(Set<Integer> bucketSet,
       boolean primaryOnly, boolean forUpdate, boolean includeValues,
       LocalRegion currRegion, boolean fetchRemote) {
-    throw new IllegalStateException("TXState.getLocalEntriesIterator: "
-        + "this method is intended to be called only for PRs and no txns");
+
+    // for PR we pass the TX along so its iterator can itself invoke
+    // getLocalEntry with correct BucketRegion
+    //TODO: Suranjan ignoring fetchRemote for now.
+    if (currRegion.getPartitionAttributes() != null) {
+      return ((PartitionedRegion)currRegion).localEntriesIterator(bucketSet,
+          primaryOnly, forUpdate, includeValues, this);
+    }
+    else {
+      // this will in turn invoke getLocalEntry at each iteration and lookup
+      // from local TXState if required
+      return new EntriesSet.EntriesIterator(currRegion, false,
+          IteratorType.RAW_ENTRIES, this, forUpdate, true, true, true,
+          includeValues);
+    }
+    //throw new IllegalStateException("TXState.getLocalEntriesIterator: "
+    //    + "this method is intended to be called only for PRs and no txns");
   }
 
   /**

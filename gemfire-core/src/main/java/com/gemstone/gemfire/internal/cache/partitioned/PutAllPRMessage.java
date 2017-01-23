@@ -408,7 +408,8 @@ public final class PutAllPRMessage extends PartitionMessageWithDirectReply {
     InternalDistributedMember myId = r.getDistributionManager().getDistributionManagerId();
     final TXStateInterface txi = getTXState(r);
     final TXState tx = txi != null ? txi.getTXStateForWrite() : null;
-    final InternalDataView view = r.getDataView(tx);
+
+    final InternalDataView view = tx.isSnapShotIsolation() ? r.getSharedDataView() : r.getDataView(tx);
     boolean lockedForPrimary = false;
     try {
     
@@ -417,7 +418,7 @@ public final class PutAllPRMessage extends PartitionMessageWithDirectReply {
       bucketRegion = ds.getInitializedBucketForId(null, bucketId);
 
       this.versions = new VersionedObjectList(
-          tx == null ? this.putAllPRDataSize : 1, true, bucketRegion
+          (tx == null ||tx.isSnapShotIsolation()) ? this.putAllPRDataSize : 1, true, bucketRegion
               .getAttributes().getConcurrencyChecksEnabled());
 
       // create a base event and a DPAO for PutAllMessage distributed btw redundant buckets
@@ -481,7 +482,7 @@ public final class PutAllPRMessage extends PartitionMessageWithDirectReply {
           bucketRegion.recordPutAllStart(membershipID);
         }
         // no need to lock keys for transactions
-        if (tx == null) {
+        if (tx == null || tx.isSnapShotIsolation()) {
           bucketRegion.waitUntilLocked(keys);
         }
 
@@ -497,7 +498,7 @@ public final class PutAllPRMessage extends PartitionMessageWithDirectReply {
             .isPrimary();
         //final boolean hasRedundancy = bucketRegion.getRedundancyLevel() > 0;
         try {
-          if (tx == null) {
+          if (tx == null || tx.isSnapShotIsolation()) {
             bucketRegion.doLockForPrimary(false);
             lockedForPrimary = true;
           } else {
@@ -535,7 +536,7 @@ public final class PutAllPRMessage extends PartitionMessageWithDirectReply {
 
               boolean didPut = false;
               try {
-                if (tx != null) {
+                if (tx != null && !tx.isSnapShotIsolation()) {
                   didPut = tx.putEntryOnRemote(ev, false, false, null, false,
                       cacheWrite, lastModified, true);
               /*

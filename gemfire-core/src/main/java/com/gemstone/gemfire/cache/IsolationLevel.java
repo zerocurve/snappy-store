@@ -83,7 +83,7 @@ public enum IsolationLevel {
   /**
    * The default isolation level is {@link #READ_COMMITTED}.
    */
-  public static final IsolationLevel DEFAULT = READ_COMMITTED;
+  public static final IsolationLevel DEFAULT = NONE;
 
   /**
    * Get the JDBC isolation-level (i.e.
