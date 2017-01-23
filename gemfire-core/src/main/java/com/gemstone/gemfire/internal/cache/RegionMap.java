@@ -143,14 +143,6 @@ public interface RegionMap extends LRUMapCallbacks {
    */
   public RegionEntry getOperationalEntryInVM(Object key);
 
-  /**
-   * fetches the highes versioned entry lower or equal to rvv
-   * @param key
-   * @param rvv
-   * @return
-   */
-  public RegionEntry getOldVersionedEntry(Object key, RegionVersionVector rvv);
-
 
   //   /**
 //    * Removes any entry associated with <code>key</code>.

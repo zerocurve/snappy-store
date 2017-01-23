@@ -1211,11 +1211,12 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
         if (region.getPartitionAttributes() != null) {
           for (BucketRegion br : ((PartitionedRegion)region).getDataStore().getAllLocalBucketRegions()) {
             // if null then create the rvv for that bucket.!
-            snapshot.put(br.getFullPath(), br.getVersionVector().getCloneForTransmission());
+            if(br.getVersionVector()!= null)
+              snapshot.put(br.getFullPath(), br.getVersionVector().getCloneForTransmission());
           }
         } else if (region.getVersionVector() != null) {
           // if null then create the rvv for that region.!
-          snapshot.put(region.getFullPath(), region.getVersionVector().getCloneForTransmission());
+            snapshot.put(region.getFullPath(), region.getVersionVector().getCloneForTransmission());
         }
       }
       return snapshot;

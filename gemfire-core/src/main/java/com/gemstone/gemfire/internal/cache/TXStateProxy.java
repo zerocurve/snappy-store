@@ -4602,8 +4602,18 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
   public Iterator<?> getLocalEntriesIterator(Set<Integer> bucketSet,
       boolean primaryOnly, boolean forUpdate, boolean includeValues,
       LocalRegion currRegion, boolean fetchRemote) {
-    throw new IllegalStateException("TXStateProxy.getLocalEntriesIterator: "
-        + "this method is intended to be called only for PRs and no txns");
+    // We need to support this.
+    final TXState localState = getTXStateForRead();
+    if (localState != null) {
+      //TODO: should tx fetch remote
+      return localState.getLocalEntriesIterator(bucketSet, primaryOnly,
+          forUpdate, includeValues, currRegion, fetchRemote);
+    }
+    return currRegion.getSharedDataView().getLocalEntriesIterator(bucketSet,
+        primaryOnly, forUpdate, includeValues, currRegion, fetchRemote);
+
+//    throw new IllegalStateException("TXStateProxy.getLocalEntriesIterator: "
+//        + "this method is intended to be called only for PRs and no txns");
   }
 
   /**
