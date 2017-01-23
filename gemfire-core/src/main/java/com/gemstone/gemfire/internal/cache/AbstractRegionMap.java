@@ -3947,8 +3947,7 @@ RETRY_LOOP:
                           || !re.isRemoved()
                           || replaceOnClient) {
                         // update
-                        if (owner.concurrencyChecksEnabled &&
-                            event.getTXState().getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+                        if (shouldCopyOldEntry(owner,event)) {
                           // we need to do the same for secondary as well.
                           oldRe = NonLocalRegionEntry.newEntry(event.getKey(), re._getValue(),
                               owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
@@ -3958,8 +3957,7 @@ RETRY_LOOP:
                         }
                         updateEntry(event, requireOldValue, oldValueForDelta, re);
                       } else {
-                        if (owner.concurrencyChecksEnabled && (event.getTXState() != null) &&
-                            event.getTXState().getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+                        if (shouldCopyOldEntry(owner,event)) {
                           // we need to do the same for secondary as well.
                           oldRe = NonLocalRegionEntry.newEntry(event.getKey(), Token.TOMBSTONE,
                               owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
@@ -3977,11 +3975,11 @@ RETRY_LOOP:
                       // TODO: For tx case we will have to maintain common ds.
                       //oldEntryMap.put(event.getKey(), oldRe);
                       // after create/update put the oldRe in all the running tx
-                      if (owner.concurrencyChecksEnabled && (event.getTXState() != null) &&
-                          event.getTXState().getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+                      if (shouldCopyOldEntry(owner,event)) {
                         for (TXStateProxy tx : owner.getCache().getCacheTransactionManager().
                             getHostedTransactionsInProgress()) {
-                          if (tx.txId != event.getTXState().getTransactionId())
+                          // this is not tx ops
+                          //if (tx.txId != event.getTXState().getTransactionId())
                             tx.addOldEntry(oldRe);
                         }
                       }
@@ -4123,6 +4121,12 @@ RETRY_LOOP:
     } // finally
 
     return result;
+  }
+
+  private boolean shouldCopyOldEntry(LocalRegion owner, EntryEventImpl event) {
+    return owner.concurrencyChecksEnabled && !owner.isUsedForMetaRegion() ;
+    //&& (event.getTXState() != null) &&
+     //   event.getTXState().getLockingPolicy() == LockingPolicy.SNAPSHOT;
   }
 
   /**
@@ -4350,8 +4354,7 @@ RETRY_LOOP:
     RegionEntry oldRe = NonLocalRegionEntry.newEntry(event.getKey(), re.getValueOffHeapOrDiskWithoutFaultIn(_getOwner()),
         _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
 
-    if (_getOwner().concurrencyChecksEnabled && (event.getTXState() != null) &&
-        event.getTXState().getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+    if (shouldCopyOldEntry(_getOwner(), event)) {
       // we need to do the same for secondary as well.
       oldRe = NonLocalRegionEntry.newEntry(event.getKey(), re._getValue(),
           _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
@@ -4363,14 +4366,14 @@ RETRY_LOOP:
         cacheWrite, expectedOldValue, createdForDestroy, removeRecoveredEntry);
     // we can add the old value to
     if (retVal) {
-      if (_getOwner().concurrencyChecksEnabled && (event.getTXState() != null) &&
-          event.getTXState().getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+      if (shouldCopyOldEntry(_getOwner(), event)) {
         // TODO: For tx case we will have to maintain common ds.
         //oldEntryMap.put(event.getKey(), oldRe);
         // after create/update put the oldRe in all the running tx
         for (TXStateProxy tx : _getOwner().getCache().getCacheTransactionManager().
             getHostedTransactionsInProgress()) {
-          if (tx.txId != event.getTXState().getTransactionId())
+          // this is not tx op
+          //if (tx.txId != event.getTXState().getTransactionId())
             tx.addOldEntry(oldRe);
         }
       }

@@ -2401,6 +2401,10 @@ public final class GemFireContainer extends AbstractGfxdLockable implements
           // this will cache the row size and will not calculate every single
           // time.
           this.rowSize = newRowSize;
+          // need to commit the started tx in the iterator
+          //if (tx == null && this.getRegion().getCache().getCacheTransactionManager().exists()) {
+          //  this.getRegion().getCache().getCacheTransactionManager().commit();
+          //}
           break;
         }
       } catch (StandardException se) {

@@ -193,10 +193,10 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     Statement st = conn.createStatement();
     st.execute("Create table t1 (c1 int not null , c2 int not null, "
         + "primary key(c1)) partition by column (c1) enable concurrency checks "+getSuffix());
-    conn.commit();
+    //conn.commit();
     conn = getConnection();
-    conn.setTransactionIsolation(getIsolationLevel());
-    conn.setAutoCommit(true);
+    //conn.setTransactionIsolation(getIsolationLevel());
+    //conn.setAutoCommit(true);
 
     st = conn.createStatement();
 
@@ -475,6 +475,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     //TODO: Currently can't execute multiple query, getting rs closed exception
 
     rs = st.executeQuery("Select * from t1");
+
     ResultSet rs2 = st.executeQuery("Select * from t2");
 
     doInsertOpsInTx();
@@ -665,8 +666,8 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
       public void run() {
         try {
           Statement st = conn2.createStatement();
-          conn2.setTransactionIsolation(Connection.TRANSACTION_NONE);
-          conn2.setAutoCommit(true);
+          //conn2.setTransactionIsolation(Connection.TRANSACTION_NONE);
+          //conn2.setAutoCommit(true);
           st.execute("insert into t1 values (1, 30)");
           st.execute("insert into t1 values (2, 30)");
           st.execute("insert into t1 values (10, 30)");
@@ -677,14 +678,14 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
 
 
 
-          conn2.commit();
+         // conn2.commit();
           ResultSet rs = st.executeQuery("Select * from t1");
           int numRows = 0;
           while (rs.next()) {
             numRows++;
           }
           assertEquals("ResultSet should contain eight rows ", 8, numRows);
-          conn2.commit();
+          //conn2.commit();
         } catch (SQLException e) {
           e.printStackTrace();
         }

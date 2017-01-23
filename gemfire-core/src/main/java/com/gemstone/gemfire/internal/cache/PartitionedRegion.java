@@ -7074,6 +7074,8 @@ public class PartitionedRegion extends LocalRegion implements
 
     private final boolean fetchRemoteEntries;
 
+    private boolean commitOnClose;
+
     public PRLocalScanIterator(final boolean primaryOnly, final TXState tx,
         final boolean forUpdate, final boolean includeValues) {
       Iterator<Integer> iter = null;
@@ -7113,7 +7115,14 @@ public class PartitionedRegion extends LocalRegion implements
       this.fetchRemoteEntries = false;
       this.bucketIdsIter = iter;
       this.numEntries = numEntries;
-      this.txState = tx;
+      if (false && (tx == null && getPartitionedRegion().concurrencyChecksEnabled)) {
+        getCache().getCacheTransactionManager().begin();
+        this.txState = getCache().getCacheTransactionManager().getTXState().getTXStateForRead();
+        commitOnClose = true;
+      } else {
+        this.txState = tx;
+      }
+
       this.forUpdate = forUpdate;
       this.includeValues = includeValues;
       this.diskIteratorInitialized = false;
@@ -7152,7 +7161,13 @@ public class PartitionedRegion extends LocalRegion implements
       }
       this.fetchRemoteEntries = fetchRemote;
       this.bucketIdsIter = iter;
-      this.txState = tx;
+      if (false && (tx == null && getPartitionedRegion().concurrencyChecksEnabled)) {
+        getCache().getCacheTransactionManager().begin();
+        this.txState = getCache().getCacheTransactionManager().getTXState().getTXStateForRead();
+        commitOnClose = true;
+      } else {
+        this.txState = tx;
+      }
       this.forUpdate = forUpdate;
       this.includeValues = includeValues;
       this.numEntries = numEntries;
@@ -7240,6 +7255,11 @@ public class PartitionedRegion extends LocalRegion implements
               // no more buckets need to be visited
               this.bucketEntriesIter = null;
               this.moveNext = false;
+              if (commitOnClose) {
+                getCache().getCacheTransactionManager().masqueradeAs(this.txState);
+                getCache().getCacheTransactionManager().commit();
+                commitOnClose = false;
+              }
               return false;
             }
             final int bucketId = this.bucketIdsIter.next().intValue();
@@ -7279,6 +7299,11 @@ public class PartitionedRegion extends LocalRegion implements
             break;
           }
         }
+      }
+      if (this.currentEntry == null && commitOnClose) {
+        getCache().getCacheTransactionManager().masqueradeAs(this.txState);
+        getCache().getCacheTransactionManager().commit();
+        commitOnClose = false;
       }
       return (this.currentEntry != null);
     }

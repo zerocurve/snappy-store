@@ -149,6 +149,8 @@ public class EntriesSet extends AbstractSet<Object> {
 
     Collection<?> additionalKeysFromView;
 
+    boolean commitOnClose = false;
+
     /** reusable KeyInfo */
     protected final KeyInfo keyInfo = new KeyInfo(null, null, null);
 
@@ -169,7 +171,14 @@ public class EntriesSet extends AbstractSet<Object> {
       }
       // for the LR/DR iterators, the calls for TX entries are never remoted so
       // we are interested only in local TXState if available
-      this.myTX = txState;
+      if (false && (txState == null && topRegion.concurrencyChecksEnabled)) {
+        topRegion.getCache().getCacheTransactionManager().begin();
+        this.myTX = topRegion.getCache().getCacheTransactionManager().getTXState().getTXStateForRead();
+        commitOnClose = true;
+      } else {
+        this.myTX = txState;
+      }
+
       this.forUpdate = forUpdate;
       this.skipTXCheckInIteration = skipTXCheckInIteration;
       this.view = topRegion.getDataView(txState);
@@ -191,6 +200,9 @@ public class EntriesSet extends AbstractSet<Object> {
       if (!this.skipTXCheckInIteration) {
         checkTX(myTX);
       }
+      if(this.nextElem == null && commitOnClose)
+        GemFireCacheImpl.getInstance().getCacheTransactionManager().commit();
+
       return (this.nextElem != null);
     }
 

@@ -60,14 +60,7 @@ import com.gemstone.gemfire.cache.Region;
 import com.gemstone.gemfire.cache.execute.FunctionContext;
 import com.gemstone.gemfire.cache.execute.RegionFunctionContext;
 import com.gemstone.gemfire.internal.Assert;
-import com.gemstone.gemfire.internal.cache.LocalRegion;
-import com.gemstone.gemfire.internal.cache.PartitionedRegion;
-import com.gemstone.gemfire.internal.cache.RegionEntry;
-import com.gemstone.gemfire.internal.cache.TXEntryState;
-import com.gemstone.gemfire.internal.cache.TXId;
-import com.gemstone.gemfire.internal.cache.TXState;
-import com.gemstone.gemfire.internal.cache.TXStateInterface;
-import com.gemstone.gemfire.internal.cache.TXStateProxy;
+import com.gemstone.gemfire.internal.cache.*;
 import com.gemstone.gemfire.internal.cache.execute.
     InternalRegionFunctionContext;
 import com.gemstone.gemfire.internal.cache.locks.ExclusiveSharedSynchronizer;
@@ -204,6 +197,8 @@ public class MemHeapScanController implements MemScanController, RowCountable,
   private TXStateInterface txState;
 
   private TXId txId;
+
+  private boolean commitOnClose;
 
   private LockingPolicy lockPolicy;
 
@@ -378,6 +373,7 @@ public class MemHeapScanController implements MemScanController, RowCountable,
     }
 
     this.txState = this.gfContainer.getActiveTXState(this.tran);
+
     final boolean restoreBatching;
     if (this.txState != null) {
       this.txId = this.txState.getTransactionId();
@@ -408,11 +404,25 @@ public class MemHeapScanController implements MemScanController, RowCountable,
       }
     }
     else {
-      this.txId = null;
-      this.readLockMode = null;
-      this.localTXState = null;
-      this.lockContext = null;
-      restoreBatching = true;
+      if (region.getConcurrencyChecksEnabled()) {
+        region.getCache().getCacheTransactionManager().begin();
+        this.txState = region.getCache().getCacheTransactionManager().getTXState().getTXStateForRead();
+        this.commitOnClose = true;
+        this.txId = this.txState.getTransactionId();
+        this.lockPolicy = this.txState.getLockingPolicy();
+        this.readLockMode = this.lockPolicy.getReadLockMode();
+        this.localTXState = this.txState.getLocalTXState();
+        this.lockContext = null;
+        restoreBatching = true;
+      }
+      else {
+        this.txId = null;
+        this.readLockMode = null;
+        this.localTXState = null;
+        this.lockContext = null;
+        restoreBatching = true;
+      }
+
     }
     // if the restoreBatching flag has already been set in previous open, then
     // don't reset to true due to a reopen
@@ -788,6 +798,10 @@ public class MemHeapScanController implements MemScanController, RowCountable,
 
     // if the scan has been closed, then return false
     if (entryIterator == null) {
+      if (commitOnClose) {
+        this.commitOnClose = false;
+        getGemFireContainer().getRegion().getCache().getCacheTransactionManager().commit();
+      }
       return false;
     }
 
@@ -982,6 +996,14 @@ public class MemHeapScanController implements MemScanController, RowCountable,
     this.bucketId = -1;
     if (entryIterator instanceof CloseableIterator) {
       ((CloseableIterator<?>)entryIterator).close();
+    }
+    if (commitOnClose) {
+      //this.txState shouldn't be null.
+      getGemFireContainer().getRegion().getCache().getCacheTransactionManager().masqueradeAs(this.txState);
+      this.commitOnClose = false;
+      getGemFireContainer().getRegion().getCache().getCacheTransactionManager().commit();
+      TXManagerImpl.getOrCreateTXContext().clearTXState();
+      this.txState = null;
     }
     return false;
   }
