@@ -473,7 +473,8 @@ public final class TXState implements TXStateInterface {
   }
 
   public final boolean isSnapShotIsolation() {
-    return (this.lockPolicy == LockingPolicy.SNAPSHOT);
+    return false;
+    //return (this.lockPolicy == LockingPolicy.SNAPSHOT);
   }
 
   public final IsolationLevel getIsolationLevel() {
@@ -3834,6 +3835,7 @@ public final class TXState implements TXStateInterface {
             //dataRegion.getLocalOldEntry(re.getKey(), snapshot.get(region.getFullPath()));
           }
           else {
+            // this fails in case of persistence! Need to check
             Assert.fail("There must have been old Entry corresponding to re " + re);
               // there is a problema//FAIL
             // we should wait here to get from the oldEntryMap as writer thread will be eventually going

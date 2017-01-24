@@ -750,6 +750,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * @param version the version of the peers region that reflects the operation
    */
   public void recordVersion(T member, long version) {
+
     T mbr = member;
     
     if (this.recordingDisabled || clientVector) {
