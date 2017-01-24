@@ -484,7 +484,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     //start a read tx(different flavor) and another tx for insert, current tx shouldn't see new entry
     //TODO: Currently can't execute multiple query, getting rs closed exception
 
-    rs = st.executeQuery("Select * from t1");
+   // rs = st.executeQuery("Select * from t1");
 
     ResultSet rs2 = st.executeQuery("Select * from t2");
 
@@ -688,13 +688,50 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
 
 
 
-         // conn2.commit();
+          // conn2.commit();
           ResultSet rs = st.executeQuery("Select * from t1");
           int numRows = 0;
           while (rs.next()) {
             numRows++;
           }
           assertEquals("ResultSet should contain eight rows ", 8, numRows);
+          //conn2.commit();
+        } catch (SQLException e) {
+          e.printStackTrace();
+        }
+      }
+    };
+    Thread t = new Thread(r);
+    t.start();
+    t.join();
+  }
+
+  private void doInsertOpsInTxForConcurrencytest() throws SQLException, InterruptedException {
+    final Connection conn2 = getConnection();
+    Runnable r = new Runnable(){
+      @Override
+      public void run() {
+        try {
+          Statement st = conn2.createStatement();
+          //conn2.setTransactionIsolation(Connection.TRANSACTION_NONE);
+          //conn2.setAutoCommit(true);
+          st.execute("insert into t1 values (101, 30)");
+          st.execute("insert into t1 values (102, 30)");
+          st.execute("insert into t1 values (103, 30)");
+          st.execute("insert into t1 values (104, 30)");
+          st.execute("insert into t1 values (105, 30)");
+          st.execute("insert into t1 values (106, 30)");
+          st.execute("insert into t1 values (107, 30)");
+
+
+
+         // conn2.commit();
+          ResultSet rs = st.executeQuery("Select * from t1");
+          int numRows = 0;
+          while (rs.next()) {
+            numRows++;
+          }
+          assertEquals("ResultSet should contain 41 rows ", 41, numRows);
           //conn2.commit();
         } catch (SQLException e) {
           e.printStackTrace();
@@ -801,8 +838,11 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     conn.setTransactionIsolation(getIsolationLevel());
 
 
-    st.execute("insert into t1 values (10, 10)");
-    st.execute("insert into t1 values (20, 20)");
+    //Inserting 34 records to avoid null pointer exception while getting TxState
+    for(int i=0;i<35;i++) {
+      st.execute("insert into t1 values ("+i+", 10)");
+    }
+
 
     //As there is only one bucket there will be only one bucket region
     PartitionedRegion region = (PartitionedRegion)Misc.getRegionForTableByPath("/APP/T1", false);
@@ -811,6 +851,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
 
     ResultSet rs = st.executeQuery("Select * from t1");
 
+    rs.next();
 
     TXState txState = TXManagerImpl.getCurrentTXState().getLocalTXState();
     long initialVersion = getRegionVersionForTransaction(txState, bucketRegion);
@@ -824,18 +865,16 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     st = conn.createStatement();
 
     // rvv.getCurrentVersion();
-    // withing tx also the row count should be 2
-    assertEquals("ResultSet should contain two row ", 2, numRows);
+    // withing tx also the row count should be 34 as we have done rs.next once to begin transaction
+    assertEquals("ResultSet should contain two row ", 34, numRows);
 
-    st.execute("delete from t1 where c1=10");
-
-
-    conn.commit();
+    st.execute("delete from t1 where c1=1");
 
     rs = st.executeQuery("Select * from t1");
+    rs.next();
     TXState txState1 = TXManagerImpl.getCurrentTXState().getLocalTXState();
     long versionAfterDelete = getRegionVersionForTransaction(txState1, bucketRegion);
-    doInsertOpsInTx();
+    doInsertOpsInTxForConcurrencytest();
     long actualVersionAfterInsert = getRegionVersionForTransaction(txState, bucketRegion);
 
     // The insert done in above method should no affect the snapshot of transaction
@@ -849,7 +888,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     while (rs.next()) {
       numRows++;
     }
-    assertEquals("ResultSet should contain one row ", 1, numRows);
+    assertEquals("ResultSet should contain one row ", 33, numRows);
 
 
     conn.commit();
@@ -858,6 +897,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     //Start new transaction
     rs = st.executeQuery("Select * from t1");
 
+    rs.next();
 
     TXState txState2 = TXManagerImpl.getCurrentTXState().getLocalTXState();
 
@@ -871,7 +911,10 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     Thread.sleep(3000);
     conn.commit();
     rs = st.executeQuery("Select * from t1");
+    rs.next();
     TXState txState3 = TXManagerImpl.getCurrentTXState().getLocalTXState();
+    //Iterating rs till last record in order for cleaning up the transaction
+    while(rs.next());
     long versionAfterExecutingThreadWithNewTx = getRegionVersionForTransaction(txState3,
         bucketRegion);
 
@@ -888,7 +931,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
 
     conn.commit();
     rs = st.executeQuery("Select * from t1");
-
+    rs.next();
     //Get old snapshot version of previous transaction to see the effect
     versionAfterExecutingThreadWithNewTx = getRegionVersionForTransaction(txState3,
         bucketRegion);
@@ -936,7 +979,6 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
           st.execute("insert into t1 values (212, 312)");
           st.execute("insert into t1 values (213, 314)");
           //msg.notify();
-          System.out.println("Waiting for thread to notify..");
           // Wait for parent thread to verify version
           synchronized (msg) {
             msg.wait();
@@ -953,7 +995,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
           while (rs.next()) {
             numRows++;
           }
-          assertEquals("ResultSet should contain eight rows ", 12, numRows);
+          assertEquals("ResultSet should contain eight rows ", 45, numRows);
           conn2.commit();
         } catch (SQLException e) {
           e.printStackTrace();

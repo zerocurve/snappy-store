@@ -727,8 +727,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * @param member the peer that performed the operation
    * @param version the version of the peers region that reflects the operation
    */
-  public void recordVersion(T member, long version) {
-    if (isSnapshotEnabled()) {
+  public void recordVersionForSnapshot(T member, long version) {
       T mbr = member;
 
       if (this.recordingDisabled || clientVector) {
@@ -752,6 +751,11 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
           holder.version = this.localVersion.get();
         }
         updateLocalVersion(version);
+
+        holder.recordVersion(version, logger);
+        holder.id = this.myId;
+        memberToVersionSnapshot.put(this.myId, holder);
+
       } else {
         //Find the version holder object
         holder = memberToVersionSnapshot.get(mbr);
@@ -767,26 +771,14 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
 
           }
         }
+        holder.recordVersion(version, logger);
+        memberToVersionSnapshot.put(holder.id, holder);
       }
 
       //Update the version holder
       if (DEBUG && logger != null) {
         logger.info(LocalizedStrings.DEBUG, "recording rv" + version + " for " + mbr);
       }
-      holder.recordVersion(version, logger);
-      if (mbr.equals(this.myId)) {
-        synchronized (holder) {
-          //holder = this.localExceptions.clone();
-          holder.id = this.myId;
-          memberToVersionSnapshot.put(this.myId, holder);
-        }
-      } else {
-        synchronized (memberToVersionSnapshot) {
-          memberToVersionSnapshot.put(holder.id, holder);
-        }
-      }
-    }
-      recordVersion2(member,version);
   }
 
   private boolean isSnapshotEnabled() {
@@ -821,9 +813,11 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * @param member the peer that performed the operation
    * @param version the version of the peers region that reflects the operation
    */
-  public void recordVersion2(T member, long version) {
+  public void recordVersion(T member, long version) {
     T mbr = member;
-    
+    if(isSnapshotEnabled()) {
+      recordVersionForSnapshot(member, version);
+    }
     if (this.recordingDisabled || clientVector) {
       return;
     }
