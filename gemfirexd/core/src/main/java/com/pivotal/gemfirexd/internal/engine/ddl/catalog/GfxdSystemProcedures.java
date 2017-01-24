@@ -1339,6 +1339,11 @@ public class GfxdSystemProcedures extends SystemProcedures {
       throw Util.generateCsSQLException(SQLState.ENTITY_NAME_MISSING);
     }
 
+    if (GemFireXDUtils.TraceSysProcedures) {
+      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
+          "executing GET_PARTITIONING_COLUMNS_AND_BUCKET_COUNT for table " + tableName);
+    }
+
     if ((dotIndex = tableName.indexOf('.')) >= 0) {
       schema = tableName.substring(0, dotIndex);
       table = tableName.substring(dotIndex + 1);
@@ -1634,18 +1639,21 @@ public class GfxdSystemProcedures extends SystemProcedures {
    */
   public static void GET_INITIALIZED_REPLICAS(String fqtn,
       Clob[] replicaNodes) throws SQLException {
+    if (GemFireXDUtils.TraceSysProcedures) {
+      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
+          "executing GET_INITIALIZED_REPLICAS for table " + fqtn);
+    }
     DistributedRegion dr = (DistributedRegion)Misc.getRegionForTable(fqtn,
         true);
-    SanityManager.DEBUG_PRINT("info", "sdeshmukh GET_INITIALIZED_REPLICAS dr =" + dr);
-    Set<InternalDistributedMember> owners =
+    Set<InternalDistributedMember> owners = new HashSet<>();
+    Set<InternalDistributedMember> replicas =
         dr.getDistributionAdvisor().adviseInitializedReplicates();
     Map<InternalDistributedMember, String> mbrToServerMap = GemFireXDUtils
         .getGfxdAdvisor().getAllNetServersWithMembers();
 
-    SanityManager.DEBUG_PRINT("info", "sdeshmukh GET_INITIALIZED_REPLICAS hasUninitializedReplicate =" + dr.getDistributionAdvisor().hasUninitializedReplicate());
-    SanityManager.DEBUG_PRINT("info", "sdeshmukh GET_INITIALIZED_REPLICAS owners =" + owners);
-
     StringBuffer stringBuffer = new StringBuffer();
+    owners.add(Misc.getGemFireCache().getMyId());
+    owners.addAll(replicas);
     stringBuffer.append(owners.size() + "|");
     for (InternalDistributedMember node : owners) {
       String netServer = mbrToServerMap.get(node);
