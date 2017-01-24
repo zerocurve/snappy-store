@@ -408,8 +408,7 @@ public final class PutAllPRMessage extends PartitionMessageWithDirectReply {
     InternalDistributedMember myId = r.getDistributionManager().getDistributionManagerId();
     final TXStateInterface txi = getTXState(r);
     final TXState tx = txi != null ? txi.getTXStateForWrite() : null;
-
-    final InternalDataView view = tx.isSnapShotIsolation() ? r.getSharedDataView() : r.getDataView(tx);
+    final InternalDataView view = /*tx.isSnapShotIsolation() ? r.getSharedDataView() :*/ r.getDataView(tx);
     boolean lockedForPrimary = false;
     try {
     
