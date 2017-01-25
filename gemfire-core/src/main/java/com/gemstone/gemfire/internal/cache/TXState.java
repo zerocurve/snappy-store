@@ -473,7 +473,10 @@ public final class TXState implements TXStateInterface {
   }
 
   public final boolean isSnapShotIsolation() {
-    return (this.lockPolicy == LockingPolicy.SNAPSHOT);
+    // this is called from putAll to do operation on region even if txState is set
+    // will consider later.
+    return false;
+    //return (this.lockPolicy == LockingPolicy.SNAPSHOT);
   }
 
   public final IsolationLevel getIsolationLevel() {

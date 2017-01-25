@@ -1001,7 +1001,10 @@ public class MemHeapScanController implements MemScanController, RowCountable,
       //this.txState shouldn't be null.
       getGemFireContainer().getRegion().getCache().getCacheTransactionManager().masqueradeAs(this.txState);
       this.commitOnClose = false;
+      // in some cases we dont have to commit specially if conn has some property hinting that
       getGemFireContainer().getRegion().getCache().getCacheTransactionManager().commit();
+      // infact we need to clearTXState just after starting and returning the iterator
+      // each next should masquerade as the saved txState in this scan controller.
       TXManagerImpl.getOrCreateTXContext().clearTXState();
       this.txState = null;
     }
