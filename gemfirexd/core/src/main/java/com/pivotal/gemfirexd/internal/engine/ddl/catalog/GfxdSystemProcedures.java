@@ -1370,6 +1370,8 @@ public class GfxdSystemProcedures extends SystemProcedures {
     } catch (StandardException se) {
       throw PublicAPI.wrapStandardException(se);
     }
+    SanityManager.DEBUG_PRINT("info", "sdeshmukh GET_PARTITIONING_COLUMNS_AND_BUCKET_COUNT " +
+        "tableName =" + tableName + "columns[0] =" + columns[0] + "bucketCount[0] =" + bucketCount[0]);
   }
 
   public static int GET_BUCKET_COUNT(String tableName) throws SQLException,
@@ -1401,6 +1403,8 @@ public class GfxdSystemProcedures extends SystemProcedures {
     } catch (StandardException se) {
       throw PublicAPI.wrapStandardException(se);
     }
+    SanityManager.DEBUG_PRINT("info", "sdeshmukh GET_PARTITIONING_COLUMNS_AND_BUCKET_COUNT " +
+        "tableName =" + tableName + "numBuckets =" + numBuckets);
     return numBuckets;
   }
 
@@ -1632,7 +1636,13 @@ public class GfxdSystemProcedures extends SystemProcedures {
   }
 
   /**
-   * TODO
+   * Returns information about nodes on which replicas of a
+   * (replicated) table hosted
+   *
+   * After execution replicaNodes param will contain string of a
+   * format: host1Info|host2Info|numReplicas
+   * pc25.pune.gemstone.com/10.112.204.14[25005]{datastore}|
+   * pc25.pune.gemstone.com/10.112.204.14[25005]{datastore}|2
    * @param fqtn
    * @param replicaNodes
    * @throws SQLException
@@ -1652,15 +1662,19 @@ public class GfxdSystemProcedures extends SystemProcedures {
         .getGfxdAdvisor().getAllNetServersWithMembers();
 
     StringBuffer stringBuffer = new StringBuffer();
-    owners.add(Misc.getGemFireCache().getMyId());
+    if (GemFireXDUtils.getMyVMKind().isStore()) {
+      owners.add(Misc.getGemFireCache().getMyId());
+    }
     owners.addAll(replicas);
-    stringBuffer.append(owners.size() + "|");
+    int numReplicas = 0;
     for (InternalDistributedMember node : owners) {
       String netServer = mbrToServerMap.get(node);
       if ( netServer != null) {
-        stringBuffer.append(mbrToServerMap.get(node) + ";");
+        stringBuffer.append(netServer + ";");
+        numReplicas++;
       }
     }
+    stringBuffer.append(numReplicas);
 
     if (stringBuffer.length() > 0) {
       replicaNodes[0] = new HarmonySerialClob(stringBuffer.toString());
