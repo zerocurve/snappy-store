@@ -1666,16 +1666,12 @@ public class GfxdSystemProcedures extends SystemProcedures {
       owners.add(Misc.getGemFireCache().getMyId());
     }
     owners.addAll(replicas);
-    int numReplicas = 0;
     for (InternalDistributedMember node : owners) {
       String netServer = mbrToServerMap.get(node);
       if ( netServer != null) {
         stringBuffer.append(netServer + ";");
-        numReplicas++;
       }
     }
-    stringBuffer.append(numReplicas);
-
     if (stringBuffer.length() > 0) {
       replicaNodes[0] = new HarmonySerialClob(stringBuffer.toString());
     } else {
