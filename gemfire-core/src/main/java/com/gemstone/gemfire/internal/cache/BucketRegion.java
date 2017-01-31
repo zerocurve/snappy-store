@@ -766,15 +766,27 @@ public class BucketRegion extends DistributedRegion implements Bucket {
             "Creating the cached batch for bucket " + this.getId()
             + ", and batchID " + this.batchUUID);
       }
+
+      // Stop recording version in snapshot
+      this.getVersionVector().lockForSnapshotModification(this);
+      this.getVersionVector().setCurrentThreadIdInThreadLocal(Thread.currentThread().getId());
       Set keysToDestroy = createCachedBatchAndPutInColumnTable();
 
       // provide a callback  to separate these two operations to test the snapshot
-
-
       destroyAllEntries(keysToDestroy);
 
+      //GemFireCacheImpl.getInstance().retakeSnapshotForRegion(this);
       // create new batchUUID
       generateAndSetBatchIDIfNULL(true);
+      this.getVersionVector().reSetCurrentThreadIdInThreadLocal();
+
+      // Avoid any other read thread to take snapshot
+      getCache().acquireWriteLockOnSnapshotRvv();
+      // Reinitialize snapshot version
+      this.getVersionVector().reInitializeSnapshotRvv();
+      getCache().releaseWriteLockOnSnapshotRvv();
+      this.getVersionVector().unlockForSnapshotModification(this);
+
       return true;
     } else {
       return false;
@@ -854,7 +866,6 @@ public class BucketRegion extends DistributedRegion implements Bucket {
   // This destroy is under a lock which makes sure that there is no put into the region
   // No need to take the lock on key
   private void destroyAllEntries(Set keysToDestroy) {
-
     for(Object key : keysToDestroy) {
       if (getCache().getLoggerI18n().fineEnabled()) {
         getCache()

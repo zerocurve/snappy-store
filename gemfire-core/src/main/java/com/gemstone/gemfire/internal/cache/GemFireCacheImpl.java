@@ -478,6 +478,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   private Map<Region,RegionVersionVector> snapshotRVV = new ConcurrentHashMap<Region,RegionVersionVector>();
 
   private final ReentrantReadWriteLock snapshotLock = new ReentrantReadWriteLock();
+  private final ReentrantReadWriteLock lockForSnapshotRvv = new ReentrantReadWriteLock();
 
   /**
    * DistributedLockService for PartitionedRegions. Remains null until the first PartitionedRegion is created. Destroyed
@@ -528,6 +529,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 
   private volatile boolean isShutDownAll = false;
 
+  private transient final ReentrantReadWriteLock rvvSnapshotLock = new ReentrantReadWriteLock();
   /**
    * Set of members that are not yet ready. Currently used by GemFireXD during
    * initial DDL replay to indicate that the member should not be chosen for
@@ -1200,9 +1202,11 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   //return snapshotRVV;
   public Map getSnapshotRVV() {
     try {
+      lockForSnapshotRvv.readLock().lock();
       Map<String, Map> snapshot = new HashMap();
       for (LocalRegion region : getApplicationRegions()) {
         if (region.getPartitionAttributes() != null && ((PartitionedRegion)region).isDataStore()) {
+
           for (BucketRegion br : ((PartitionedRegion)region).getDataStore().getAllLocalBucketRegions()) {
             // if null then create the rvv for that bucket.!
             snapshot.put(br.getFullPath(), br.getVersionVector().getSnapShotOfMemberVersion());
@@ -1214,8 +1218,18 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       }
       return snapshot;
     } finally {
+      lockForSnapshotRvv.readLock().unlock();
 
     }
+  }
+
+  public void acquireWriteLockOnSnapshotRvv() {
+    lockForSnapshotRvv.writeLock().lock();
+  }
+
+
+  public void releaseWriteLockOnSnapshotRvv() {
+    lockForSnapshotRvv.writeLock().unlock();
   }
 
   public void lockForSnapshot() {

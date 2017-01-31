@@ -892,7 +892,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
 
 
     conn.commit();
-    Object msg = new Object();
+    final Object msg = new Object();
 
     //Start new transaction
     rs = st.executeQuery("Select * from t1");
@@ -965,7 +965,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     return version;
   }
 
-  private void doInsertOpsInThread(Object msg) throws SQLException, InterruptedException {
+  private void doInsertOpsInThread(final Object msg) throws SQLException, InterruptedException {
     final Connection conn2 = getConnection();
     Runnable r = new Runnable(){
       @Override

@@ -45,6 +45,7 @@ import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.Assert;
 import com.gemstone.gemfire.internal.DataSerializableFixedID;
 import com.gemstone.gemfire.internal.InternalDataSerializer;
+import com.gemstone.gemfire.internal.cache.GemFireCacheImpl;
 import com.gemstone.gemfire.internal.cache.LocalRegion;
 import com.gemstone.gemfire.internal.cache.TXManagerImpl;
 import com.gemstone.gemfire.internal.cache.locks.LockingPolicy;
@@ -147,6 +148,8 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    */
   private transient final ReentrantReadWriteLock versionLock = new ReentrantReadWriteLock();
   private transient final ReentrantReadWriteLock snapshotLock = new ReentrantReadWriteLock();
+  //ThreadLocal variable to store Thread id of the thread requested for writelock on snapshot
+  private transient final ThreadLocal<Long> lockingThreadId = new ThreadLocal<Long>();
   private transient volatile boolean locked; // this is only modified by the version locking thread
   private transient volatile boolean doUnlock; // this is only modified by the version locking thread
   private transient InternalDistributedMember lockOwner; // guarded by lockWaitSync
@@ -227,6 +230,16 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     return ((CopyOnWriteHashMap)memberToVersionSnapshot).getInnerMap();
   }
 
+  /**
+   * Retrieve a vector that can be used as a SnapShot information.
+   * Basically we need low cost copy of memberToVersion and localVersion.
+   * Also calling method should synchronize on cache level lock
+   * if it wants consistent view of snapshot across cache
+   */
+  public Map<T, RegionVersionHolder<T>> getCopyOfSnapShotOfMemberVersion() {
+
+    return ((CopyOnWriteHashMap)memberToVersionSnapshot);
+  }
   protected abstract RegionVersionVector<T> createCopy(T ownerId,
       ConcurrentHashMap<T, RegionVersionHolder<T>> vector, long version,
       ConcurrentHashMap<T, Long> gcVersions, long gcVersion, boolean singleMember,
@@ -728,13 +741,28 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * @param version the version of the peers region that reflects the operation
    */
   public void recordVersionForSnapshot(T member, long version) {
+    LogWriterI18n logger = getLoggerI18n();
       T mbr = member;
 
-      if (this.recordingDisabled || clientVector) {
+      if (this.recordingDisabled || clientVector ) {
         return;
       }
+    //Check ThreadLocal and lock if yes then
+    // return else if no threadlocal but lock then block else record version
+    long currentThreadId = Thread.currentThread().getId();
+    if (this.snapshotLock.isWriteLocked() && currentThreadId == lockingThreadId.get()) {
+      //No need to record version in snapshot
+      return;
+    } else if (this.snapshotLock.isWriteLocked() && currentThreadId != lockingThreadId.get()) {
+      try {
+        this.snapshotLock.wait();
+      } catch (InterruptedException e) {
+        //e.printStackTrace();
+      }
+    }
+
       TXManagerImpl.getCurrentTXState();
-      LogWriterI18n logger = getLoggerI18n();
+
 
 
       RegionVersionHolder<T> holder;
@@ -814,6 +842,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * @param version the version of the peers region that reflects the operation
    */
   public void recordVersion(T member, long version) {
+
     T mbr = member;
     if(isSnapshotEnabled()) {
       recordVersionForSnapshot(member, version);
@@ -823,11 +852,6 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     }
     
     LogWriterI18n logger = getLoggerI18n();
-//    if (mbr == null) {
-//      logger.info(LocalizedStrings.DEBUG, "recording region version for local event", new Exception("stack trace"));
-//      return;
-//    }
-    
     RegionVersionHolder<T> holder;
     
     if (mbr.equals(this.myId)) {
@@ -842,6 +866,8 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
         holder.version = this.localVersion.get();
       }
       updateLocalVersion(version);
+      holder.id = this.myId;
+      memberToVersion.put(this.myId, holder);
     } else { 
       //Find the version holder object
       holder = memberToVersion.get(mbr);
@@ -1746,6 +1772,37 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
 //  }
 
 
-  
+  /**
+   * obtain a lock to prevent concurrent modification of Snapshot map
+   */
+  public void lockForSnapshotModification(LocalRegion owner) {
+    if (owner.getServerProxy() == null) {
+      LogWriterI18n logger = getLoggerI18n();
+      this.snapshotLock.writeLock().lock();
+    }
+  }
 
+  /**
+   * obtain a lock to prevent concurrent modification of Snapshot map
+   */
+  public void unlockForSnapshotModification(LocalRegion owner) {
+    if (owner.getServerProxy() == null) {
+      this.snapshotLock.writeLock().unlock();
+    }
+  }
+
+  public void setCurrentThreadIdInThreadLocal(long threadId) {
+    this.lockingThreadId.set(threadId);
+  }
+
+
+  public void reSetCurrentThreadIdInThreadLocal() {
+    this.lockingThreadId.remove();
+  }
+
+  public void reInitializeSnapshotRvv() {
+    if(isSnapshotEnabled()) {
+      this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>(memberToVersion);
+    }
+  }
 }
