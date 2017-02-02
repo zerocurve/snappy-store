@@ -750,63 +750,64 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     //Check ThreadLocal and lock if yes then
     // return else if no threadlocal but lock then block else record version
     long currentThreadId = Thread.currentThread().getId();
-    if (this.snapshotLock.isWriteLocked() && currentThreadId == lockingThreadId.get()) {
+    if (this.snapshotLock.isWriteLocked() && lockingThreadId.get() != null && currentThreadId ==
+        lockingThreadId.get()) {
       //No need to record version in snapshot
       return;
-    } else if (this.snapshotLock.isWriteLocked() && currentThreadId != lockingThreadId.get()) {
+    } else {  //(this.snapshotLock.isWriteLocked() && lockingThreadId.get() != null &&
+        //currentThreadId != lockingThreadId.get()) {
+      //this.snapshotLock.readLock();
       try {
-        this.snapshotLock.wait();
-      } catch (InterruptedException e) {
-        //e.printStackTrace();
+
+        TXManagerImpl.getCurrentTXState();
+
+
+        RegionVersionHolder<T> holder;
+
+        if (mbr.equals(this.myId)) {
+          //If we are recording a version for the local member,
+          //use the local exception list.
+          holder = this.localExceptions.clone();
+
+          synchronized (holder) {
+            //Advance the version held in the local
+            //exception list to match the atomic long
+            //we using for the local version.
+            holder.version = this.localVersion.get();
+          }
+          updateLocalVersion(version);
+
+          holder.recordVersion(version, logger);
+          holder.id = this.myId;
+          memberToVersionSnapshot.put(this.myId, holder);
+
+        } else {
+          //Find the version holder object
+          holder = memberToVersionSnapshot.get(mbr);
+          if (holder == null) {
+            synchronized (memberToVersionSnapshot) {
+              //Look for the holder under lock
+              holder = memberToVersionSnapshot.get(mbr).clone();
+              if (holder == null) {
+                mbr = getCanonicalId(mbr);
+                holder = new RegionVersionHolder<T>(mbr);
+                //memberToVersion.put(holder.id, holder);
+              }
+
+            }
+          }
+          holder.recordVersion(version, logger);
+          memberToVersionSnapshot.put(holder.id, holder);
+        }
+
+        //Update the version holder
+        if (DEBUG && logger != null) {
+          logger.info(LocalizedStrings.DEBUG, "recording rv" + version + " for " + mbr);
+        }
+      } finally {
+       // this.snapshotLock.readLock().unlock();
       }
     }
-
-      TXManagerImpl.getCurrentTXState();
-
-
-
-      RegionVersionHolder<T> holder;
-
-      if (mbr.equals(this.myId)) {
-        //If we are recording a version for the local member,
-        //use the local exception list.
-        holder = this.localExceptions.clone();
-
-        synchronized (holder) {
-          //Advance the version held in the local
-          //exception list to match the atomic long
-          //we using for the local version.
-          holder.version = this.localVersion.get();
-        }
-        updateLocalVersion(version);
-
-        holder.recordVersion(version, logger);
-        holder.id = this.myId;
-        memberToVersionSnapshot.put(this.myId, holder);
-
-      } else {
-        //Find the version holder object
-        holder = memberToVersionSnapshot.get(mbr);
-        if (holder == null) {
-          synchronized (memberToVersionSnapshot) {
-            //Look for the holder under lock
-            holder = memberToVersionSnapshot.get(mbr).clone();
-            if (holder == null) {
-              mbr = getCanonicalId(mbr);
-              holder = new RegionVersionHolder<T>(mbr);
-              //memberToVersion.put(holder.id, holder);
-            }
-
-          }
-        }
-        holder.recordVersion(version, logger);
-        memberToVersionSnapshot.put(holder.id, holder);
-      }
-
-      //Update the version holder
-      if (DEBUG && logger != null) {
-        logger.info(LocalizedStrings.DEBUG, "recording rv" + version + " for " + mbr);
-      }
   }
 
   private boolean isSnapshotEnabled() {
@@ -1804,5 +1805,8 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     if(isSnapshotEnabled()) {
       this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>(memberToVersion);
     }
+  }
+  public boolean isSnapshotRecordingStopper() {
+    return snapshotLock.isWriteLocked();
   }
 }

@@ -480,6 +480,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   private final ReentrantReadWriteLock snapshotLock = new ReentrantReadWriteLock();
   private final ReentrantReadWriteLock lockForSnapshotRvv = new ReentrantReadWriteLock();
 
+  private volatile RvvSnapshotTestHook testHook;
   /**
    * DistributedLockService for PartitionedRegions. Remains null until the first PartitionedRegion is created. Destroyed
    * by GemFireCache when closing the cache. Protected by synchronization on this GemFireCache.
@@ -1225,6 +1226,47 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 
   public void acquireWriteLockOnSnapshotRvv() {
     lockForSnapshotRvv.writeLock().lock();
+  }
+
+  public interface RvvSnapshotTestHook {
+
+    public abstract void notifyTestLock();
+    public abstract void notifyOperationLock();
+    public abstract void waitOnTestLock();
+    public abstract void waitOnOperationLock();
+  }
+
+
+  public  RvvSnapshotTestHook getRvvSnapshotTestHook() {
+    return this.testHook;
+  }
+
+  public void setRvvSnapshotTestHook(RvvSnapshotTestHook hook) {
+    this.testHook = hook;
+  }
+
+  public void notifyRvvTestHook() {
+    if(null !=this.testHook) {
+      this.testHook.notifyTestLock();
+    }
+  }
+
+  public void notifyRvvSnapshotTestHook() {
+    if (null != this.testHook) {
+      this.testHook.notifyOperationLock();
+    }
+  }
+
+  public void waitOnRvvTestHook() {
+    if (null != this.testHook) {
+      this.testHook.waitOnTestLock();
+    }
+  }
+
+  public void waitOnRvvSnapshotTestHook() {
+    if (null != this.testHook) {
+      this.testHook.waitOnOperationLock();
+    }
   }
 
 
@@ -6017,4 +6059,5 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     }
     return false;
   }
+
 }

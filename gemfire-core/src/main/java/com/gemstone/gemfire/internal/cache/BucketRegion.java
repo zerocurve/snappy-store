@@ -767,25 +767,53 @@ public class BucketRegion extends DistributedRegion implements Bucket {
             + ", and batchID " + this.batchUUID);
       }
 
+      long currentThreadId = Thread.currentThread().getId();
       // Stop recording version in snapshot
       this.getVersionVector().lockForSnapshotModification(this);
-      this.getVersionVector().setCurrentThreadIdInThreadLocal(Thread.currentThread().getId());
+      this.getVersionVector().setCurrentThreadIdInThreadLocal(currentThreadId);
+      for(BucketRegion childRegion: getCorrespondingChildPRBuckets()) {
+        childRegion.getVersionVector().lockForSnapshotModification(childRegion);
+        childRegion.getVersionVector().setCurrentThreadIdInThreadLocal(currentThreadId);
+      }
+
       Set keysToDestroy = createCachedBatchAndPutInColumnTable();
 
+      //Check if shutdown hook is set
+      if(null != getCache().getRvvSnapshotTestHook()) {
+        getCache().notifyRvvTestHook();
+        getCache().waitOnRvvSnapshotTestHook();
+      }
       // provide a callback  to separate these two operations to test the snapshot
       destroyAllEntries(keysToDestroy);
+
 
       //GemFireCacheImpl.getInstance().retakeSnapshotForRegion(this);
       // create new batchUUID
       generateAndSetBatchIDIfNULL(true);
       this.getVersionVector().reSetCurrentThreadIdInThreadLocal();
+      for(BucketRegion childRegion: getCorrespondingChildPRBuckets()) {
+        childRegion.getVersionVector().reSetCurrentThreadIdInThreadLocal();
+      }
+
 
       // Avoid any other read thread to take snapshot
       getCache().acquireWriteLockOnSnapshotRvv();
       // Reinitialize snapshot version
       this.getVersionVector().reInitializeSnapshotRvv();
+
+      for(BucketRegion childRegion: getCorrespondingChildPRBuckets()) {
+        childRegion.getVersionVector().reInitializeSnapshotRvv();
+      }
+
       getCache().releaseWriteLockOnSnapshotRvv();
+      if(null != getCache().getRvvSnapshotTestHook()) {
+        getCache().notifyRvvTestHook();
+        getCache().waitOnRvvSnapshotTestHook();
+      }
       this.getVersionVector().unlockForSnapshotModification(this);
+      for(BucketRegion childRegion: getCorrespondingChildPRBuckets()) {
+        childRegion.getVersionVector().unlockForSnapshotModification(childRegion);
+      }
 
       return true;
     } else {
@@ -3192,6 +3220,24 @@ public class BucketRegion extends DistributedRegion implements Bucket {
     
      return ServerPingMessage.send(cache, hostingservers);
     
+  }
+
+  /**
+   * Return all of the user PR buckets for this bucket region.
+   * TODO: Can remove colocated user regions later.
+   */
+  public Collection<BucketRegion> getCorrespondingChildPRBuckets() {
+    List<BucketRegion> userPRBuckets = new ArrayList<BucketRegion>(4);
+    Map<String, PartitionedRegion> colocatedPRs = ColocationHelper
+        .getAllColocationRegions(getPartitionedRegion());
+    for (PartitionedRegion colocatedPR : colocatedPRs.values()) {
+      BucketRegion parentBucket = colocatedPR.getDataStore()
+          .getLocalBucketById(getId());
+      if (parentBucket != null)
+        userPRBuckets.add(parentBucket);
+
+    }
+    return userPRBuckets;
   }
 }
 

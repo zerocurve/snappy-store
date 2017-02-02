@@ -3836,6 +3836,11 @@ public final class TXState implements TXStateInterface {
             // For Transaction NONE we can get locally. For tx isolation level RC/RR
             // we will have to get from a common DS.
             //dataRegion.getLocalOldEntry(re.getKey(), snapshot.get(region.getFullPath()));
+
+            if (dataRegion.getVersionVector().isSnapshotRecordingStopper()) {
+              return NonLocalRegionEntry.newEntry(key, Token.TOMBSTONE, dataRegion, re
+                  .getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+            }
           }
           else {
             // this fails in case of persistence! Need to check
