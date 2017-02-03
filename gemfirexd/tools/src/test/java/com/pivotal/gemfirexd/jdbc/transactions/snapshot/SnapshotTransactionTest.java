@@ -1008,5 +1008,65 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     t.start();
   }
 
+
+  public void testSnapshotAcrossRegion() throws Exception {
+
+    Connection conn = getConnection();
+    GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
+    Statement st = conn.createStatement();
+    // Use single bucket as it will be easy to test versions
+    st.execute("Create table t1 (c1 int not null , c2 int not null, "
+        + "primary key(c1)) partition by column (c1) buckets 1 enable concurrency checks " + getSuffix
+        ());
+    st.execute("Create table t2 (c1 int not null , c2 int not null, "
+        + "primary key(c1)) partition by column (c1) buckets 1 enable concurrency checks " + getSuffix
+        ());
+
+    conn.commit();
+    conn = getConnection();
+    conn.setTransactionIsolation(getIsolationLevel());
+
+
+    //Inserting 34 records to avoid null pointer exception while getting TxState
+    for(int i=0;i<10;i++) {
+      st.execute("insert into t1 values ("+i+", 10)");
+      st.execute("insert into t2 values ("+(i+11)+","+(20+i)+")");
+    }
+
+    //As there is only one bucket there will be only one bucket region
+    PartitionedRegion region = (PartitionedRegion)Misc.getRegionForTableByPath("/APP/T1", false);
+
+    for(BucketRegion bucketRegion :region.getDataStore().getAllLocalBucketRegions()) {
+      bucketRegion.getVersionVector().lockForSnapshotModification(bucketRegion);
+      bucketRegion.getVersionVector().setCurrentThreadIdInThreadLocal(Thread.currentThread().getId());
+      System.out.println(bucketRegion);
+    }
+    st.execute("insert into t1 values (100,101)");
+    ResultSet rs =st.executeQuery("select * from t1 union select * from t2");
+    int numRows = 0;
+    while (rs.next()) {
+      numRows++;
+    }
+    System.out.println(numRows);
+    // The count should be 20 as one insert was done by pausing recroding version for snapshot
+    assert(numRows==20);
+
+    for(BucketRegion bucketRegion :region.getDataStore().getAllLocalBucketRegions()) {
+      bucketRegion.getVersionVector().unlockForSnapshotModification(bucketRegion);
+      bucketRegion.getVersionVector().reSetCurrentThreadIdInThreadLocal();
+      bucketRegion.getVersionVector().reInitializeSnapshotRvv();
+    }
+
+
+    ResultSet rs1 =st.executeQuery("select * from t1 union select * from t2");
+    int numRows1 = 0;
+    while (rs1.next()) {
+      numRows1++;
+    }
+    System.out.println(numRows1);
+    // The count should be 21 after releasing the lock and re-initializing snapshot map
+    assert(numRows1==21);
+
+  }
 }
 
