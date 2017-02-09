@@ -1879,7 +1879,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
     protected NetSqlca parseSQLDARD(ColumnMetaData columnMetaData, StatementCallbackInterface statement,
         boolean skipBytes, int expectedCodePoint) throws DisconnectException {
    // Gemstone changes END
-        parseLengthAndMatchCodePoint(CodePoint.SQLDARD);
+        parseLengthAndMatchCodePoint(expectedCodePoint);
         return parseSQLDARDarray(columnMetaData, statement, skipBytes);
     }
 
