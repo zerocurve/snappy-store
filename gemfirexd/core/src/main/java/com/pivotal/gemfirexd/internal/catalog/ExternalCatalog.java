@@ -66,5 +66,7 @@ public interface ExternalCatalog {
    */
   public String catalogSchemaName();
 
+  Object getTable(String schema, String tableName, boolean skipLocks);
+
   void stop();
 }

@@ -1624,41 +1624,22 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
       super.createSystemProcedureOrFunction("CREATE_ALL_BUCKETS", sysUUID,
           arg_names, arg_types, 0, 0, RoutineAliasInfo.NO_SQL, null,
           newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, true);
-
-      // CREATE_ALL_BUCKETS2(String tableName)
-      super.createSystemProcedureOrFunction("CREATE_ALL_BUCKETS2", sysUUID,
-          arg_names, arg_types, 0, 0, RoutineAliasInfo.NO_SQL,
-          DataTypeDescriptor.getCatalogType(Types.INTEGER),
-          newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, true);
-
-      // GET_BUCKET_COUNT(String tableName)
-      super.createSystemProcedureOrFunction("GET_BUCKET_COUNT", sysUUID,
-          arg_names, arg_types, 0, 0, RoutineAliasInfo.NO_SQL,
-          DataTypeDescriptor.getCatalogType(Types.INTEGER),
-          newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
     }
 
     {
-      // GET_PARTITIONING_COLUMNS_AND_BUCKET_COUNT
-      String[] arg_names = new String[] { "TABLENAME", "PARTITIONING_COLUMNS",
-      "BUCKETCOUNT"};
+      // GET_TABLE_METADATA
+      String[] arg_names = new String[] { "TABLE_NAME",
+          "TABLE_OBJECT", "BUCKET_COUNT", "PARTITIONING_COLUMNS",
+          "INDEX_COLUMNS", "BUCKET_TO_SERVER_MAPPING"};
       TypeDescriptor[] arg_types = new TypeDescriptor[] { DataTypeDescriptor
-          .getCatalogType(Types.VARCHAR), DataTypeDescriptor
           .getCatalogType(Types.VARCHAR),
-          DataTypeDescriptor.getCatalogType(Types.INTEGER) };
-      super.createSystemProcedureOrFunction("GET_PARTITIONING_COLUMNS_AND_BUCKET_COUNT",
-          sysUUID, arg_names, arg_types, 2, 0, RoutineAliasInfo.READS_SQL_DATA, null,
-          newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
-    }
-
-    {
-      // GET_INITIALIZED_REPLICAS
-      String[] arg_names = new String[] { "FQTN", "REPLICA_NODES" };
-      TypeDescriptor[] arg_types = new TypeDescriptor[] { DataTypeDescriptor
-          .getCatalogType(Types.VARCHAR), DataTypeDescriptor
-          .getCatalogType(Types.CLOB) };
-      super.createSystemProcedureOrFunction("GET_INITIALIZED_REPLICAS", sysUUID,
-          arg_names, arg_types, 1, 0, RoutineAliasInfo.READS_SQL_DATA, null,
+          DataTypeDescriptor.getCatalogType(Types.BLOB),
+          DataTypeDescriptor.getCatalogType(Types.INTEGER),
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.CLOB)};
+      super.createSystemProcedureOrFunction("GET_TABLE_METADATA",
+          sysUUID, arg_names, arg_types, 5, 0, RoutineAliasInfo.READS_SQL_DATA, null,
           newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
     }
 

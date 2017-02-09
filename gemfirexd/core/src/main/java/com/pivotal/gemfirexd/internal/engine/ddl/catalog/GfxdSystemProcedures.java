@@ -17,6 +17,9 @@
 
 package com.pivotal.gemfirexd.internal.engine.ddl.catalog;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
@@ -47,6 +50,7 @@ import com.gemstone.gnu.trove.THashSet;
 import com.pivotal.gemfirexd.Attribute;
 import com.pivotal.gemfirexd.auth.callback.UserAuthenticator;
 import com.pivotal.gemfirexd.internal.catalog.AliasInfo;
+import com.pivotal.gemfirexd.internal.catalog.ExternalCatalog;
 import com.pivotal.gemfirexd.internal.catalog.SystemProcedures;
 import com.pivotal.gemfirexd.internal.engine.GfxdConstants;
 import com.pivotal.gemfirexd.internal.engine.Misc;
@@ -77,11 +81,13 @@ import com.pivotal.gemfirexd.internal.iapi.sql.ResultColumnDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.ConnectionUtil;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.AliasDescriptor;
+import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.DataDictionary;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.SchemaDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.StatementRoutinePermission;
 import com.pivotal.gemfirexd.internal.iapi.store.access.TransactionController;
 import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
+import com.pivotal.gemfirexd.internal.iapi.types.HarmonySerialBlob;
 import com.pivotal.gemfirexd.internal.iapi.types.HarmonySerialClob;
 import com.pivotal.gemfirexd.internal.iapi.types.TypeId;
 import com.pivotal.gemfirexd.internal.iapi.util.IdUtil;
@@ -1328,8 +1334,22 @@ public class GfxdSystemProcedures extends SystemProcedures {
     }
   }
 
-  public static void GET_PARTITIONING_COLUMNS_AND_BUCKET_COUNT(
-      String tableName, String[] columns, int[] bucketCount)
+  /**
+   *
+   * @param tableName input param - table for which metadata is needed
+   * @param tableObject output param - Hive matastore object for table
+   * @param bucketCount output param - 0 for replicated tables otherwise the actual count
+   * @param partColumns output param - partitioning columns
+   * @param bucketToServerMapping output param - bucket to server mapping for partitioned tables OR
+   *                              replica to server mapping for replicated table
+   * @throws SQLException
+   */
+  public static void GET_TABLE_METADATA(
+      String tableName, Blob[] tableObject,
+      int[] bucketCount,
+      String[] partColumns,
+      String[] indexColumns,
+      Clob[] bucketToServerMapping)
       throws SQLException {
     String schema;
     String table;
@@ -1341,7 +1361,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
 
     if (GemFireXDUtils.TraceSysProcedures) {
       SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
-          "executing GET_PARTITIONING_COLUMNS_AND_BUCKET_COUNT for table " + tableName);
+          "executing GET_TABLE_METADATA for table " + tableName);
     }
 
     if ((dotIndex = tableName.indexOf('.')) >= 0) {
@@ -1351,62 +1371,113 @@ public class GfxdSystemProcedures extends SystemProcedures {
       schema = Misc.getDefaultSchemaName(ConnectionUtil.getCurrentLCC());
       table = tableName;
     }
-    try {
-      final GemFireContainer container = CallbackProcedures
-          .getContainerForTable(schema, table);
-      final LocalRegion region = container.getRegion();
-      if (region.getAttributes().getPartitionAttributes() != null) {
-        PartitionedRegion pr = (PartitionedRegion)region;
-        bucketCount[0] = pr.getTotalNumberOfBuckets();
-        GfxdPartitionByExpressionResolver resolver = (GfxdPartitionByExpressionResolver)pr.getPartitionResolver();
-        StringBuffer stringBuffer = new StringBuffer();
-        for (String col : resolver.getColumnNames()) {
-          stringBuffer.append(col + ":");
+
+    ExternalCatalog hiveCatalog = Misc.getMemStore().getExternalCatalog();
+    // get the hive matadata object and return as a blob
+    Object t = hiveCatalog.getTable(schema, table, true);
+    if (t != null) {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      try {
+        ObjectOutputStream os = new ObjectOutputStream(baos);
+        os.writeObject(t);
+        byte[] tableObjectBytes = baos.toByteArray();
+        tableObject[0] = new HarmonySerialBlob(tableObjectBytes);
+      } catch (IOException ioe) {
+        TransactionResourceImpl.wrapInSQLException(ioe);
+      }
+    } else {
+      tableObject[0] = null;
+    }
+
+    // get other attributes bucket count, partitioning cols,
+    // bucket to server/replica to server mapping
+    if (tableObject[0] != null) {
+      try {
+        final GemFireContainer container = CallbackProcedures
+            .getContainerForTable(schema, table);
+        final LocalRegion region = container.getRegion();
+        if (region.getAttributes().getPartitionAttributes() != null) {
+          getPRMetaData((PartitionedRegion)region, tableName,
+              partColumns, bucketCount, bucketToServerMapping);
+        } else {
+          getRRMetaData((DistributedRegion)region, bucketToServerMapping);
+          bucketCount[0] = 0;
         }
-        columns[0] = stringBuffer.toString();
-      } else {
-        bucketCount[0] = 0;
+        // get index columns
+        if (hiveCatalog.isRowTable(schema, table, true)) {
+          getIndexColumns(indexColumns, region);
+        }
+      } catch (StandardException se) {
+        throw PublicAPI.wrapStandardException(se);
       }
-    } catch (StandardException se) {
-      throw PublicAPI.wrapStandardException(se);
-    }
-    SanityManager.DEBUG_PRINT("info", "sdeshmukh GET_PARTITIONING_COLUMNS_AND_BUCKET_COUNT " +
-        "tableName =" + tableName + "columns[0] =" + columns[0] + "bucketCount[0] =" + bucketCount[0]);
-  }
-
-  public static int GET_BUCKET_COUNT(String tableName) throws SQLException,
-      StandardException {
-    String schema;
-    String table;
-    int dotIndex;
-    int numBuckets = 0;
-    // NULL table name is illegal
-    if (tableName == null) {
-      throw Util.generateCsSQLException(SQLState.ENTITY_NAME_MISSING);
     }
 
-    if ((dotIndex = tableName.indexOf('.')) >= 0) {
-      schema = tableName.substring(0, dotIndex);
-      table = tableName.substring(dotIndex + 1);
-    }
-    else {
-      schema = Misc.getDefaultSchemaName(ConnectionUtil.getCurrentLCC());
-      table = tableName;
-    }
-    try {
-      final GemFireContainer container = CallbackProcedures
-          .getContainerForTable(schema, table);
-      final LocalRegion region = container.getRegion();
-      if (region.getAttributes().getPartitionAttributes() != null) {
-        numBuckets = ((PartitionedRegion)region).getTotalNumberOfBuckets();
-      }
-    } catch (StandardException se) {
-      throw PublicAPI.wrapStandardException(se);
-    }
-    SanityManager.DEBUG_PRINT("info", "sdeshmukh GET_PARTITIONING_COLUMNS_AND_BUCKET_COUNT " +
-        "tableName =" + tableName + "numBuckets =" + numBuckets);
-    return numBuckets;
+    SanityManager.DEBUG_PRINT("info", "sdeshmukh GET_TABLE_METADATA " +
+        " tableObject ="  + tableObject[0] +
+        " tableName =" + tableName + " columns[0] =" + partColumns[0] +
+        " bucketCount[0] =" + bucketCount[0] + " bucketToServerMapping =" + bucketToServerMapping[0]);
   }
+
+  private static void getPRMetaData(final PartitionedRegion region,
+      final String tableName, final String[] partColumns,
+      final int[] bucketCount, final Clob[] bucketToServerMapping) throws SQLException {
+    bucketCount[0] = region.getTotalNumberOfBuckets();
+
+    // get partitioning columns
+    GfxdPartitionByExpressionResolver resolver =
+        (GfxdPartitionByExpressionResolver)region.getPartitionResolver();
+    StringBuffer stringBuffer = new StringBuffer();
+    for (String col : resolver.getColumnNames()) {
+      stringBuffer.append(col + ":");
+    }
+    partColumns[0] = stringBuffer.toString();
+
+    // bucket to server mapping
+    GET_BUCKET_TO_SERVER_MAPPING2(tableName, bucketToServerMapping);
+  }
+
+  private static void getRRMetaData(final DistributedRegion region,
+      final Clob[] replicaNodes) {
+    // replica to server mapping
+    Set<InternalDistributedMember> owners = new HashSet<>();
+    Set<InternalDistributedMember> replicas =
+        region.getDistributionAdvisor().adviseInitializedReplicates();
+    Map<InternalDistributedMember, String> mbrToServerMap = GemFireXDUtils
+        .getGfxdAdvisor().getAllNetServersWithMembers();
+
+    StringBuffer stringBuffer = new StringBuffer();
+    if (GemFireXDUtils.getMyVMKind().isStore()) {
+      owners.add(Misc.getGemFireCache().getMyId());
+    }
+    owners.addAll(replicas);
+    for (InternalDistributedMember node : owners) {
+      String netServer = mbrToServerMap.get(node);
+      if ( netServer != null) {
+        stringBuffer.append(netServer + ";");
+      }
+    }
+    if (stringBuffer.length() > 0) {
+      replicaNodes[0] = new HarmonySerialClob(stringBuffer.toString());
+    } else {
+      replicaNodes[0] = null;
+    }
+  }
+
+  private static void getIndexColumns(String[] indexColumns, LocalRegion region) {
+    GfxdIndexManager im = (GfxdIndexManager)region.getIndexUpdater();
+    if (im != null && im.getIndexConglomerateDescriptors() != null) {
+      String cols = null;
+      String[] baseColumns = im.getContainer().getTableDescriptor().getColumnNamesArray();
+      Iterator<ConglomerateDescriptor> itr = im.getIndexConglomerateDescriptors().iterator();
+      while (itr.hasNext()) {
+        // first column of index has to be present in filter to be usable
+        int[] indexColsPositions = itr.next().getIndexDescriptor().baseColumnPositions();
+        cols = baseColumns[indexColsPositions[0] - 1] + ":";
+      }
+      indexColumns[0] = cols;
+    }
+  }
+
 
   /**
    * Create all buckets in the given table.
@@ -1444,49 +1515,6 @@ public class GfxdSystemProcedures extends SystemProcedures {
     } catch (StandardException se) {
       throw PublicAPI.wrapStandardException(se);
     }
-  }
-
-  /**
-   * Create all buckets in the given table and returns the no of buckets
-   * created for table
-   *
-   * @param tableName
-   *          the fully qualified table name
-   *
-   */
-  public static int CREATE_ALL_BUCKETS2(String tableName) throws SQLException,
-      StandardException {
-    String schema;
-    String table;
-    int dotIndex;
-    // NULL table name is illegal
-    if (tableName == null) {
-      throw Util.generateCsSQLException(SQLState.ENTITY_NAME_MISSING);
-    }
-
-    if ((dotIndex = tableName.indexOf('.')) >= 0) {
-      schema = tableName.substring(0, dotIndex);
-      table = tableName.substring(dotIndex + 1);
-    }
-    else {
-      schema = Misc.getDefaultSchemaName(ConnectionUtil.getCurrentLCC());
-      table = tableName;
-    }
-    try {
-      final GemFireContainer container = CallbackProcedures
-          .getContainerForTable(schema, table);
-      final LocalRegion region = container.getRegion();
-      if (region.getAttributes().getPartitionAttributes() != null) {
-        final PartitionedRegion pr = (PartitionedRegion)region;
-        int numBuckets = pr.getRegionAdvisor().getCreatedBucketsCount();
-        if (numBuckets == 0)
-          CREATE_ALL_BUCKETS_INTERNAL(region, tableName);
-        return numBuckets;
-      }
-    } catch (StandardException se) {
-      throw PublicAPI.wrapStandardException(se);
-    }
-    return 0;
   }
 
   private static void CREATE_ALL_BUCKETS_INTERNAL(LocalRegion region,
@@ -1632,50 +1660,6 @@ public class GfxdSystemProcedures extends SystemProcedures {
       bktToServerMapping[0] = new HarmonySerialClob(mapping[0]);
     } else {
       bktToServerMapping[0] = null;
-    }
-  }
-
-  /**
-   * Returns information about nodes on which replicas of a
-   * (replicated) table hosted
-   *
-   * After execution replicaNodes param will contain string of a
-   * format: host1Info|host2Info|numReplicas
-   * pc25.pune.gemstone.com/10.112.204.14[25005]{datastore}|
-   * pc25.pune.gemstone.com/10.112.204.14[25005]{datastore}|2
-   * @param fqtn
-   * @param replicaNodes
-   * @throws SQLException
-   */
-  public static void GET_INITIALIZED_REPLICAS(String fqtn,
-      Clob[] replicaNodes) throws SQLException {
-    if (GemFireXDUtils.TraceSysProcedures) {
-      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
-          "executing GET_INITIALIZED_REPLICAS for table " + fqtn);
-    }
-    DistributedRegion dr = (DistributedRegion)Misc.getRegionForTable(fqtn,
-        true);
-    Set<InternalDistributedMember> owners = new HashSet<>();
-    Set<InternalDistributedMember> replicas =
-        dr.getDistributionAdvisor().adviseInitializedReplicates();
-    Map<InternalDistributedMember, String> mbrToServerMap = GemFireXDUtils
-        .getGfxdAdvisor().getAllNetServersWithMembers();
-
-    StringBuffer stringBuffer = new StringBuffer();
-    if (GemFireXDUtils.getMyVMKind().isStore()) {
-      owners.add(Misc.getGemFireCache().getMyId());
-    }
-    owners.addAll(replicas);
-    for (InternalDistributedMember node : owners) {
-      String netServer = mbrToServerMap.get(node);
-      if ( netServer != null) {
-        stringBuffer.append(netServer + ";");
-      }
-    }
-    if (stringBuffer.length() > 0) {
-      replicaNodes[0] = new HarmonySerialClob(stringBuffer.toString());
-    } else {
-      replicaNodes[0] = null;
     }
   }
 
