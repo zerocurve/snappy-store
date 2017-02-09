@@ -70,7 +70,7 @@ public final class GenericParameterValueSet implements ParameterValueSet
 //Gemstone changes End
 {
   //all this has to be copied in the clone constructor
-	private final GenericParameter[]				parms;
+	private GenericParameter[] parms; // TODO
 	final ClassInspector 			ci;
 	private	final boolean			hasReturnOutputParam;
 
@@ -177,7 +177,15 @@ public final class GenericParameterValueSet implements ParameterValueSet
 	public	DataValueDescriptor	getParameterForSet(int position) throws StandardException {
 
 		try {
+			// TODO
+			if (parms == null || parms.length == 0) {
+				parms = new GenericParameter[1];
+				parms[0] = new GenericParameter(this, false);
+				DataTypeDescriptor dtd = DataTypeDescriptor.INTEGER;
+				parms[0].initialize(dtd.getNull(),
+						dtd.getJDBCTypeId(), dtd.getTypeId().getCorrespondingJavaTypeName());
 
+			}
 			GenericParameter gp = parms[position];
 			if (gp.parameterMode == JDBC30Translation.PARAMETER_MODE_OUT)
 				throw StandardException.newException(SQLState.LANG_RETURN_OUTPUT_PARAM_CANNOT_BE_SET);

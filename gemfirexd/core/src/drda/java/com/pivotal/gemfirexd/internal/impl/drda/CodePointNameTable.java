@@ -138,6 +138,7 @@ class CodePointNameTable extends java.util.Hashtable
     put (Integer.valueOf(CodePoint.SQLCARD), "SQLCARD");
     put (Integer.valueOf(CodePoint.SQLERRRM), "SQLERRRM");
     put (Integer.valueOf(CodePoint.SQLDARD), "SQLDARD");
+    put (Integer.valueOf(CodePoint.SQLDARDI), "SQLDARDI");
     put (Integer.valueOf(CodePoint.SQLDTA), "SQLDTA");
     put (Integer.valueOf(CodePoint.SQLDTARD), "SQLDTARD");
     put (Integer.valueOf(CodePoint.SQLSTT), "SQLSTT");

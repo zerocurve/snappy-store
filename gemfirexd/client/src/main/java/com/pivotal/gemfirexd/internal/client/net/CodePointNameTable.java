@@ -96,6 +96,7 @@ class CodePointNameTable extends java.util.Hashtable {
         put(CodePoint.RDBAFLRM, "RDBAFLRM");
         put(CodePoint.SQLCARD, "SQLCARD");
         put(CodePoint.SQLDARD, "SQLDARD");
+        put(CodePoint.SQLDARDI, "SQLDARDI");
         put(CodePoint.SQLDTA, "SQLDTA");
         put(CodePoint.SQLDTARD, "SQLDTARD");
         put(CodePoint.SQLSTT, "SQLSTT");

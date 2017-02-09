@@ -513,6 +513,9 @@ public class CodePoint {
     // SQLDA Reply Data codepoint constant.
     public static final int SQLDARD = 0x2411;
 
+    // SQLDA Reply Data codepoint constant, with additional flag.
+    public static final int SQLDARDI = 0x2416;
+
     // Server Class Name codepoint constant.
     static final int SRVCLSNM = 0x1147;
 

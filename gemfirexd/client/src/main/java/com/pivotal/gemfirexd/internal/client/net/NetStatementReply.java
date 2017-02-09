@@ -45,19 +45,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.sql.ResultSet;
 
-import com.pivotal.gemfirexd.internal.client.am.ColumnMetaData;
-import com.pivotal.gemfirexd.internal.client.am.DisconnectException;
-import com.pivotal.gemfirexd.internal.client.am.PreparedStatementCallbackInterface;
-import com.pivotal.gemfirexd.internal.client.am.ResultSetCallbackInterface;
-import com.pivotal.gemfirexd.internal.client.am.Section;
-import com.pivotal.gemfirexd.internal.client.am.SqlState;
-import com.pivotal.gemfirexd.internal.client.am.SqlException;
-import com.pivotal.gemfirexd.internal.client.am.Statement;
-import com.pivotal.gemfirexd.internal.client.am.StatementCallbackInterface;
-import com.pivotal.gemfirexd.internal.client.am.Types;
-import com.pivotal.gemfirexd.internal.client.am.Utils;
-import com.pivotal.gemfirexd.internal.client.am.ClientJDBCObjectFactory;
-import com.pivotal.gemfirexd.internal.client.am.ClientMessageId;
+import com.pivotal.gemfirexd.internal.client.am.*;
 import com.pivotal.gemfirexd.internal.shared.common.SingleHopInformation;
 import com.pivotal.gemfirexd.internal.shared.common.i18n.MessageUtil;
 import com.pivotal.gemfirexd.internal.shared.common.reference.MessageId;
@@ -148,7 +136,11 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
     private void parsePRPSQLSTTreply(StatementCallbackInterface statement) throws DisconnectException {
         int peekCP = parseTypdefsOrMgrlvlovrs();
 
-        if (peekCP == CodePoint.SQLDARD) {
+        if (peekCP == CodePoint.SQLDARD || peekCP == CodePoint.SQLDARDI) {
+            if (peekCP == CodePoint.SQLDARDI && statement instanceof SingleHopPreparedStatement) {
+                SingleHopPreparedStatement ps = (SingleHopPreparedStatement)statement;
+                ps.setCaseOfSQLDARDI(true);
+            }
             // the sqlcagrp is most likely null for insert/update/deletes.  if it is null, then we can
             // peek ahead for the column number which most likely will be 0.  if it is 0, then we will
             // not new up a ColumnMetaData, and we can skip the rest of the bytes in sqldard.
@@ -158,11 +150,13 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
             NetSqlca netSqlca = null;
             boolean nullSqlca = peekForNullSqlcagrp();
             if (nullSqlca && peekNumOfColumns() == 0) {
-                netSqlca = parseSQLDARD(columnMetaData, statement, true); // true means to skip the rest of SQLDARD bytes
+                netSqlca = parseSQLDARD(columnMetaData, statement, true, peekCP); // true means to skip
+                // the rest of SQLDARD bytes
             } else {
                 columnMetaData = ClientDRDADriver.getFactory().newColumnMetaData(
                     netAgent_ /* GemStone change to use agent */);
-                netSqlca = parseSQLDARD(columnMetaData, statement, false); // false means do not skip SQLDARD bytes.
+                netSqlca = parseSQLDARD(columnMetaData, statement, false, peekCP); // false means do not
+                // skip SQLDARD bytes.
             }
 
             statement.completePrepareDescribeOutput(columnMetaData,
@@ -204,7 +198,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
             throws DisconnectException {
         int peekCP = parseTypdefsOrMgrlvlovrs();
 
-        if (peekCP == CodePoint.SQLDARD) {
+        if (peekCP == CodePoint.SQLDARD || peekCP == CodePoint.SQLDARDI) {
             ColumnMetaData columnMetaData = null;
 
             if (columnMetaData == null) {
@@ -212,7 +206,8 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
                     netAgent_ /* GemStone change to use agent */);
             }
 
-            NetSqlca netSqlca = parseSQLDARD(columnMetaData, null, false);  // false means do not skip SQLDARD bytes
+            NetSqlca netSqlca = parseSQLDARD(columnMetaData, null, false, peekCP);  // false means do
+            // not skip SQLDARD bytes
             if (columnMetaData.columns_ == 0) {
                 columnMetaData = null;
             }
@@ -529,10 +524,11 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
 
             peekCP = parseTypdefsOrMgrlvlovrs();
 
-            if (peekCP == CodePoint.SQLDARD) {
+            if (peekCP == CodePoint.SQLDARD || peekCP == CodePoint.SQLDARDI) {
                 ColumnMetaData columnMetaData = ClientDRDADriver.getFactory().newColumnMetaData(
                     netAgent_ /* GemStone change to use agent */);
-                NetSqlca netSqlca = parseSQLDARD(columnMetaData, null, false);  // false means do not skip SQLDARD bytes
+                NetSqlca netSqlca = parseSQLDARD(columnMetaData, null, false, peekCP);  // false means
+                // do not skip SQLDARD bytes
 
                 //For java stored procedure, we got the resultSetMetaData from server,
                 //Do we need to save the resultSetMetaData and propagate netSqlca?
@@ -1881,7 +1877,7 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
                                     boolean skipBytes) throws DisconnectException {
                                     */
     protected NetSqlca parseSQLDARD(ColumnMetaData columnMetaData, StatementCallbackInterface statement,
-        boolean skipBytes) throws DisconnectException {
+        boolean skipBytes, int expectedCodePoint) throws DisconnectException {
    // Gemstone changes END
         parseLengthAndMatchCodePoint(CodePoint.SQLDARD);
         return parseSQLDARDarray(columnMetaData, statement, skipBytes);

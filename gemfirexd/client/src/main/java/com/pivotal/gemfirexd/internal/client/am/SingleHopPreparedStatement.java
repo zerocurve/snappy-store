@@ -1337,6 +1337,43 @@ public abstract class SingleHopPreparedStatement extends PreparedStatement {
         host, portStr, this.connection_);
   }
 
+  private volatile boolean caseOfSQLDARDI;
+
+  public void setCaseOfSQLDARDI(boolean flag) {
+    this.caseOfSQLDARDI = flag;
+  }
+
+  public boolean isCaseOfSQLDARDI() {
+    return this.caseOfSQLDARDI;
+  }
+
+  private void hackInitialization() {
+    if (parameters_ == null) {
+      parameterMetaData_ = ClientDRDADriver.getFactory().newColumnMetaData(
+          agent_ /* GemStone change to use agent */);
+      parameterMetaData_.initializeCache(1);
+      parameters_ = new Object[1];
+      //parameterSetOrRegistered_ = new boolean[parameterMetaData_.columns_];
+      parameterSet_ = new boolean[1];
+      parameterRegistered_ = new boolean[1];
+    }
+  }
+
+  public void setInt(int parameterIndex, int x) throws SQLException {
+    if (caseOfSQLDARDI) {
+      hackInitialization();
+      try {
+        synchronized (connection_) {
+          setIntX(parameterIndex, x);
+        }
+      } catch ( SqlException se ) {
+        throw se.getSQLException(agent_ /* GemStoneAddition */);
+      }
+    } else {
+      super.setInt(parameterIndex, x);
+    }
+  }
+
   private static class HostPort {
     final String host_;
 

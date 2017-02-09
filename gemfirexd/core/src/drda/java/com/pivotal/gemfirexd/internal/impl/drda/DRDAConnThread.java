@@ -115,9 +115,11 @@ import com.pivotal.gemfirexd.internal.iapi.services.stream.HeaderPrintWriter;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.tools.i18n.LocalizedResource;
 import com.pivotal.gemfirexd.internal.iapi.types.HarmonySerialClob;
+import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedPreparedStatement;
 import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedResultSet;
 import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedResultSetMetaData;
 import com.pivotal.gemfirexd.internal.impl.jdbc.Util;
+import com.pivotal.gemfirexd.internal.impl.sql.GenericPreparedStatement;
 import com.pivotal.gemfirexd.internal.jdbc.InternalDriver;
 import com.pivotal.gemfirexd.internal.shared.common.ResolverUtils;
 import com.pivotal.gemfirexd.internal.shared.common.SingleHopInformation;
@@ -8134,8 +8136,24 @@ class DRDAConnThread extends Thread {
 
 		writer.createDssObject();
 
+		boolean caseOfSQLDARDI = false;
+		if (ps instanceof GenericPreparedStatement &&
+				((GenericPreparedStatement)ps).hasParseErrorOnPreparedStatementForSnappy()) {
+			caseOfSQLDARDI = true;
+		}
+		if (!caseOfSQLDARDI && ps instanceof EmbedPreparedStatement) {
+			GenericPreparedStatement gps = ((EmbedPreparedStatement)ps).getGPS();
+			if (gps != null && gps.hasParseErrorOnPreparedStatementForSnappy()) {
+				caseOfSQLDARDI = true;
+			}
+		}
+
 		// all went well we will just write a null SQLCA
-		writer.startDdm(CodePoint.SQLDARD);
+		if (caseOfSQLDARDI) {
+			writer.startDdm(CodePoint.SQLDARDI);
+		} else {
+			writer.startDdm(CodePoint.SQLDARD);
+		}
 		writeSQLCAGRP(e, getSqlCode(getExceptionSeverity(e)), 0, 0);
 
 		if (sqlamLevel >= MGRLVL_7)

@@ -30,19 +30,24 @@ import com.pivotal.gemfirexd.internal.engine.distributed.metadata.TableQueryInfo
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.GemFireXDUtils;
 import com.pivotal.gemfirexd.internal.engine.jdbc.GemFireXDRuntimeException;
 import com.pivotal.gemfirexd.internal.iapi.error.StandardException;
+import com.pivotal.gemfirexd.internal.iapi.reference.SQLState;
+import com.pivotal.gemfirexd.internal.iapi.sql.ParameterValueSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.ResultDescription;
 import com.pivotal.gemfirexd.internal.iapi.sql.ResultSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.ExecPreparedStatement;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.NoPutResultSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.TemporaryRowHolder;
+import com.pivotal.gemfirexd.internal.impl.sql.GenericPreparedStatement;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericResultDescription;
+import com.pivotal.gemfirexd.internal.impl.sql.compile.Token;
 import com.pivotal.gemfirexd.internal.impl.sql.execute.BaseActivation;
 import com.pivotal.gemfirexd.internal.shared.common.sanity.SanityManager;
 import com.pivotal.gemfirexd.internal.snappy.LeadNodeExecutionContext;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 /**
@@ -53,13 +58,16 @@ public class SnappyActivation extends BaseActivation {
   volatile AbstractGemFireResultSet currentRS = null;
   private String sql;
   boolean returnRows;
+  boolean isPrepStmt;
 
-  public SnappyActivation(LanguageConnectionContext lcc, ExecPreparedStatement eps, boolean returnRows) {
+  public SnappyActivation(LanguageConnectionContext lcc, ExecPreparedStatement eps,
+      boolean returnRows,  boolean isPrepStmt) {
     super(lcc);
     sql = eps.getSource();
     this.preStmt = eps;
     this.returnRows = returnRows;
     this.connectionID = lcc.getConnectionId();
+    this.isPrepStmt = isPrepStmt;
   }
 
   @Override
@@ -120,7 +128,13 @@ public class SnappyActivation extends BaseActivation {
     boolean enableStreaming = this.lcc.streamingEnabled();
     GfxdResultCollector<Object> rc = null;
     rc = getResultCollector(enableStreaming, rs);
-    executeOnLeadNode(rs, rc, sql, enableStreaming, this.getConnectionID(), this.lcc.getCurrentSchemaName());
+    String querySql = this.sql;
+    if (isPrepStmt) {
+      querySql = getModifiedSql(this.preStmt, this.sql, this.pvs);
+    }
+
+    executeOnLeadNode(rs, rc, querySql, enableStreaming, this.getConnectionID(), this.lcc
+        .getCurrentSchemaName());
   }
 
   protected GfxdResultCollector<Object> getResultCollector(
@@ -271,5 +285,54 @@ public class SnappyActivation extends BaseActivation {
           "SnappyActivation.isColumnTable: return false");
     }
     return false;
+  }
+
+  public static String getModifiedSql(ExecPreparedStatement preStmt, String sql,
+      ParameterValueSet pvs) throws
+      StandardException {
+    String errorMsg = "";
+    if (preStmt instanceof GenericPreparedStatement) {
+      GenericPreparedStatement gps = (GenericPreparedStatement)preStmt;
+      // List<Token> tokenList = gps.getDynamicTokenList(); This is invalid / null
+      StringTokenizer strToken = new StringTokenizer(sql, "?");
+      if (strToken.countTokens() > 1) {
+        if (strToken.countTokens() - 1 == pvs.getParameterCount()) {
+          if (GemFireXDUtils.TraceQuery) {
+            com.pivotal.gemfirexd.internal.iapi.services.sanity.SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_QUERYDISTRIB,
+                "SnappyActivation.getModifiedSql. Got sql=" + sql
+                    + " ,#tokens=" + strToken.countTokens() + " ,#params"
+                    + pvs.getParameterCount() + " ,pvs=" + pvs
+                    + " ,tokens=" + strToken);
+          }
+          final StringBuilder modifiedSqlStr = new StringBuilder(sql.length());
+          for (int i = 0; i < pvs.getParameterCount(); i ++) {
+            modifiedSqlStr.append(strToken.nextToken()).append(" ").append(pvs
+                .getParameter(i).toString()).append(" ");
+          }
+          if (strToken.hasMoreTokens()) {
+            modifiedSqlStr.append(strToken.nextToken()).append(" ");
+          }
+          return modifiedSqlStr.toString();
+        } else {
+          errorMsg = "For SQL: " + sql + " ,Unequal: #tokens=" +
+              strToken.countTokens() + " ,#params=" + pvs.getParameterCount() +
+              " ,tokens=" + strToken + " ,params=" + pvs;
+        }
+      } else {
+        errorMsg = "For SQL: " + sql + " , 0 tokens." + " #params" +
+            pvs.getParameterCount() + " ,params=" + pvs;
+      }
+    } else {
+      errorMsg = "Not GenericPreparedStatement SQL: " + sql + " ,but " +
+          preStmt.getClass().getSimpleName();
+    }
+    if (GemFireXDUtils.TraceQuery) {
+      com.pivotal.gemfirexd.internal.iapi.services.sanity.SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_QUERYDISTRIB,
+          "SnappyActivation.getModifiedSql. Error. sql=" + sql
+              + " ,pvs=" + pvs
+              + " ,error=" + errorMsg);
+    }
+    throw StandardException.newException(
+        SQLState.LANG_UNEXPECTED_USER_EXCEPTION, errorMsg);
   }
 }

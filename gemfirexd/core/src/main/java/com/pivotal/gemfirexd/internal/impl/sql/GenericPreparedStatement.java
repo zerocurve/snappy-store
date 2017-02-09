@@ -170,6 +170,7 @@ public class GenericPreparedStatement
         private boolean queryHDFS = false;
         private boolean hasQueryHDFS = false;
         private boolean isCallableStatement;
+	 private boolean parseErrorOnPreparedStatementForSnappy;
         private ArrayList<com.pivotal.gemfirexd.internal.impl.sql.compile.Token> dynamicTokenList;
 // GemStone changes END
 
@@ -1599,6 +1600,7 @@ recompileOutOfDatePlan:
 // GemStone changes BEGIN
 		clone.queryHDFS = this.queryHDFS;
 		clone.isCallableStatement = this.isCallableStatement;
+		clone.parseErrorOnPreparedStatementForSnappy = this.parseErrorOnPreparedStatementForSnappy;
 		clone.origTypeCompilers = this.origTypeCompilers;
 		clone.stats = stats;
 		clone.qinfo = qinfo;
@@ -1885,6 +1887,14 @@ recompileOutOfDatePlan:
         public ArrayList<com.pivotal.gemfirexd.internal.impl.sql.compile.Token> getDynamicTokenList() {
           return this.dynamicTokenList;
         }
+
+	public void setHasParseErrorOnPreparedStatementForSnappy(boolean v) {
+		this.parseErrorOnPreparedStatementForSnappy = v;
+	}
+
+	public boolean hasParseErrorOnPreparedStatementForSnappy() {
+		return this.parseErrorOnPreparedStatementForSnappy;
+	}
 // GemStone changes END
 
 }
