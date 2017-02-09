@@ -393,8 +393,11 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                      boolean sendQueryRowSet,
                      int fetchSize) throws SqlException {
         createCommand();
+      if (section.isCaseOfOPNQRYI()) {
+        markLengthBytes(CodePoint.OPNQRYI);
+      } else {
         markLengthBytes(CodePoint.OPNQRY);
-
+      }
         buildPKGNAMCSN(section);
         buildQRYBLKSZ();  // specify a hard coded query block size
 

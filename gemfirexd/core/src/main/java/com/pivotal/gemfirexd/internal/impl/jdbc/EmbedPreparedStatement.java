@@ -510,6 +510,7 @@ public abstract class EmbedPreparedStatement
 
 		try {
 			/* JDBC is one-based, DBMS is zero-based */
+      getParms().hackInitialize(parameterIndex - 1, DataTypeDescriptor.INTEGER);
 			getParms().getParameterForSet(parameterIndex - 1).setValue(x);
 		} catch (Throwable t) {
 			throw EmbedResultSet.noStateChangeException(t,
@@ -2331,6 +2332,16 @@ public abstract class EmbedPreparedStatement
     }
     return null;
   }
+
+	private volatile boolean caseOfPrepStmtParseErrorSnappy;
+
+	public void setCaseOfPrepStmtParseErrorSnappy(boolean flag) {
+		this.caseOfPrepStmtParseErrorSnappy = flag;
+	}
+
+	public boolean isCaseOfPrepStmtParseErrorSnappy() {
+		return this.caseOfPrepStmtParseErrorSnappy;
+	}
 
   @SuppressWarnings("serial")
   protected static final class FinalizePreparedStatement extends

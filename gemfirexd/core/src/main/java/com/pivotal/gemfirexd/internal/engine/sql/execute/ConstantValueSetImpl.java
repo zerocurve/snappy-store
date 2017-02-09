@@ -516,4 +516,7 @@ public final class ConstantValueSetImpl implements ConstantValueSet {
   public List<TypeCompiler> getOrigTypeCompilers() {
     return this.origParamTCs;
   }
+
+  @Override
+  public void hackInitialize(int position, DataTypeDescriptor dtd) throws StandardException {}
 }

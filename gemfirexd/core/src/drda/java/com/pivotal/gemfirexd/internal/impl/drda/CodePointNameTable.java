@@ -77,6 +77,7 @@ class CodePointNameTable extends java.util.Hashtable
     put (Integer.valueOf(CodePoint.OBJNSPRM), "OBJNSPRM");
     put (Integer.valueOf(CodePoint.OPNQFLRM), "OPNQFLRM");
     put (Integer.valueOf(CodePoint.OPNQRY), "OPNQRY");
+    put (Integer.valueOf(CodePoint.OPNQRYI), "OPNQRYI");
     put (Integer.valueOf(CodePoint.OPNQRYRM), "OPNQRYRM");
     put (Integer.valueOf(CodePoint.OUTEXP), "OUTEXP");
     put (Integer.valueOf(CodePoint.OUTOVR), "OUTOVR");

@@ -273,6 +273,9 @@ public class CodePoint {
     // Open Query.
     final static int OPNQRY = 0x200C;
 
+    // Open Query, with additional flag
+    final static int OPNQRYI = 0x2003;
+
     // Output override.
     final static int OUTOVR = 0x2415;
 

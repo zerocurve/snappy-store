@@ -172,20 +172,20 @@ public final class GenericParameterValueSet implements ParameterValueSet
 		}
 	}
 
-
+	public void hackInitialize(int position, DataTypeDescriptor dtd) throws StandardException {
+		if (parms == null || parms.length == 0) {
+			// TODO - recreate array
+			parms = new GenericParameter[position + 1];
+			parms[position] = new GenericParameter(this, false);
+			// DataTypeDescriptor dtd = DataTypeDescriptor.INTEGER;
+			parms[position].initialize(dtd.getNull(),
+					dtd.getJDBCTypeId(), dtd.getTypeId().getCorrespondingJavaTypeName());
+		}
+	}
 
 	public	DataValueDescriptor	getParameterForSet(int position) throws StandardException {
 
 		try {
-			// TODO
-			if (parms == null || parms.length == 0) {
-				parms = new GenericParameter[1];
-				parms[0] = new GenericParameter(this, false);
-				DataTypeDescriptor dtd = DataTypeDescriptor.INTEGER;
-				parms[0].initialize(dtd.getNull(),
-						dtd.getJDBCTypeId(), dtd.getTypeId().getCorrespondingJavaTypeName());
-
-			}
 			GenericParameter gp = parms[position];
 			if (gp.parameterMode == JDBC30Translation.PARAMETER_MODE_OUT)
 				throw StandardException.newException(SQLState.LANG_RETURN_OUTPUT_PARAM_CANNOT_BE_SET);

@@ -336,6 +336,7 @@ public abstract class SingleHopPreparedStatement extends PreparedStatement {
 
   public java.sql.ResultSet executeQuery() throws SQLException {
     try {
+      this.section_.setCaseOfOPNQRYI(isCaseOfSQLDARDI());
       return super.executeQuery();
     } finally {
       // return connections if any to the pool

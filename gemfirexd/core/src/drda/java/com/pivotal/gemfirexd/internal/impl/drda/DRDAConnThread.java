@@ -1006,6 +1006,7 @@ class DRDAConnThread extends Thread {
 					}
 					break;
 				case CodePoint.OPNQRY:
+				case CodePoint.OPNQRYI:
 // GemStone changes BEGIN
 					Statement ps = null;
 					/* (original code)
@@ -1024,7 +1025,7 @@ class DRDAConnThread extends Thread {
 							writeOPNQFLRM(null);
 							break;
 						}
-						Pkgnamcsn pkgnamcsn = parseOPNQRY();
+						Pkgnamcsn pkgnamcsn = parseOPNQRY(codePoint == CodePoint.OPNQRYI);
 						if (pkgnamcsn != null)
 						{
 							stmt = database.getDRDAStatement(pkgnamcsn);
@@ -2517,8 +2518,8 @@ class DRDAConnThread extends Thread {
 	 * @return RDB Package Name, Consistency Token, and Section Number
 	 * @exception DRDAProtocolException
 	 */
-	private Pkgnamcsn parseOPNQRY() throws DRDAProtocolException, SQLException
-	{
+	private Pkgnamcsn parseOPNQRY(boolean prepStmtErrorSnappy) throws DRDAProtocolException,
+			SQLException {
 		Pkgnamcsn pkgnamcsn = null;
 		boolean gotQryblksz = false;
 		int blksize = 0;
@@ -2699,6 +2700,11 @@ class DRDAConnThread extends Thread {
 		{
 			if (this.trace)
 				trace("&&&&&& parsing SQLDTA");
+			if (prepStmtErrorSnappy) {
+				if (stmt.ps instanceof EmbedPreparedStatement) {
+					((EmbedPreparedStatement)stmt.ps).setCaseOfPrepStmtParseErrorSnappy(true);
+				}
+			}
 			parseOPNQRYobjects(stmt);
 		}
 		return pkgnamcsn;

@@ -206,4 +206,7 @@ public class ProxyParameterValueSet implements ParameterValueSet {
   public boolean canReleaseOnClose() {
     return pvs.canReleaseOnClose();
   }
+
+  @Override
+  public void hackInitialize(int position, DataTypeDescriptor dtd) throws StandardException {}
 }

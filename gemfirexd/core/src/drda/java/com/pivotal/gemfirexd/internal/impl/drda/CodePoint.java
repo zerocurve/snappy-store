@@ -198,6 +198,7 @@ class CodePoint
 	final static int EXCSQLSTT = 0x200B;
 	final static int EXCSQLSET = 0x2014;
 	final static int OPNQRY = 0x200C;
+	final static int OPNQRYI = 0x2003;
 	final static int PRPSQLSTT = 0x200D;
 	final static int RDBCMM = 0x200E;
 // GemStone changes BEGIN

@@ -284,6 +284,16 @@ public class Section {
     public boolean txIdToBeSent() {
       return this.txIdToBeSent;
     }
+
+  private volatile boolean caseOfOPNQRYI;
+
+  public void setCaseOfOPNQRYI(boolean flag) {
+    this.caseOfOPNQRYI = flag;
+  }
+
+  public boolean isCaseOfOPNQRYI() {
+    return this.caseOfOPNQRYI;
+  }
 // Gemstone changes END 
 }
 
