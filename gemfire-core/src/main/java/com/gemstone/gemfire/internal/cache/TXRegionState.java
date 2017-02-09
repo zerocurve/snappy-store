@@ -256,7 +256,7 @@ public final class TXRegionState extends ReentrantLock {
   public final Object readEntry(final Object entryKey) {
     return readEntry(entryKey, true);
   }
-
+  //TODO: Unused kept it till testing is passed
   public final Object readOldEntry(final Object entryKey) {
     return readOldEntry(entryKey, true);
   }
@@ -294,6 +294,7 @@ public final class TXRegionState extends ReentrantLock {
     }
   }
 
+  //TODO: Unused kept it till testing is passed
   public final Object readOldEntry(final Object entryKey,
       final boolean checkValid) {
     if (!checkValid || this.isValid) {
@@ -917,6 +918,7 @@ public final class TXRegionState extends ReentrantLock {
   }
 
   // Can put it into a
+  //TODO: Unused kept it till testing is passed
   public void addOldEntry(NonLocalRegionEntry re) {
     oldEntryMap.put(re.getKey(), re);
   }

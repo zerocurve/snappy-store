@@ -36,21 +36,8 @@ import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -210,6 +197,7 @@ import com.gemstone.gemfire.internal.cache.xmlcache.PropertyResolver;
 import com.gemstone.gemfire.internal.concurrent.AI;
 import com.gemstone.gemfire.internal.concurrent.CFactory;
 import com.gemstone.gemfire.internal.concurrent.CM;
+import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.jndi.JNDIInvoker;
 import com.gemstone.gemfire.internal.jta.TransactionManagerImpl;
@@ -576,6 +564,41 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 
   private String vmIdRegionPath;
 
+  protected CustomEntryConcurrentHashMap<Object, NavigableSet<Object>/*RegionEntry*/> oldEntryMap;
+
+  public void addOldEntry(RegionEntry oldRe) {
+    if (!this.oldEntryMap.containsKey(oldRe.getKey())) {
+      NavigableSet listOfOldEntries = new TreeSet<RegionEntry>(new Comparator<RegionEntry>() {
+        @Override
+        public int compare(RegionEntry o1, RegionEntry o2) {
+          return ((Long)o1.getVersionStamp().getRegionVersion()).compareTo(o2.getVersionStamp()
+              .getRegionVersion());
+        }
+      });
+      listOfOldEntries.add(oldRe);
+      this.oldEntryMap.put(oldRe.getKey(), listOfOldEntries);
+    } else {
+      this.oldEntryMap.get(oldRe.getKey()).add(oldRe);
+    }
+  }
+
+  //TODO: For now this method will return only first element in the set
+  final Object readOldEntry(final Object entryKey,
+      final boolean checkValid) {
+    if (oldEntryMap.containsKey(entryKey)) {
+      return oldEntryMap.get(entryKey).last();
+    } else {
+      return null;
+    }
+  }
+
+  //TODO: This method is currently not in use but is need in future when concurrent write is
+  // supported
+  final Object readOldEntry(final Object entryKey,
+      final RegionEntry version, final boolean checkValid) {
+    return oldEntryMap.get(entryKey).lower(version);
+  }
+
   /**
    * disables automatic eviction configuration for HDFS regions
    */
@@ -733,6 +756,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     this.clientpf = pf;
     this.cacheConfig = cacheConfig; // do early for bug 43213
 
+    this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
     // initialize advisor for normal DMs immediately
     InternalDistributedSystem ids = (InternalDistributedSystem)system;
     StaticSystemCallbacks sysCallbacks = getInternalProductCallbacks();

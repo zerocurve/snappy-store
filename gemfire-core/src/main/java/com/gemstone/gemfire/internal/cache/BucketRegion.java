@@ -767,15 +767,8 @@ public class BucketRegion extends DistributedRegion implements Bucket {
             + ", and batchID " + this.batchUUID);
       }
 
-      long currentThreadId = Thread.currentThread().getId();
-      // Stop recording version in snapshot
-      this.getVersionVector().lockForSnapshotModification(this);
-      this.getVersionVector().setCurrentThreadIdInThreadLocal(currentThreadId);
-      for(BucketRegion childRegion: getCorrespondingChildPRBuckets()) {
-        childRegion.getVersionVector().lockForSnapshotModification(childRegion);
-        childRegion.getVersionVector().setCurrentThreadIdInThreadLocal(currentThreadId);
-      }
 
+      getCache().getCacheTransactionManager().beginSnapshotLock(this);
       Set keysToDestroy = createCachedBatchAndPutInColumnTable();
 
       //Check if shutdown hook is set
@@ -786,35 +779,10 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       // provide a callback  to separate these two operations to test the snapshot
       destroyAllEntries(keysToDestroy);
 
-
-      //GemFireCacheImpl.getInstance().retakeSnapshotForRegion(this);
       // create new batchUUID
       generateAndSetBatchIDIfNULL(true);
-      this.getVersionVector().reSetCurrentThreadIdInThreadLocal();
-      for(BucketRegion childRegion: getCorrespondingChildPRBuckets()) {
-        childRegion.getVersionVector().reSetCurrentThreadIdInThreadLocal();
-      }
 
-
-      // Avoid any other read thread to take snapshot
-      getCache().acquireWriteLockOnSnapshotRvv();
-      // Reinitialize snapshot version
-      this.getVersionVector().reInitializeSnapshotRvv();
-
-      for(BucketRegion childRegion: getCorrespondingChildPRBuckets()) {
-        childRegion.getVersionVector().reInitializeSnapshotRvv();
-      }
-
-      getCache().releaseWriteLockOnSnapshotRvv();
-      if(null != getCache().getRvvSnapshotTestHook()) {
-        getCache().notifyRvvTestHook();
-        getCache().waitOnRvvSnapshotTestHook();
-      }
-      this.getVersionVector().unlockForSnapshotModification(this);
-      for(BucketRegion childRegion: getCorrespondingChildPRBuckets()) {
-        childRegion.getVersionVector().unlockForSnapshotModification(childRegion);
-      }
-
+      getCache().getCacheTransactionManager().commitSnapshotLock(this);
       return true;
     } else {
       return false;
@@ -894,6 +862,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
   // This destroy is under a lock which makes sure that there is no put into the region
   // No need to take the lock on key
   private void destroyAllEntries(Set keysToDestroy) {
+    getCache().getLoggerI18n().info(LocalizedStrings.DEBUG, "SJ: In destroy all entries");
     for(Object key : keysToDestroy) {
       if (getCache().getLoggerI18n().fineEnabled()) {
         getCache()

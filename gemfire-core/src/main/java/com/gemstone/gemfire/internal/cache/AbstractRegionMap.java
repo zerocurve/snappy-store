@@ -3980,7 +3980,8 @@ RETRY_LOOP:
                             getHostedTransactionsInProgress()) {
                           // this is not tx ops
                           //if (tx.txId != event.getTXState().getTransactionId())
-                            tx.addOldEntry(oldRe);
+                          tx.addOldEntry(oldRe);
+                          //GemFireCacheImpl.getInstance().addOldEntry(oldRe);
                         }
                       }
                       owner.recordEvent(event);
@@ -4374,7 +4375,8 @@ RETRY_LOOP:
             getHostedTransactionsInProgress()) {
           // this is not tx op
           //if (tx.txId != event.getTXState().getTransactionId())
-            tx.addOldEntry(oldRe);
+          tx.addOldEntry(oldRe);
+          //GemFireCacheImpl.getInstance().addOldEntry(oldRe);
         }
       }
       // we need to keep it at one place.

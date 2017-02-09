@@ -20,6 +20,8 @@ package com.gemstone.gemfire.cache;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
 
+import com.gemstone.gemfire.internal.cache.BucketRegion;
+
 
 /** <p>The CacheTransactionManager interface allows applications to manage
  * transactions on a per {@link Cache} basis.  
@@ -352,4 +354,8 @@ public interface CacheTransactionManager {
      * @since 6.5
      */
     public TransactionWriter getWriter();
+
+    public void beginSnapshotLock(Region regionToLock);
+
+    public void commitSnapshotLock(Region regionToUnLock);
 }
