@@ -114,6 +114,8 @@ import com.pivotal.gemfirexd.internal.iapi.services.sanity.SanityManager;
 import com.pivotal.gemfirexd.internal.iapi.services.stream.HeaderPrintWriter;
 import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.tools.i18n.LocalizedResource;
+import com.pivotal.gemfirexd.internal.iapi.types.DataTypeDescriptor;
+import com.pivotal.gemfirexd.internal.iapi.types.DataTypeUtilities;
 import com.pivotal.gemfirexd.internal.iapi.types.HarmonySerialClob;
 import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedPreparedStatement;
 import com.pivotal.gemfirexd.internal.impl.jdbc.EmbedResultSet;
@@ -5971,6 +5973,7 @@ class DRDAConnThread extends Thread {
 				// optional
 				case CodePoint.FDODTA:
 					reader.readByte();	// row indicator
+					hackInitialize(numVars, stmt, pmeta);
 					for (int i = 0; i < numVars; i++)
 					{
 					
@@ -6257,6 +6260,119 @@ class DRDAConnThread extends Thread {
 					trace("default type parameter value is: "+paramVal);
 				ps.setObject(i+1, paramVal);
 			}
+		}
+	}
+
+	private void hackInitialize(int numVars, DRDAStatement stmt, ParameterMetaData pmeta)
+			throws DRDAProtocolException, SQLException {
+		try {
+			PreparedStatement ps = stmt.getPreparedStatement();
+			if (ps instanceof EmbedPreparedStatement) {
+				EmbedPreparedStatement eps = (EmbedPreparedStatement)ps;
+				if (eps.isCaseOfPrepStmtParseErrorSnappy()) {
+					DataTypeDescriptor[] dtds = new DataTypeDescriptor[numVars];
+					for (int i = 0; i < numVars; i++) {
+						final int drdaType = ((stmt.getParamDRDAType(i + 1) | 0x01) & 0xff);
+						final int paramLenNumBytes = stmt.getParamLen(i + 1);
+
+						switch (drdaType) {
+							case DRDAConstants.DRDA_TYPE_NSMALL: {
+								// DB2 does not have a BOOLEAN java.sql.bit type, it's sent as small
+//								if (pmeta.getParameterType(i + 1) == Types.BOOLEAN)
+//									ps.setBoolean(i + 1, (paramVal == 1));
+//								else
+//									ps.setShort(i + 1, paramVal);
+								// TODO - handle Smallint vs Boolean
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NINTEGER: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NINTEGER8: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NFLOAT4: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.FLOAT);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NFLOAT8: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NDECIMAL: {
+								int precision = (paramLenNumBytes >> 8) & 0xff;
+								int scale = paramLenNumBytes & 0xff;
+								int maxWidth = DataTypeUtilities.computeMaxWidth( precision, scale);
+								dtds[i] = DataTypeDescriptor.getSQLDataTypeDescriptor("DECIMAL", precision, scale, true, maxWidth);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NDATE: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DATE);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NTIME: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIME);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NTIMESTAMP: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NCHAR: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR);
+								break;
+							}
+
+							case DRDAConstants.DRDA_TYPE_NLONG:
+							case DRDAConstants.DRDA_TYPE_NMIX:
+							case DRDAConstants.DRDA_TYPE_NVARCHAR:
+							case DRDAConstants.DRDA_TYPE_NVARMIX: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NLONGMIX: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.LONGNVARCHAR);
+								break;
+							}
+//							case DRDAConstants.DRDA_TYPE_NFIXBYTE: {
+//								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.);
+//								break;
+//							}
+							case DRDAConstants.DRDA_TYPE_NVARBYTE:
+							case DRDAConstants.DRDA_TYPE_NLONGVARBYTE: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.LONGVARBINARY);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NUDT: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.JAVA_OBJECT);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NLOBBYTES:
+							case DRDAConstants.DRDA_TYPE_NLOBLOC: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BLOB);
+								break;
+							}
+							case DRDAConstants.DRDA_TYPE_NLOBCDBCS:
+							case DRDAConstants.DRDA_TYPE_NLOBCSBCS:
+							case DRDAConstants.DRDA_TYPE_NLOBCMIXED:
+							case DRDAConstants.DRDA_TYPE_NCLOBLOC: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CLOB);
+								break;
+							}
+							default: {
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.JAVA_OBJECT);
+							}
+						}
+					}
+
+					eps.getParms().hackInitialize(numVars, dtds);
+				}
+			}
+		} catch (StandardException sx) {
+			// TODO
 		}
 	}
 

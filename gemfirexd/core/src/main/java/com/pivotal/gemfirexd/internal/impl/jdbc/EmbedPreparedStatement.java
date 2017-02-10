@@ -91,6 +91,7 @@ import com.pivotal.gemfirexd.internal.iapi.types.RawToBinaryFormatStream;
 import com.pivotal.gemfirexd.internal.iapi.types.ReaderToUTF8Stream;
 import com.pivotal.gemfirexd.internal.iapi.types.VariableSizeDataValue;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericActivationHolder;
+import com.pivotal.gemfirexd.internal.impl.sql.GenericParameter;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericPreparedStatement;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericStatement;
 import com.pivotal.gemfirexd.internal.shared.common.SingleHopInformation;
@@ -510,7 +511,6 @@ public abstract class EmbedPreparedStatement
 
 		try {
 			/* JDBC is one-based, DBMS is zero-based */
-      getParms().hackInitialize(parameterIndex - 1, DataTypeDescriptor.INTEGER);
 			getParms().getParameterForSet(parameterIndex - 1).setValue(x);
 		} catch (Throwable t) {
 			throw EmbedResultSet.noStateChangeException(t,

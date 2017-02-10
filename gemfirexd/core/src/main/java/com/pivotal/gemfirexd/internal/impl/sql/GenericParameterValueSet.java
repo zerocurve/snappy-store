@@ -172,14 +172,14 @@ public final class GenericParameterValueSet implements ParameterValueSet
 		}
 	}
 
-	public void hackInitialize(int position, DataTypeDescriptor dtd) throws StandardException {
+	public void hackInitialize(int size, DataTypeDescriptor[] dtd) throws StandardException {
 		if (parms == null || parms.length == 0) {
-			// TODO - recreate array
-			parms = new GenericParameter[position + 1];
-			parms[position] = new GenericParameter(this, false);
-			// DataTypeDescriptor dtd = DataTypeDescriptor.INTEGER;
-			parms[position].initialize(dtd.getNull(),
-					dtd.getJDBCTypeId(), dtd.getTypeId().getCorrespondingJavaTypeName());
+			parms = new GenericParameter[size];
+			for (int i = 0; i < size; i++) {
+				parms[i] = new GenericParameter(this, false);
+				parms[i].initialize(dtd[i].getNull(),
+						dtd[i].getJDBCTypeId(), dtd[i].getTypeId().getCorrespondingJavaTypeName());
+			}
 		}
 	}
 

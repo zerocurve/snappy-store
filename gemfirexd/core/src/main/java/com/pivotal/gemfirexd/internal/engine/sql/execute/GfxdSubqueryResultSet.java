@@ -531,7 +531,7 @@ public class GfxdSubqueryResultSet extends NoPutResultSetImpl {
     }
 
     @Override
-    public void hackInitialize(int position, DataTypeDescriptor dtd) throws StandardException {}
+    public void hackInitialize(int size, DataTypeDescriptor[] dtd) throws StandardException {}
   }
 
   private class ConstantValueSubqueryPVSWrapper extends
@@ -673,7 +673,7 @@ public class GfxdSubqueryResultSet extends NoPutResultSetImpl {
     }
 
     @Override
-    public void hackInitialize(int position, DataTypeDescriptor dtd) throws StandardException {}
+    public void hackInitialize(int size, DataTypeDescriptor[] dtd) throws StandardException {}
   }
 
   @Override

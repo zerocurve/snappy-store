@@ -131,7 +131,7 @@ public interface ParameterValueSet
 	 */
 	public DataValueDescriptor getParameterForSet( int position ) throws StandardException;
 
-	public void hackInitialize(int position, DataTypeDescriptor dtd) throws StandardException;
+	public void hackInitialize(int position, DataTypeDescriptor[] dtd) throws StandardException;
 
 	/**
 		Set the value of this user defined parameter to the passed in Object.

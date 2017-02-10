@@ -208,5 +208,5 @@ public class ProxyParameterValueSet implements ParameterValueSet {
   }
 
   @Override
-  public void hackInitialize(int position, DataTypeDescriptor dtd) throws StandardException {}
+  public void hackInitialize(int size, DataTypeDescriptor[] dtd) throws StandardException {}
 }
