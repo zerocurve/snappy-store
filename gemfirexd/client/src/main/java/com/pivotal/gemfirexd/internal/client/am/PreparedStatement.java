@@ -2197,7 +2197,7 @@ public class PreparedStatement extends Statement
         return pm;
     }
 
-    private ColumnMetaData getColumnMetaDataX() throws SqlException {
+    protected ColumnMetaData getColumnMetaDataX() throws SqlException {
         checkForClosedStatement();
         return 
             parameterMetaData_ != null ?
@@ -3304,7 +3304,7 @@ public class PreparedStatement extends Statement
         }
     }
 
-    private void checkThatAllParametersAreSet() throws SqlException {
+    protected void checkThatAllParametersAreSet() throws SqlException {
         if (parameterMetaData_ != null) {
             for (int i = 0; i < parameterMetaData_.columns_; i++) {
                 if (!parameterSet_[i] && !parameterRegistered_[i]) {
@@ -4034,6 +4034,9 @@ public class PreparedStatement extends Statement
          * This method return true if the type is possible.
          */
         boolean checkType(int type){
+          if (type == Integer.MIN_VALUE) {
+            return true;
+          }
             
             if(SanityManager.DEBUG){
                 

@@ -632,6 +632,9 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
     }
 
     public int getColumnType(int column) throws SQLException {
+      if (isCaseOfSQLDARDI()) {
+        return Integer.MIN_VALUE;
+      }
         try
         {
             checkForClosedStatement();
@@ -1105,6 +1108,16 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
     } catch (SqlException e) {
       throw e.getSQLException(agent_ /* GemStoneAddition */);
     }
+  }
+
+  private volatile boolean caseOfSQLDARDI;
+
+  public void setCaseOfSQLDARDI(boolean flag) {
+    this.caseOfSQLDARDI = flag;
+  }
+
+  public boolean isCaseOfSQLDARDI() {
+    return this.caseOfSQLDARDI;
   }
 // GemStone changes END
 }

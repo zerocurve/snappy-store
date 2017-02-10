@@ -36,13 +36,7 @@
 package com.pivotal.gemfirexd.internal.client.am;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 import com.pivotal.gemfirexd.internal.client.ClientPooledConnection;
 import com.pivotal.gemfirexd.internal.client.am.Connection.FailoverStatus;
@@ -163,6 +157,13 @@ public abstract class SingleHopPreparedStatement extends PreparedStatement {
                       + " as some primary bucket locations don't have a network server ");
         }
       }
+
+      if (isCaseOfSQLDARDI()) {
+        StringTokenizer strToken = new StringTokenizer(this.sql_, "?");
+        // TODO: Similar effort as SnappyActivation
+        hackInitialization(strToken.countTokens() - 1);
+      }
+
       return;
     }
     
@@ -1348,31 +1349,25 @@ public abstract class SingleHopPreparedStatement extends PreparedStatement {
     return this.caseOfSQLDARDI;
   }
 
-  private void hackInitialization() {
+  private void hackInitialization(int n) {
     if (parameters_ == null) {
       parameterMetaData_ = ClientDRDADriver.getFactory().newColumnMetaData(
           agent_ /* GemStone change to use agent */);
-      parameterMetaData_.initializeCache(1);
-      parameters_ = new Object[1];
+      parameterMetaData_.initializeCache(n);
+      parameters_ = new Object[n];
       //parameterSetOrRegistered_ = new boolean[parameterMetaData_.columns_];
-      parameterSet_ = new boolean[1];
-      parameterRegistered_ = new boolean[1];
+      parameterSet_ = new boolean[n];
+      parameterRegistered_ = new boolean[n];
     }
   }
 
-  public void setInt(int parameterIndex, int x) throws SQLException {
-    if (caseOfSQLDARDI) {
-      hackInitialization();
-      try {
-        synchronized (connection_) {
-          setIntX(parameterIndex, x);
-        }
-      } catch ( SqlException se ) {
-        throw se.getSQLException(agent_ /* GemStoneAddition */);
-      }
-    } else {
-      super.setInt(parameterIndex, x);
+  @Override
+  protected ColumnMetaData getColumnMetaDataX() throws SqlException {
+    ColumnMetaData cmd = super.getColumnMetaDataX();
+    if (cmd != null) {
+      cmd.setCaseOfSQLDARDI(caseOfSQLDARDI);
     }
+    return cmd;
   }
 
   private static class HostPort {
