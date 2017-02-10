@@ -719,7 +719,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
         endLocalWrite(event);
         //create and insert cached batch
         if (success && getPartitionedRegion().needsBatching()
-            && this.size() >= GemFireCacheImpl.getColumnBatchSize()) {
+            && this.size() >= this.getPartitionedRegion().getColumnBatchSize()) {
           createAndInsertCachedBatch(false);
         }
       }
@@ -750,9 +750,9 @@ public class BucketRegion extends DistributedRegion implements Bucket {
     // TODO: with forceFlush, ideally we should merge with an existing
     // CachedBatch if the current size to be flushed is small like < 1000
     // (and split if total size has become too large)
-    final int columnBatchSize = GemFireCacheImpl.getColumnBatchSize();
+    final int columnBatchSize = this.getPartitionedRegion().getColumnBatchSize();
     final int batchSize = !forceFlush ? columnBatchSize
-        : Math.min(GemFireCacheImpl.getColumnMinBatchSize(),
+        : Math.min(this.getPartitionedRegion().getColumnMinBatchSize(),
         Math.max(columnBatchSize, 1));
     // we may have to use region.size so that no state
     // has to be maintained
@@ -766,15 +766,23 @@ public class BucketRegion extends DistributedRegion implements Bucket {
             "Creating the cached batch for bucket " + this.getId()
             + ", and batchID " + this.batchUUID);
       }
+
+
+      getCache().getCacheTransactionManager().beginSnapshotLock(this);
       Set keysToDestroy = createCachedBatchAndPutInColumnTable();
 
+      //Check if shutdown hook is set
+      if(null != getCache().getRvvSnapshotTestHook()) {
+        getCache().notifyRvvTestHook();
+        getCache().waitOnRvvSnapshotTestHook();
+      }
       // provide a callback  to separate these two operations to test the snapshot
-
-
       destroyAllEntries(keysToDestroy);
 
       // create new batchUUID
       generateAndSetBatchIDIfNULL(true);
+
+      getCache().getCacheTransactionManager().commitSnapshotLock(this);
       return true;
     } else {
       return false;
@@ -792,7 +800,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       UUID batchUUIDToUse = null;
       if (event.getPutAllOperation() != null) { //isPutAll op
         batchUUIDToUse = generateAndSetBatchIDIfNULL(resetBatchId);
-      } else if (this.size() >= GemFireCacheImpl.getColumnBatchSize()) {// loose check on size..not very strict
+      } else if (this.size() >= this.getPartitionedRegion().getColumnBatchSize()) {// loose check on size..not very strict
         batchUUIDToUse = generateAndSetBatchIDIfNULL(resetBatchId);
         if (getCache().getLoggerI18n().fineEnabled()) {
           getCache()
@@ -854,7 +862,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
   // This destroy is under a lock which makes sure that there is no put into the region
   // No need to take the lock on key
   private void destroyAllEntries(Set keysToDestroy) {
-
+    getCache().getLoggerI18n().info(LocalizedStrings.DEBUG, "SJ: In destroy all entries");
     for(Object key : keysToDestroy) {
       if (getCache().getLoggerI18n().fineEnabled()) {
         getCache()
@@ -870,8 +878,6 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       event.setKey(key);
       event.setBucketId(this.getId());
       event.setBatchUUID(this.batchUUID); // to make sure that lock is not nexessary
-
-
 
       if (getTXState() != null) {
         getTXState().destroyExistingEntry(event, true, null);
@@ -3183,6 +3189,24 @@ public class BucketRegion extends DistributedRegion implements Bucket {
     
      return ServerPingMessage.send(cache, hostingservers);
     
+  }
+
+  /**
+   * Return all of the user PR buckets for this bucket region.
+   * TODO: Can remove colocated user regions later.
+   */
+  public Collection<BucketRegion> getCorrespondingChildPRBuckets() {
+    List<BucketRegion> userPRBuckets = new ArrayList<BucketRegion>(4);
+    Map<String, PartitionedRegion> colocatedPRs = ColocationHelper
+        .getAllColocationRegions(getPartitionedRegion());
+    for (PartitionedRegion colocatedPR : colocatedPRs.values()) {
+      BucketRegion parentBucket = colocatedPR.getDataStore()
+          .getLocalBucketById(getId());
+      if (parentBucket != null)
+        userPRBuckets.add(parentBucket);
+
+    }
+    return userPRBuckets;
   }
 }
 

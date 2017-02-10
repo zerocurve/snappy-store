@@ -408,8 +408,7 @@ public final class PutAllPRMessage extends PartitionMessageWithDirectReply {
     InternalDistributedMember myId = r.getDistributionManager().getDistributionManagerId();
     final TXStateInterface txi = getTXState(r);
     final TXState tx = txi != null ? txi.getTXStateForWrite() : null;
-
-    final InternalDataView view = tx.isSnapShotIsolation() ? r.getSharedDataView() : r.getDataView(tx);
+    final InternalDataView view = /*tx.isSnapShotIsolation() ? r.getSharedDataView() :*/ r.getDataView(tx);
     boolean lockedForPrimary = false;
     try {
     
@@ -659,7 +658,7 @@ public final class PutAllPRMessage extends PartitionMessageWithDirectReply {
         // TODO: For concurrent putALLs, this will club other putall as well
         // the putAlls in worst case so cachedbatchsize may be large?
         if (success && bucketRegion.getPartitionedRegion().needsBatching()
-            && bucketRegion.size() >= GemFireCacheImpl.getColumnBatchSize()) {
+            && bucketRegion.size() >= bucketRegion.getPartitionedRegion().getColumnBatchSize()) {
           bucketRegion.createAndInsertCachedBatch(false);
         }
           if (lockedForPrimary) {

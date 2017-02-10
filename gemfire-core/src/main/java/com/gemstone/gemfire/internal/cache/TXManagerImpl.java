@@ -2268,5 +2268,72 @@ public final class TXManagerImpl implements CacheTransactionManager,
     public LogWriterI18n getLoggerI18n() {
       return GemFireCacheImpl.getExisting().getLoggerI18n();
     }
+
+  }
+
+
+  @Override
+  public void beginSnapshotLock(Region regionToLock) {
+    long currentThreadId = Thread.currentThread().getId();
+    LocalRegion localRegion = (LocalRegion) regionToLock;
+    if (!localRegion.isUsedForPartitionedRegionBucket()) {
+      DistributedRegion region = ((DistributedRegion)regionToLock);
+      region.getVersionVector().lockForSnapshotModification(region);
+      region.getVersionVector().setCurrentThreadIdInThreadLocal(currentThreadId);
+    } else {
+      BucketRegion region = ((BucketRegion)regionToLock);
+      // Stop recording version in snapshot
+      region.getVersionVector().lockForSnapshotModification(region);
+      region.getVersionVector().setCurrentThreadIdInThreadLocal(currentThreadId);
+      for (BucketRegion childRegion : region.getCorrespondingChildPRBuckets()) {
+        childRegion.getVersionVector().lockForSnapshotModification(childRegion);
+        childRegion.getVersionVector().setCurrentThreadIdInThreadLocal(currentThreadId);
+      }
+    }
+
+  }
+
+  @Override
+  public void commitSnapshotLock(Region regionToUnLock) {
+    LocalRegion localRegion = (LocalRegion) regionToUnLock;
+    if (!localRegion.isUsedForPartitionedRegionBucket()) {
+
+      DistributedRegion region = ((DistributedRegion)regionToUnLock);
+
+      region.getVersionVector().reSetCurrentThreadIdInThreadLocal();
+      // Avoid any other read thread to take snapshot
+      getCache().acquireWriteLockOnSnapshotRvv();
+      // Reinitialize snapshot version
+      region.getVersionVector().reInitializeSnapshotRvv();
+      getCache().releaseWriteLockOnSnapshotRvv();
+      if(null != getCache().getRvvSnapshotTestHook()) {
+        getCache().notifyRvvTestHook();
+        getCache().waitOnRvvSnapshotTestHook();
+      }
+      region.getVersionVector().unlockForSnapshotModification(region);
+    } else {
+      BucketRegion region = ((BucketRegion)regionToUnLock);
+      region.getVersionVector().reSetCurrentThreadIdInThreadLocal();
+      for (BucketRegion childRegion : region.getCorrespondingChildPRBuckets()) {
+        childRegion.getVersionVector().reSetCurrentThreadIdInThreadLocal();
+      }
+      // Avoid any other read thread to take snapshot
+      getCache().acquireWriteLockOnSnapshotRvv();
+      // Reinitialize snapshot version
+      region.getVersionVector().reInitializeSnapshotRvv();
+      for(BucketRegion childRegion: region.getCorrespondingChildPRBuckets()) {
+        childRegion.getVersionVector().reInitializeSnapshotRvv();
+      }
+      getCache().releaseWriteLockOnSnapshotRvv();
+      if(null != getCache().getRvvSnapshotTestHook()) {
+        getCache().notifyRvvTestHook();
+        getCache().waitOnRvvSnapshotTestHook();
+      }
+      region.getVersionVector().unlockForSnapshotModification(region);
+      for(BucketRegion childRegion: region.getCorrespondingChildPRBuckets()) {
+        childRegion.getVersionVector().unlockForSnapshotModification(childRegion);
+      }
+
+    }
   }
 }

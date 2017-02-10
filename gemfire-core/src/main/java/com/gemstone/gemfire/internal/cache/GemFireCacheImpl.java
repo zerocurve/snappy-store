@@ -36,21 +36,8 @@ import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -210,6 +197,7 @@ import com.gemstone.gemfire.internal.cache.xmlcache.PropertyResolver;
 import com.gemstone.gemfire.internal.concurrent.AI;
 import com.gemstone.gemfire.internal.concurrent.CFactory;
 import com.gemstone.gemfire.internal.concurrent.CM;
+import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.jndi.JNDIInvoker;
 import com.gemstone.gemfire.internal.jta.TransactionManagerImpl;
@@ -478,7 +466,9 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   private Map<Region,RegionVersionVector> snapshotRVV = new ConcurrentHashMap<Region,RegionVersionVector>();
 
   private final ReentrantReadWriteLock snapshotLock = new ReentrantReadWriteLock();
+  private final ReentrantReadWriteLock lockForSnapshotRvv = new ReentrantReadWriteLock();
 
+  private volatile RvvSnapshotTestHook testHook;
   /**
    * DistributedLockService for PartitionedRegions. Remains null until the first PartitionedRegion is created. Destroyed
    * by GemFireCache when closing the cache. Protected by synchronization on this GemFireCache.
@@ -528,6 +518,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 
   private volatile boolean isShutDownAll = false;
 
+  private transient final ReentrantReadWriteLock rvvSnapshotLock = new ReentrantReadWriteLock();
   /**
    * Set of members that are not yet ready. Currently used by GemFireXD during
    * initial DDL replay to indicate that the member should not be chosen for
@@ -559,12 +550,6 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   // Indicates whether foreign key checks for events received on WAN gateways should be skipped when applying them 
   private boolean skipFKChecksForGatewayEvents = false;
 
-  /** Default size for CachedBatches. */
-  private static int COLUMN_BATCH_SIZE = 10000;
-
-  /** Minimum size for CachedBatches. */
-  private static int COLUMN_MIN_BATCH_SIZE = 200;
-
   /** {@link PropertyResolver} to resolve ${} type property strings */
   protected static PropertyResolver resolver;
 
@@ -578,6 +563,41 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   private GemFireMemcachedServer memcachedServer;
 
   private String vmIdRegionPath;
+
+  protected CustomEntryConcurrentHashMap<Object, NavigableSet<Object>/*RegionEntry*/> oldEntryMap;
+
+  public void addOldEntry(RegionEntry oldRe) {
+    if (!this.oldEntryMap.containsKey(oldRe.getKey())) {
+      NavigableSet listOfOldEntries = new TreeSet<RegionEntry>(new Comparator<RegionEntry>() {
+        @Override
+        public int compare(RegionEntry o1, RegionEntry o2) {
+          return ((Long)o1.getVersionStamp().getRegionVersion()).compareTo(o2.getVersionStamp()
+              .getRegionVersion());
+        }
+      });
+      listOfOldEntries.add(oldRe);
+      this.oldEntryMap.put(oldRe.getKey(), listOfOldEntries);
+    } else {
+      this.oldEntryMap.get(oldRe.getKey()).add(oldRe);
+    }
+  }
+
+  //TODO: For now this method will return only first element in the set
+  final Object readOldEntry(final Object entryKey,
+      final boolean checkValid) {
+    if (oldEntryMap.containsKey(entryKey)) {
+      return oldEntryMap.get(entryKey).last();
+    } else {
+      return null;
+    }
+  }
+
+  //TODO: This method is currently not in use but is need in future when concurrent write is
+  // supported
+  final Object readOldEntry(final Object entryKey,
+      final RegionEntry version, final boolean checkValid) {
+    return oldEntryMap.get(entryKey).lower(version);
+  }
 
   /**
    * disables automatic eviction configuration for HDFS regions
@@ -736,6 +756,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     this.clientpf = pf;
     this.cacheConfig = cacheConfig; // do early for bug 43213
 
+    this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
     // initialize advisor for normal DMs immediately
     InternalDistributedSystem ids = (InternalDistributedSystem)system;
     StaticSystemCallbacks sysCallbacks = getInternalProductCallbacks();
@@ -1199,30 +1220,82 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     return true;
   }
 
+
   // currently it will wait for a long time
   // we can have differnt ds or read write locks to avoid waiting of read operations.
   //TODO: As an optimizations we can change the ds and maintain it at cache level and punish writes.
   //return snapshotRVV;
   public Map getSnapshotRVV() {
-    lockForSnapshot();
     try {
-      Map<String, RegionVersionVector> snapshot = new HashMap();
+      lockForSnapshotRvv.readLock().lock();
+      Map<String, Map> snapshot = new HashMap();
       for (LocalRegion region : getApplicationRegions()) {
         if (region.getPartitionAttributes() != null && ((PartitionedRegion)region).isDataStore()) {
+
           for (BucketRegion br : ((PartitionedRegion)region).getDataStore().getAllLocalBucketRegions()) {
             // if null then create the rvv for that bucket.!
-            if (br.getVersionVector() != null)
-              snapshot.put(br.getFullPath(), br.getVersionVector().getCloneForTransmission());
+            snapshot.put(br.getFullPath(), br.getVersionVector().getSnapShotOfMemberVersion());
           }
         } else if (region.getVersionVector() != null) {
           // if null then create the rvv for that region.!
-          snapshot.put(region.getFullPath(), region.getVersionVector().getCloneForTransmission());
+          snapshot.put(region.getFullPath(), region.getVersionVector().getSnapShotOfMemberVersion());
         }
       }
       return snapshot;
     } finally {
-      releaseSnapshotLocks();
+      lockForSnapshotRvv.readLock().unlock();
+
     }
+  }
+
+  public void acquireWriteLockOnSnapshotRvv() {
+    lockForSnapshotRvv.writeLock().lock();
+  }
+
+  public interface RvvSnapshotTestHook {
+
+    public abstract void notifyTestLock();
+    public abstract void notifyOperationLock();
+    public abstract void waitOnTestLock();
+    public abstract void waitOnOperationLock();
+  }
+
+
+  public  RvvSnapshotTestHook getRvvSnapshotTestHook() {
+    return this.testHook;
+  }
+
+  public void setRvvSnapshotTestHook(RvvSnapshotTestHook hook) {
+    this.testHook = hook;
+  }
+
+  public void notifyRvvTestHook() {
+    if(null !=this.testHook) {
+      this.testHook.notifyTestLock();
+    }
+  }
+
+  public void notifyRvvSnapshotTestHook() {
+    if (null != this.testHook) {
+      this.testHook.notifyOperationLock();
+    }
+  }
+
+  public void waitOnRvvTestHook() {
+    if (null != this.testHook) {
+      this.testHook.waitOnTestLock();
+    }
+  }
+
+  public void waitOnRvvSnapshotTestHook() {
+    if (null != this.testHook) {
+      this.testHook.waitOnOperationLock();
+    }
+  }
+
+
+  public void releaseWriteLockOnSnapshotRvv() {
+    lockForSnapshotRvv.writeLock().unlock();
   }
 
   public void lockForSnapshot() {
@@ -5314,6 +5387,9 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     /** If this node is booted as a SnappyStore node */
     public boolean isSnappyStore();
 
+    /** If this node is booted as a Accessor node */
+    public boolean isAccessor();
+
     /**
      * If this node has been booted as one that can perform operations as an
      * accessor or datastore (i.e. non-admin-only, non-agent-only,
@@ -5665,6 +5741,11 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
      * Returns authentication properties required during reconnect.
      */
     public Properties getSecurityPropertiesForReconnect();
+
+    /**
+     * Fetches hive meta data for Snappy tables.
+     */
+    public ExternalTableMetaData fetchSnappyTablesHiveMetaData(PartitionedRegion region);
   }
 
   /**
@@ -5979,19 +6060,6 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     return skipFKChecksForGatewayEvents;
   }
 
-  public static void setColumnBatchSizes(int size, int minSize) {
-    COLUMN_BATCH_SIZE = size;
-    COLUMN_MIN_BATCH_SIZE = minSize < size ? minSize : size;
-  }
-
-  public static int getColumnBatchSize() {
-    return COLUMN_BATCH_SIZE;
-  }
-
-  public static int getColumnMinBatchSize() {
-    return COLUMN_MIN_BATCH_SIZE;
-  }
-
   public final boolean isHadoopGfxdLonerMode() {
     return this.system.isHadoopGfxdLonerMode();
   }
@@ -6015,4 +6083,5 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     }
     return false;
   }
+
 }

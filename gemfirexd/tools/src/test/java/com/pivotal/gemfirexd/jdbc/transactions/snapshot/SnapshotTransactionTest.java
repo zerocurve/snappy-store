@@ -4,8 +4,18 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Map;
 
+import com.gemstone.gemfire.cache.Region;
+import com.gemstone.gemfire.internal.cache.BucketRegion;
 import com.gemstone.gemfire.internal.cache.GemFireCacheImpl;
+import com.gemstone.gemfire.internal.cache.PartitionedRegion;
+import com.gemstone.gemfire.internal.cache.TXManagerImpl;
+import com.gemstone.gemfire.internal.cache.TXState;
+import com.gemstone.gemfire.internal.cache.versions.RegionVersionHolder;
+import com.gemstone.gemfire.internal.cache.versions.VersionSource;
+import com.gemstone.org.jgroups.oswego.concurrent.CyclicBarrier;
+import com.pivotal.gemfirexd.internal.engine.Misc;
 import com.pivotal.gemfirexd.jdbc.JdbcTestBase;
 
 
@@ -474,7 +484,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     //start a read tx(different flavor) and another tx for insert, current tx shouldn't see new entry
     //TODO: Currently can't execute multiple query, getting rs closed exception
 
-    rs = st.executeQuery("Select * from t1");
+   // rs = st.executeQuery("Select * from t1");
 
     ResultSet rs2 = st.executeQuery("Select * from t2");
 
@@ -678,13 +688,50 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
 
 
 
-         // conn2.commit();
+          // conn2.commit();
           ResultSet rs = st.executeQuery("Select * from t1");
           int numRows = 0;
           while (rs.next()) {
             numRows++;
           }
           assertEquals("ResultSet should contain eight rows ", 8, numRows);
+          //conn2.commit();
+        } catch (SQLException e) {
+          e.printStackTrace();
+        }
+      }
+    };
+    Thread t = new Thread(r);
+    t.start();
+    t.join();
+  }
+
+  private void doInsertOpsInTxForConcurrencytest() throws SQLException, InterruptedException {
+    final Connection conn2 = getConnection();
+    Runnable r = new Runnable(){
+      @Override
+      public void run() {
+        try {
+          Statement st = conn2.createStatement();
+          //conn2.setTransactionIsolation(Connection.TRANSACTION_NONE);
+          //conn2.setAutoCommit(true);
+          st.execute("insert into t1 values (101, 30)");
+          st.execute("insert into t1 values (102, 30)");
+          st.execute("insert into t1 values (103, 30)");
+          st.execute("insert into t1 values (104, 30)");
+          st.execute("insert into t1 values (105, 30)");
+          st.execute("insert into t1 values (106, 30)");
+          st.execute("insert into t1 values (107, 30)");
+
+
+
+         // conn2.commit();
+          ResultSet rs = st.executeQuery("Select * from t1");
+          int numRows = 0;
+          while (rs.next()) {
+            numRows++;
+          }
+          assertEquals("ResultSet should contain 41 rows ", 41, numRows);
           //conn2.commit();
         } catch (SQLException e) {
           e.printStackTrace();
@@ -777,6 +824,127 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
   }
 
 
+  // only insert operations to ignore
+  public void testReadSnapshotOnPartitionedTableInConcurrency() throws Exception {
+    Connection conn = getConnection();
+    GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
+    Statement st = conn.createStatement();
+    // Use single bucket as it will be easy to test versions
+    st.execute("Create table t1 (c1 int not null , c2 int not null, "
+        + "primary key(c1)) partition by column (c1) buckets 1 enable concurrency checks " + getSuffix
+        ());
+    conn.commit();
+    conn = getConnection();
+    conn.setTransactionIsolation(getIsolationLevel());
+
+
+    //Inserting 34 records to avoid null pointer exception while getting TxState
+    for(int i=0;i<35;i++) {
+      st.execute("insert into t1 values ("+i+", 10)");
+    }
+
+
+    //As there is only one bucket there will be only one bucket region
+    PartitionedRegion region = (PartitionedRegion)Misc.getRegionForTableByPath("/APP/T1", false);
+    BucketRegion bucketRegion = region.getDataStore().getAllLocalBucketRegions().iterator()
+        .next();
+
+    ResultSet rs = st.executeQuery("Select * from t1");
+
+    rs.next();
+
+    TXState txState = TXManagerImpl.getCurrentTXState().getLocalTXState();
+    long initialVersion = getRegionVersionForTransaction(txState, bucketRegion);
+
+
+    int numRows = 0;
+    while (rs.next()) {
+      numRows++;
+    }
+
+    st = conn.createStatement();
+
+    // rvv.getCurrentVersion();
+    // withing tx also the row count should be 34 as we have done rs.next once to begin transaction
+    assertEquals("ResultSet should contain two row ", 34, numRows);
+
+    st.execute("delete from t1 where c1=1");
+
+    rs = st.executeQuery("Select * from t1");
+    rs.next();
+    TXState txState1 = TXManagerImpl.getCurrentTXState().getLocalTXState();
+    long versionAfterDelete = getRegionVersionForTransaction(txState1, bucketRegion);
+    doInsertOpsInTxForConcurrencytest();
+    long actualVersionAfterInsert = getRegionVersionForTransaction(txState, bucketRegion);
+
+    // The insert done in above method should no affect the snapshot of transaction
+    assert (actualVersionAfterInsert == initialVersion);
+
+    //Version after delete operation should be one greater than the initial version
+    assert (versionAfterDelete == (initialVersion + 1));
+
+
+    numRows = 0;
+    while (rs.next()) {
+      numRows++;
+    }
+    assertEquals("ResultSet should contain one row ", 33, numRows);
+
+
+    conn.commit();
+    final Object msg = new Object();
+
+    //Start new transaction
+    rs = st.executeQuery("Select * from t1");
+
+    rs.next();
+
+    TXState txState2 = TXManagerImpl.getCurrentTXState().getLocalTXState();
+
+    long versionBeforeExecutingThread = getRegionVersionForTransaction(txState2, bucketRegion);
+    doInsertOpsInThread(msg);
+    long versionAfterStartingThread = getRegionVersionForTransaction(txState2, bucketRegion);
+    assert(versionBeforeExecutingThread == versionAfterStartingThread);
+
+
+    //Sleep some time to let thread go in waiting state
+    Thread.sleep(3000);
+    conn.commit();
+    rs = st.executeQuery("Select * from t1");
+    rs.next();
+    TXState txState3 = TXManagerImpl.getCurrentTXState().getLocalTXState();
+    //Iterating rs till last record in order for cleaning up the transaction
+    while(rs.next());
+    long versionAfterExecutingThreadWithNewTx = getRegionVersionForTransaction(txState3,
+        bucketRegion);
+
+
+    assert (versionAfterExecutingThreadWithNewTx == (versionAfterStartingThread + 4));
+
+    synchronized (msg) {
+      //Notify thread
+      msg.notify();
+    }
+    synchronized (msg) {
+      msg.wait();
+    }
+
+    conn.commit();
+    rs = st.executeQuery("Select * from t1");
+    rs.next();
+    //Get old snapshot version of previous transaction to see the effect
+    versionAfterExecutingThreadWithNewTx = getRegionVersionForTransaction(txState3,
+        bucketRegion);
+    TXState txState4 = TXManagerImpl.getCurrentTXState().getLocalTXState();
+    long versionAfterExecutingUpdate = getRegionVersionForTransaction(txState4,
+        bucketRegion);
+    assert(versionAfterExecutingUpdate == (versionAfterExecutingThreadWithNewTx+1));
+    conn.commit();
+    rs.close();
+    st.close();
+    conn.close();
+  }
+
   protected int getIsolationLevel() {
     return Connection.TRANSACTION_NONE;
   }
@@ -786,5 +954,119 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     return " ";
   }
 
+  private long getRegionVersionForTransaction(TXState txState, Region region) {
+    long version = 0l;
+
+    Map<String, Map<VersionSource,RegionVersionHolder>> expectedSnapshot = txState
+        .getCurrentRvvSnapShot
+            (region);
+    version = expectedSnapshot.get(region.getFullPath()).values().iterator().next()
+        .getVersion();
+    return version;
+  }
+
+  private void doInsertOpsInThread(final Object msg) throws SQLException, InterruptedException {
+    final Connection conn2 = getConnection();
+    Runnable r = new Runnable(){
+      @Override
+      public void run() {
+        try {
+          Statement st = conn2.createStatement();
+          conn2.setTransactionIsolation(Connection.TRANSACTION_NONE);
+          //conn2.setAutoCommit(false);
+          st.execute("insert into t1 values (210, 310)");
+          st.execute("insert into t1 values (211, 311)");
+          st.execute("insert into t1 values (212, 312)");
+          st.execute("insert into t1 values (213, 314)");
+          //msg.notify();
+          // Wait for parent thread to verify version
+          synchronized (msg) {
+            msg.wait();
+          }
+          st.execute("update t1 set c2=410 where c1=210");
+          // Wait for parent thread to verify version
+          synchronized (msg) {
+            msg.notify();
+          }
+
+          conn2.commit();
+          ResultSet rs = st.executeQuery("Select * from t1");
+          int numRows = 0;
+          while (rs.next()) {
+            numRows++;
+          }
+          assertEquals("ResultSet should contain eight rows ", 45, numRows);
+          conn2.commit();
+        } catch (SQLException e) {
+          e.printStackTrace();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    };
+    Thread t = new Thread(r);
+    t.start();
+  }
+
+
+  public void testSnapshotAcrossRegion() throws Exception {
+
+    Connection conn = getConnection();
+    GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
+    Statement st = conn.createStatement();
+    // Use single bucket as it will be easy to test versions
+    st.execute("Create table t1 (c1 int not null , c2 int not null, "
+        + "primary key(c1)) partition by column (c1) buckets 1 enable concurrency checks " + getSuffix
+        ());
+    st.execute("Create table t2 (c1 int not null , c2 int not null, "
+        + "primary key(c1)) partition by column (c1) buckets 1 enable concurrency checks " + getSuffix
+        ());
+
+    conn.commit();
+    conn = getConnection();
+    conn.setTransactionIsolation(getIsolationLevel());
+
+
+    //Inserting 34 records to avoid null pointer exception while getting TxState
+    for(int i=0;i<10;i++) {
+      st.execute("insert into t1 values ("+i+", 10)");
+      st.execute("insert into t2 values ("+(i+11)+","+(20+i)+")");
+    }
+
+    //As there is only one bucket there will be only one bucket region
+    PartitionedRegion region = (PartitionedRegion)Misc.getRegionForTableByPath("/APP/T1", false);
+
+    for(BucketRegion bucketRegion :region.getDataStore().getAllLocalBucketRegions()) {
+      bucketRegion.getVersionVector().lockForSnapshotModification(bucketRegion);
+      bucketRegion.getVersionVector().setCurrentThreadIdInThreadLocal(Thread.currentThread().getId());
+      System.out.println(bucketRegion);
+    }
+    st.execute("insert into t1 values (100,101)");
+    ResultSet rs =st.executeQuery("select * from t1 union select * from t2");
+    int numRows = 0;
+    while (rs.next()) {
+      numRows++;
+    }
+    System.out.println(numRows);
+    // The count should be 20 as one insert was done by pausing recroding version for snapshot
+    assert(numRows==20);
+
+    for(BucketRegion bucketRegion :region.getDataStore().getAllLocalBucketRegions()) {
+      bucketRegion.getVersionVector().unlockForSnapshotModification(bucketRegion);
+      bucketRegion.getVersionVector().reSetCurrentThreadIdInThreadLocal();
+      bucketRegion.getVersionVector().reInitializeSnapshotRvv();
+    }
+
+
+    ResultSet rs1 =st.executeQuery("select * from t1 union select * from t2");
+    int numRows1 = 0;
+    while (rs1.next()) {
+      numRows1++;
+    }
+    System.out.println(numRows1);
+    // The count should be 21 after releasing the lock and re-initializing snapshot map
+    assert(numRows1==21);
+
+  }
 }
 
