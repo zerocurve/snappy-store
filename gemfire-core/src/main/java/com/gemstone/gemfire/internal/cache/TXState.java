@@ -3774,8 +3774,8 @@ public final class TXState implements TXStateInterface {
             // check the re version with the snapshot version and then search in oldEntry
             if (!checkEntryVersion(dataRegion, re)) {
               // txr should be created by other writer if not created by this region.
-              final Object oldEntry = txr.readOldEntry(key);
-              //final Object oldEntry = getCache().readOldEntry(key, true);//txr.readOldEntry(key);
+              //final Object oldEntry = txr.readOldEntry(key);
+              final Object oldEntry = getCache().readOldEntry(key, true);//txr.readOldEntry(key);
               return oldEntry;
             }
           }
@@ -3800,8 +3800,8 @@ public final class TXState implements TXStateInterface {
           // check the re version with the snapshot version and then search in oldEntry
           if (!checkEntryVersion(dataRegion, re)) {
             // txr should be created by other writer if not created by this region.
-            final Object oldEntry = txr.readOldEntry(key);
-            //final Object oldEntry = getCache().readOldEntry(key, true);//txr.readOldEntry(key);
+            //final Object oldEntry = txr.readOldEntry(key);
+            final Object oldEntry = getCache().readOldEntry(key, true);//txr.readOldEntry(key);
             return oldEntry;
           }
         } finally {
@@ -3818,8 +3818,8 @@ public final class TXState implements TXStateInterface {
           // getOldEntry
          // if ((snapshot != null) && snapshot.get(dataRegion.getFullPath())!= null) {
           if (dataRegion.getVersionVector() != null) {
-            RegionEntry oldEntry = (RegionEntry)this.oldEntryMap.get(key);
-            //RegionEntry oldEntry = (RegionEntry)getCache().readOldEntry(key, true); //this
+            //RegionEntry oldEntry = (RegionEntry)this.oldEntryMap.get(key);
+            RegionEntry oldEntry = (RegionEntry)getCache().readOldEntry(key, true); //this
             // .oldEntryMap.get(key);
             if (oldEntry != null) {
               return oldEntry;
@@ -3836,14 +3836,18 @@ public final class TXState implements TXStateInterface {
               // 3. old tx increments the regionVersion
               // 4. old tx changes the RE
               // 5. New tx scans and misses the changed RE as its version is higher than the snapshot.
-            }
-            // For Transaction NONE we can get locally. For tx isolation level RC/RR
-            // we will have to get from a common DS.
-            //dataRegion.getLocalOldEntry(re.getKey(), snapshot.get(region.getFullPath()));
 
-            if (dataRegion.getVersionVector().isSnapshotRecordingStopper()) {
-              return NonLocalRegionEntry.newEntry(key, Token.TOMBSTONE, dataRegion, re
-                  .getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+              // For Transaction NONE we can get locally. For tx isolation level RC/RR
+              // we will have to get from a common DS.
+              //dataRegion.getLocalOldEntry(re.getKey(), snapshot.get(region.getFullPath()));
+              while(getCache().oldEntryMap.get(key)==null) {
+                try {
+                  Thread.sleep(10);
+                } catch (InterruptedException e) {
+                  e.printStackTrace();
+                }
+              }
+              return oldEntryMap.get(key);
             }
           }
           else {

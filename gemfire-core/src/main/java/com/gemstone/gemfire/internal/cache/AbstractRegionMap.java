@@ -3976,13 +3976,13 @@ RETRY_LOOP:
                       //oldEntryMap.put(event.getKey(), oldRe);
                       // after create/update put the oldRe in all the running tx
                       if (shouldCopyOldEntry(owner,event)) {
-                        for (TXStateProxy tx : owner.getCache().getCacheTransactionManager().
-                            getHostedTransactionsInProgress()) {
+                       // for (TXStateProxy tx : owner.getCache().getCacheTransactionManager().
+                         //   getHostedTransactionsInProgress()) {
                           // this is not tx ops
                           //if (tx.txId != event.getTXState().getTransactionId())
-                          tx.addOldEntry(oldRe);
-                          //GemFireCacheImpl.getInstance().addOldEntry(oldRe);
-                        }
+                          //tx.addOldEntry(oldRe);
+                          GemFireCacheImpl.getInstance().addOldEntry(oldRe);
+                       // }
                       }
                       owner.recordEvent(event);
                       eventRecorded = true;
@@ -4371,13 +4371,13 @@ RETRY_LOOP:
         // TODO: For tx case we will have to maintain common ds.
         //oldEntryMap.put(event.getKey(), oldRe);
         // after create/update put the oldRe in all the running tx
-        for (TXStateProxy tx : _getOwner().getCache().getCacheTransactionManager().
-            getHostedTransactionsInProgress()) {
+        //for (TXStateProxy tx : _getOwner().getCache().getCacheTransactionManager().
+        //    getHostedTransactionsInProgress()) {
           // this is not tx op
           //if (tx.txId != event.getTXState().getTransactionId())
-          tx.addOldEntry(oldRe);
-          //GemFireCacheImpl.getInstance().addOldEntry(oldRe);
-        }
+          //tx.addOldEntry(oldRe);
+          GemFireCacheImpl.getInstance().addOldEntry(oldRe);
+       // }
       }
       // we need to keep it at one place.
       // oldEntry map will be used once we provide Transaction support

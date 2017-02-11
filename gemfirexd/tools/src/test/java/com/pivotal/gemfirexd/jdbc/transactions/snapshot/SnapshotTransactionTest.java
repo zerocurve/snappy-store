@@ -1037,7 +1037,6 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     PartitionedRegion region = (PartitionedRegion)Misc.getRegionForTableByPath("/APP/T1", false);
 
     for(BucketRegion bucketRegion :region.getDataStore().getAllLocalBucketRegions()) {
-      bucketRegion.getVersionVector().lockForSnapshotModification(bucketRegion);
       bucketRegion.getVersionVector().setCurrentThreadIdInThreadLocal(Thread.currentThread().getId());
       System.out.println(bucketRegion);
     }
@@ -1052,7 +1051,6 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     assert(numRows==20);
 
     for(BucketRegion bucketRegion :region.getDataStore().getAllLocalBucketRegions()) {
-      bucketRegion.getVersionVector().unlockForSnapshotModification(bucketRegion);
       bucketRegion.getVersionVector().reSetCurrentThreadIdInThreadLocal();
       bucketRegion.getVersionVector().reInitializeSnapshotRvv();
     }

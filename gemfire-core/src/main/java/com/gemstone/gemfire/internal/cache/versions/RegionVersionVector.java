@@ -147,7 +147,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * additional work.
    */
   private transient final ReentrantReadWriteLock versionLock = new ReentrantReadWriteLock();
-  private transient final ReentrantReadWriteLock snapshotLock = new ReentrantReadWriteLock();
+  //private transient final ReentrantReadWriteLock snapshotLock = new ReentrantReadWriteLock();
   //ThreadLocal variable to store Thread id of the thread requested for writelock on snapshot
   private transient final ThreadLocal<Long> lockingThreadId = new ThreadLocal<Long>();
   private transient volatile boolean locked; // this is only modified by the version locking thread
@@ -750,8 +750,8 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     //Check ThreadLocal and lock if yes then
     // return else if no threadlocal but lock then block else record version
     long currentThreadId = Thread.currentThread().getId();
-    if (this.snapshotLock.isWriteLocked() && lockingThreadId.get() != null && currentThreadId ==
-        lockingThreadId.get()) {
+    //if (this.snapshotLock.isWriteLocked() && lockingThreadId.get() != null && currentThreadId ==
+    if (lockingThreadId.get() != null && currentThreadId == lockingThreadId.get()) {
       //No need to record version in snapshot
       return;
     } else {  //(this.snapshotLock.isWriteLocked() && lockingThreadId.get() != null &&
@@ -1773,24 +1773,6 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
 //  }
 
 
-  /**
-   * obtain a lock to prevent concurrent modification of Snapshot map
-   */
-  public void lockForSnapshotModification(LocalRegion owner) {
-    if (owner.getServerProxy() == null) {
-      LogWriterI18n logger = getLoggerI18n();
-      this.snapshotLock.writeLock().lock();
-    }
-  }
-
-  /**
-   * obtain a lock to prevent concurrent modification of Snapshot map
-   */
-  public void unlockForSnapshotModification(LocalRegion owner) {
-    if (owner.getServerProxy() == null) {
-      this.snapshotLock.writeLock().unlock();
-    }
-  }
 
   public void setCurrentThreadIdInThreadLocal(long threadId) {
     this.lockingThreadId.set(threadId);
@@ -1806,7 +1788,5 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
       this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>(memberToVersion);
     }
   }
-  public boolean isSnapshotRecordingStopper() {
-    return snapshotLock.isWriteLocked();
-  }
+
 }

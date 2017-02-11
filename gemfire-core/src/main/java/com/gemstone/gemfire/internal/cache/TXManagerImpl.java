@@ -961,6 +961,7 @@ public final class TXManagerImpl implements CacheTransactionManager,
     else {
       txId = TXId.newTXId(this.cache);
     }
+
     final TXStateProxy txState = this.hostedTXStates.create(txId,
         txStateProxyCreator, isolationLevel, txFlags, false);
     context.setTXState(txState);
@@ -1006,6 +1007,7 @@ public final class TXManagerImpl implements CacheTransactionManager,
     final TXId txId = TXId.newTXId(this.cache);
     final TXStateProxy txState = this.hostedTXStates.create(txId,
         txStateJTACreator, IsolationLevel.DEFAULT, null, false);
+
     context.setTXState(txState);
     return txState;
   }
@@ -2278,15 +2280,15 @@ public final class TXManagerImpl implements CacheTransactionManager,
     LocalRegion localRegion = (LocalRegion) regionToLock;
     if (!localRegion.isUsedForPartitionedRegionBucket()) {
       DistributedRegion region = ((DistributedRegion)regionToLock);
-      region.getVersionVector().lockForSnapshotModification(region);
+      //region.getVersionVector().lockForSnapshotModification(region);
       region.getVersionVector().setCurrentThreadIdInThreadLocal(currentThreadId);
     } else {
       BucketRegion region = ((BucketRegion)regionToLock);
       // Stop recording version in snapshot
-      region.getVersionVector().lockForSnapshotModification(region);
+      //region.getVersionVector().lockForSnapshotModification(region);
       region.getVersionVector().setCurrentThreadIdInThreadLocal(currentThreadId);
       for (BucketRegion childRegion : region.getCorrespondingChildPRBuckets()) {
-        childRegion.getVersionVector().lockForSnapshotModification(childRegion);
+       // childRegion.getVersionVector().lockForSnapshotModification(childRegion);
         childRegion.getVersionVector().setCurrentThreadIdInThreadLocal(currentThreadId);
       }
     }
@@ -2310,7 +2312,7 @@ public final class TXManagerImpl implements CacheTransactionManager,
         getCache().notifyRvvTestHook();
         getCache().waitOnRvvSnapshotTestHook();
       }
-      region.getVersionVector().unlockForSnapshotModification(region);
+      //region.getVersionVector().unlockForSnapshotModification(region);
     } else {
       BucketRegion region = ((BucketRegion)regionToUnLock);
       region.getVersionVector().reSetCurrentThreadIdInThreadLocal();
@@ -2329,11 +2331,10 @@ public final class TXManagerImpl implements CacheTransactionManager,
         getCache().notifyRvvTestHook();
         getCache().waitOnRvvSnapshotTestHook();
       }
-      region.getVersionVector().unlockForSnapshotModification(region);
+      //region.getVersionVector().unlockForSnapshotModification(region);
       for(BucketRegion childRegion: region.getCorrespondingChildPRBuckets()) {
-        childRegion.getVersionVector().unlockForSnapshotModification(childRegion);
+       // childRegion.getVersionVector().unlockForSnapshotModification(childRegion);
       }
-
     }
   }
 }
