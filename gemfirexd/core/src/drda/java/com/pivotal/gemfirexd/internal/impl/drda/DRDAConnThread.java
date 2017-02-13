@@ -6334,20 +6334,12 @@ class DRDAConnThread extends Thread {
 								break;
 							}
 							case DRDAConstants.DRDA_TYPE_NLONGMIX: {
-								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.LONGNVARCHAR);
+								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.LONGVARCHAR);
 								break;
 							}
-//							case DRDAConstants.DRDA_TYPE_NFIXBYTE: {
-//								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.);
-//								break;
-//							}
 							case DRDAConstants.DRDA_TYPE_NVARBYTE:
 							case DRDAConstants.DRDA_TYPE_NLONGVARBYTE: {
 								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.LONGVARBINARY);
-								break;
-							}
-							case DRDAConstants.DRDA_TYPE_NUDT: {
-								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.JAVA_OBJECT);
 								break;
 							}
 							case DRDAConstants.DRDA_TYPE_NLOBBYTES:
@@ -6363,6 +6355,7 @@ class DRDAConnThread extends Thread {
 								break;
 							}
 							default: {
+								// TODO: Hanlde null
 								dtds[i] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.JAVA_OBJECT);
 							}
 						}
