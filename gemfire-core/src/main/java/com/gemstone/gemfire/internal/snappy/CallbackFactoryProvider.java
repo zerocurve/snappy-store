@@ -79,6 +79,10 @@ public abstract class CallbackFactoryProvider {
     }
 
     @Override
+    public void updateMetastore(Object ctx) {
+    }
+
+    @Override
     public int getLastIndexOfRow(Object o) {
       throw new UnsupportedOperationException("unexpected invocation for "
           + toString());

@@ -47,5 +47,7 @@ public interface StoreCallbacks {
 
   void registerRelationDestroyForHiveStore();
 
+  void updateMetastore(Object ctx);
+
   int getLastIndexOfRow(Object o);
 }

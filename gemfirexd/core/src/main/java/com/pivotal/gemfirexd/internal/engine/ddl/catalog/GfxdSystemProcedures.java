@@ -63,9 +63,11 @@ import com.pivotal.gemfirexd.internal.engine.ddl.callbacks.CallbackProcedures;
 import com.pivotal.gemfirexd.internal.engine.ddl.catalog.messages.GfxdSystemProcedureMessage;
 import com.pivotal.gemfirexd.internal.engine.ddl.resolver.GfxdPartitionByExpressionResolver;
 import com.pivotal.gemfirexd.internal.engine.ddl.wan.messages.AbstractGfxdReplayableMessage;
+import com.pivotal.gemfirexd.internal.engine.distributed.AckResultCollector;
 import com.pivotal.gemfirexd.internal.engine.distributed.GfxdMessage;
 import com.pivotal.gemfirexd.internal.engine.distributed.QueryCancelFunction;
 import com.pivotal.gemfirexd.internal.engine.distributed.QueryCancelFunction.QueryCancelFunctionArgs;
+import com.pivotal.gemfirexd.internal.engine.distributed.message.LeadNodeMetastoreUpdateMsg;
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.GemFireXDUtils;
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.SecurityUtils;
 import com.pivotal.gemfirexd.internal.engine.store.CustomRowsResultSet;
@@ -106,6 +108,7 @@ import com.pivotal.gemfirexd.internal.jdbc.InternalDriver;
 import com.pivotal.gemfirexd.internal.shared.common.SharedUtils;
 import com.pivotal.gemfirexd.internal.shared.common.reference.SQLState;
 import com.pivotal.gemfirexd.internal.shared.common.sanity.SanityManager;
+import com.pivotal.gemfirexd.internal.snappy.LeadNodeMetastoreUpdateContext;
 import com.pivotal.gemfirexd.load.Import;
 import io.snappydata.thrift.ServerType;
 
@@ -1478,6 +1481,65 @@ public class GfxdSystemProcedures extends SystemProcedures {
     }
   }
 
+  public static void REGISTER_SNAPPY_TABLE(
+      String tableIdentifier,
+      Blob userSpecifiedSchema,
+      Blob partitionColumns,
+      String provider,
+      Blob options,
+      Blob relation)
+      throws SQLException {
+    if (GemFireXDUtils.TraceSysProcedures) {
+      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
+          "executing REGISTER_SNAPPY_TABLE ");
+    }
+
+    LeadNodeMetastoreUpdateContext ctx = new LeadNodeMetastoreUpdateContext(
+        LeadNodeMetastoreUpdateContext.Optype.REGISTER_TABLE,
+        tableIdentifier,
+        userSpecifiedSchema.getBytes(1, (int)userSpecifiedSchema.length()),
+        partitionColumns.getBytes(1, (int)partitionColumns.length()),
+        provider,
+        options.getBytes(1, (int)options.length()),
+        relation.getBytes(1, (int)relation.length()));
+
+    LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(ctx,
+        AckResultCollector.INSTANCE);
+    try {
+      msg.executeFunction();
+    } catch(StandardException se) {
+      throw PublicAPI.wrapStandardException(se);
+    }
+  }
+
+  public static void UNREGISTER_SNAPPY_TABLE(
+      String tableIdentifier, Blob relation) throws SQLException {
+    if (GemFireXDUtils.TraceSysProcedures) {
+      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
+          "executing UNREGISTER_SNAPPY_TABLE ");
+    }
+
+    byte[] relationBytes = (relation != null) ?
+        relation.getBytes(1, (int)relation.length()) : null;
+
+    SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
+        "sdeshmukh executing UNREGISTER_SNAPPY_TABLE tableIdentifier=" + tableIdentifier +
+            " relation=" + relation);
+
+    LeadNodeMetastoreUpdateContext ctx = new LeadNodeMetastoreUpdateContext(
+        LeadNodeMetastoreUpdateContext.Optype.UNREGISTER_TABLE,
+        tableIdentifier,
+        null, null, null, null,
+        relationBytes);
+
+    LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(ctx,
+        AckResultCollector.INSTANCE);
+    try {
+      msg.executeFunction();
+    } catch(StandardException se) {
+      throw PublicAPI.wrapStandardException(se);
+    }
+  }
 
   /**
    * Create all buckets in the given table.

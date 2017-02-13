@@ -81,25 +81,7 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
 
   @Override
   public Set<DistributedMember> getMembers() {
-    GfxdDistributionAdvisor advisor = GemFireXDUtils.getGfxdAdvisor();
-    InternalDistributedSystem ids = Misc.getDistributedSystem();
-    if (ids.isLoner()) {
-      return Collections.<DistributedMember>singleton(
-          ids.getDistributedMember());
-    }
-    Set<DistributedMember> allMembers = ids.getAllOtherMembers();
-    for (DistributedMember m : allMembers) {
-      GfxdDistributionAdvisor.GfxdProfile profile = advisor
-          .getProfile((InternalDistributedMember)m);
-      if (profile != null && profile.hasSparkURL()) {
-        Set<DistributedMember> s = new HashSet<DistributedMember>();
-        s.add(m);
-        return Collections.unmodifiableSet(s);
-      }
-    }
-    throw new NoDataStoreAvailableException(LocalizedStrings
-        .DistributedRegion_NO_DATA_STORE_FOUND_FOR_DISTRIBUTION
-        .toLocalizedString("SnappyData Lead Node"));
+    return Misc.getLeadNode();
   }
 
   @Override
