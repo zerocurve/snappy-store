@@ -355,7 +355,7 @@ public interface CacheTransactionManager {
      */
     public TransactionWriter getWriter();
 
-    public void beginSnapshotLock(Region regionToLock);
-
-    public void commitSnapshotLock(Region regionToUnLock);
+//    public void beginSnapshotLock(Region regionToLock);
+//
+//    public void commitSnapshotLock(Region regionToUnLock);
 }

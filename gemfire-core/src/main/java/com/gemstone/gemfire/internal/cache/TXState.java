@@ -475,6 +475,7 @@ public final class TXState implements TXStateInterface {
   }
 
   public final boolean isSnapShotIsolation() {
+    // we need to
     // this is called from putAll to do operation on region even if txState is set
     // will consider later.
     return false;
@@ -1058,39 +1059,18 @@ public final class TXState implements TXStateInterface {
         .getToBePublishedEvents();
     if (publishEvents != null && !publishEvents.isEmpty()) {
       final SetKeyRegionContext setContext = new SetKeyRegionContext();
-      // TODO: Suranjan MVCC
-      /**
-       * Either the regionVersion should be generated at once(not possible as each entry
-       * has to be set a region version too, will have to see the effect if we generate
-       * a region version which includes all the changes by a tx.(delta GII)
-       * or we should take a lock such that no other reader can take snapshot of regionVersion
-       * till a tx has locally committed all the change set.
-       * Otherwise, we will still be reading partial commit of one tx.
-       * Other approach could be to not change the region version but increase it by total number
-       * of entries in txState atomically.
-       * And then for each of the entries in the txState we can set the regionVersion by incrementing one by one.
-       */
-      if (GemFireCacheImpl.getInstance().snaphshotEnabled()) {
-        GemFireCacheImpl.getInstance().lockForSnapshot();
-        hasSnapshotLocks = true;
-      }
       for (TXRegionState txrs : finalRegions) {
         final LocalRegion dataRegion = txrs.region;
+        // TODO: Suranjan MVCC
+        // first take a lock at cache level so that we don't go into deadlock or sort array before
+        if (GemFireCacheImpl.getInstance().snaphshotEnabled()) {
+          TXManagerImpl.beginSnapshotLock(dataRegion);
+          hasSnapshotLocks = true;
+        }
         final RegionVersionVector<?> rvv = dataRegion.getVersionVector();
         if (rvv != null) {
           rvv.lockForCacheModification(dataRegion);
           hasRVVLocks = true;
-          if(GemFireCacheImpl.getInstance().snaphshotEnabled()) {
-            // deadlock as other tx can take lock on regions in different order.
-            // so take lock above at cache level.
-            //rvv.lockForSnapshot(dataRegion);
-            //TODO: Suranjan think of optimization later
-            // Some ideas:
-            // Reserve the versions here for each region so that
-            // other tx can continue their commit.
-            // for the time being we can take a lock and add optimizations later.
-            //txrs.getChanges();
-          }
         }
         // initialize tail keys if required
         if (txrs.tailKeysForParallelWAN == null
@@ -1111,11 +1091,8 @@ public final class TXState implements TXStateInterface {
         final RegionVersionVector<?> rvv = dataRegion.getVersionVector();
         if (rvv != null) {
           if(GemFireCacheImpl.getInstance().snaphshotEnabled()) {
-            // Suranjan: Reserve the versions here for each region so that
-            // other tx can continue their commit.
-            // for the time being we can take a lock and add optimizations later.
-            //txr.getChanges();
-            //rvv.lockForSnapshot(dataRegion);
+            TXManagerImpl.beginSnapshotLock(dataRegion);
+            hasSnapshotLocks = true;
           }
           rvv.lockForCacheModification(dataRegion);
           hasRVVLocks = true;
@@ -1147,7 +1124,12 @@ public final class TXState implements TXStateInterface {
       }
       if (hasSnapshotLocks) {
         // Figure out how to remove cache level locks in future.
-        GemFireCacheImpl.getInstance().releaseSnapshotLocks();
+        for (TXRegionState txr : finalRegions) {
+          final LocalRegion dataRegion = txr.region;
+          if (GemFireCacheImpl.getInstance().snaphshotEnabled()) {
+            TXManagerImpl.commitSnapshotLock(dataRegion);
+          }
+        }
       }
       if (reuseEV) {
         cbEvent.release();

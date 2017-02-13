@@ -146,15 +146,15 @@ public class CacheTransactionManagerCreation implements CacheTransactionManager 
     throw new UnsupportedOperationException(LocalizedStrings.CacheTransactionManagerCreation_TRANSACTIONS_NOT_SUPPORTED.toLocalizedString());
   }
 
-  @Override
-  public void beginSnapshotLock(Region regionToLock) {
-    throw new UnsupportedOperationException(LocalizedStrings.CacheTransactionManagerCreation_TRANSACTIONS_NOT_SUPPORTED.toLocalizedString());
-
-  }
-
-  @Override
-  public void commitSnapshotLock(Region regionToUnLock) {
-    throw new UnsupportedOperationException(LocalizedStrings.CacheTransactionManagerCreation_TRANSACTIONS_NOT_SUPPORTED.toLocalizedString());
-
-  }
+//  @Override
+//  public void beginSnapshotLock(Region regionToLock) {
+//    throw new UnsupportedOperationException(LocalizedStrings.CacheTransactionManagerCreation_TRANSACTIONS_NOT_SUPPORTED.toLocalizedString());
+//
+//  }
+//
+//  @Override
+//  public void commitSnapshotLock(Region regionToUnLock) {
+//    throw new UnsupportedOperationException(LocalizedStrings.CacheTransactionManagerCreation_TRANSACTIONS_NOT_SUPPORTED.toLocalizedString());
+//
+//  }
 }

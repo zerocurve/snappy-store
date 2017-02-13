@@ -2273,9 +2273,9 @@ public final class TXManagerImpl implements CacheTransactionManager,
 
   }
 
-
-  @Override
-  public void beginSnapshotLock(Region regionToLock) {
+  //TODO: We can remove the child region and provide it from out
+  // i.e if it is not modified then no need to lock
+  public static void beginSnapshotLock(Region regionToLock) {
     long currentThreadId = Thread.currentThread().getId();
     LocalRegion localRegion = (LocalRegion) regionToLock;
     if (!localRegion.isUsedForPartitionedRegionBucket()) {
@@ -2292,25 +2292,24 @@ public final class TXManagerImpl implements CacheTransactionManager,
         childRegion.getVersionVector().setCurrentThreadIdInThreadLocal(currentThreadId);
       }
     }
-
   }
 
-  @Override
-  public void commitSnapshotLock(Region regionToUnLock) {
+  //TODO: It should take the not recorded versions and apply them one by one instead of copying the rvv to snapshotrvv
+  public static void commitSnapshotLock(Region regionToUnLock) {
     LocalRegion localRegion = (LocalRegion) regionToUnLock;
+    GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
     if (!localRegion.isUsedForPartitionedRegionBucket()) {
-
       DistributedRegion region = ((DistributedRegion)regionToUnLock);
 
       region.getVersionVector().reSetCurrentThreadIdInThreadLocal();
       // Avoid any other read thread to take snapshot
-      getCache().acquireWriteLockOnSnapshotRvv();
+      cache.acquireWriteLockOnSnapshotRvv();
       // Reinitialize snapshot version
       region.getVersionVector().reInitializeSnapshotRvv();
-      getCache().releaseWriteLockOnSnapshotRvv();
-      if(null != getCache().getRvvSnapshotTestHook()) {
-        getCache().notifyRvvTestHook();
-        getCache().waitOnRvvSnapshotTestHook();
+      GemFireCacheImpl.getInstance().releaseWriteLockOnSnapshotRvv();
+      if(null != cache.getRvvSnapshotTestHook()) {
+        cache.notifyRvvTestHook();
+        cache.waitOnRvvSnapshotTestHook();
       }
       //region.getVersionVector().unlockForSnapshotModification(region);
     } else {
@@ -2320,16 +2319,16 @@ public final class TXManagerImpl implements CacheTransactionManager,
         childRegion.getVersionVector().reSetCurrentThreadIdInThreadLocal();
       }
       // Avoid any other read thread to take snapshot
-      getCache().acquireWriteLockOnSnapshotRvv();
+      cache.acquireWriteLockOnSnapshotRvv();
       // Reinitialize snapshot version
       region.getVersionVector().reInitializeSnapshotRvv();
       for(BucketRegion childRegion: region.getCorrespondingChildPRBuckets()) {
         childRegion.getVersionVector().reInitializeSnapshotRvv();
       }
-      getCache().releaseWriteLockOnSnapshotRvv();
-      if(null != getCache().getRvvSnapshotTestHook()) {
-        getCache().notifyRvvTestHook();
-        getCache().waitOnRvvSnapshotTestHook();
+      cache.releaseWriteLockOnSnapshotRvv();
+      if(null != cache.getRvvSnapshotTestHook()) {
+        cache.notifyRvvTestHook();
+        cache.waitOnRvvSnapshotTestHook();
       }
       //region.getVersionVector().unlockForSnapshotModification(region);
       for(BucketRegion childRegion: region.getCorrespondingChildPRBuckets()) {
