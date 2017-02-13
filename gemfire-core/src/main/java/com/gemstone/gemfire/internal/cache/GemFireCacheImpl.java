@@ -564,7 +564,8 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 
   private String vmIdRegionPath;
 
-  protected CustomEntryConcurrentHashMap<Object, NavigableSet<Object>/*RegionEntry*/> oldEntryMap;
+  protected volatile CustomEntryConcurrentHashMap<Object, NavigableSet<Object>/*RegionEntry*/>
+      oldEntryMap;
 
   public void addOldEntry(RegionEntry oldRe) {
     if (!this.oldEntryMap.containsKey(oldRe.getKey())) {
@@ -586,7 +587,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   final Object readOldEntry(final Object entryKey,
       final boolean checkValid) {
     if (oldEntryMap.containsKey(entryKey)) {
-      return oldEntryMap.get(entryKey).last();
+      return oldEntryMap.get(entryKey).first();
     } else {
       return null;
     }
