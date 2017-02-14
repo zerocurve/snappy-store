@@ -1650,7 +1650,7 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
           "OPTIONS", "RELATION"};
       TypeDescriptor[] arg_types = new TypeDescriptor[] {
           DataTypeDescriptor.getCatalogType(Types.VARCHAR),
-          DataTypeDescriptor.getCatalogType(Types.BLOB),
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
           DataTypeDescriptor.getCatalogType(Types.BLOB),
           DataTypeDescriptor.getCatalogType(Types.VARCHAR),
           DataTypeDescriptor.getCatalogType(Types.BLOB),
@@ -1662,10 +1662,9 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
 
     {
       // UNREGISTER_SNAPPY_TABLE
-      String[] arg_names = new String[] { "TABLE_IDENT", "RELATION"};
+      String[] arg_names = new String[] { "TABLE_IDENT"};
       TypeDescriptor[] arg_types = new TypeDescriptor[] {
-          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
-          DataTypeDescriptor.getCatalogType(Types.BLOB)};
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR)};
       super.createSystemProcedureOrFunction("UNREGISTER_SNAPPY_TABLE",
           sysUUID, arg_names, arg_types, 0, 0, RoutineAliasInfo.READS_SQL_DATA, null,
           newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);

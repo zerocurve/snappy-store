@@ -25,7 +25,6 @@ import com.gemstone.gemfire.DataSerializer;
 import com.gemstone.gemfire.internal.DataSerializableFixedID;
 import com.gemstone.gemfire.internal.shared.Version;
 import com.pivotal.gemfirexd.internal.engine.GfxdSerializable;
-import com.pivotal.gemfirexd.internal.iapi.services.sanity.SanityManager;
 
 public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
 
@@ -33,7 +32,7 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
 
   private Optype type;
   private String tableIdentifier;
-  private byte[] userSpecifiedSchema;
+  private String jsonSchema;
   private byte[] partitionColumns;
   private String provider;
   private byte[] options;
@@ -45,14 +44,14 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
 
   public LeadNodeMetastoreUpdateContext(Optype type,
       String tableIdentifier,
-      byte[] userSpecifiedSchema,
+      String jsonSchema,
       byte[] partitionColumns,
       String provider,
       byte[] options,
       byte[] relation) {
     this.type = type;
     this.tableIdentifier = tableIdentifier;
-    this.userSpecifiedSchema = userSpecifiedSchema;
+    this.jsonSchema = jsonSchema;
     this.partitionColumns = partitionColumns;
     this.provider = provider;
     this.options = options;
@@ -73,7 +72,7 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
   public void toData(DataOutput out) throws IOException {
     DataSerializer.writeObject(type, out);
     DataSerializer.writeString(tableIdentifier, out);
-    DataSerializer.writeByteArray(userSpecifiedSchema, out);
+    DataSerializer.writeString(jsonSchema, out);
     DataSerializer.writeByteArray(partitionColumns, out);
     DataSerializer.writeString(provider, out);
     DataSerializer.writeByteArray(options, out);
@@ -84,7 +83,7 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
   public void fromData(DataInput in) throws IOException, ClassNotFoundException {
     this.type = DataSerializer.readObject(in);
     this.tableIdentifier = DataSerializer.readString(in);
-    this.userSpecifiedSchema = DataSerializer.readByteArray(in);
+    this.jsonSchema = DataSerializer.readString(in);
     this.partitionColumns = DataSerializer.readByteArray(in);
     this.provider = DataSerializer.readString(in);
     this.options = DataSerializer.readByteArray(in);
@@ -100,8 +99,8 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
     return tableIdentifier;
   }
 
-  public byte[] getUserSpecifiedSchema() {
-    return userSpecifiedSchema;
+  public String getJsonSchema() {
+    return jsonSchema;
   }
 
   public byte[] getPartitionColumns() {

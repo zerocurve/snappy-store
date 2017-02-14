@@ -1483,21 +1483,25 @@ public class GfxdSystemProcedures extends SystemProcedures {
 
   public static void REGISTER_SNAPPY_TABLE(
       String tableIdentifier,
-      Blob userSpecifiedSchema,
+      String userSpecifiedSchema,
       Blob partitionColumns,
       String provider,
       Blob options,
       Blob relation)
       throws SQLException {
-    if (GemFireXDUtils.TraceSysProcedures) {
+//    if (GemFireXDUtils.TraceSysProcedures) {
       SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
           "executing REGISTER_SNAPPY_TABLE ");
-    }
+//    }
+
+    SanityManager.DEBUG_PRINT("Info",
+        "executing REGISTER_SNAPPY_TABLE ");
 
     LeadNodeMetastoreUpdateContext ctx = new LeadNodeMetastoreUpdateContext(
         LeadNodeMetastoreUpdateContext.Optype.REGISTER_TABLE,
         tableIdentifier,
-        userSpecifiedSchema.getBytes(1, (int)userSpecifiedSchema.length()),
+//        userSpecifiedSchema.getSubString(1, (int)userSpecifiedSchema.length()),
+        userSpecifiedSchema,
         partitionColumns.getBytes(1, (int)partitionColumns.length()),
         provider,
         options.getBytes(1, (int)options.length()),
@@ -1513,24 +1517,19 @@ public class GfxdSystemProcedures extends SystemProcedures {
   }
 
   public static void UNREGISTER_SNAPPY_TABLE(
-      String tableIdentifier, Blob relation) throws SQLException {
+      String tableIdentifier) throws SQLException {
     if (GemFireXDUtils.TraceSysProcedures) {
       SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
           "executing UNREGISTER_SNAPPY_TABLE ");
     }
 
-    byte[] relationBytes = (relation != null) ?
-        relation.getBytes(1, (int)relation.length()) : null;
-
     SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
-        "sdeshmukh executing UNREGISTER_SNAPPY_TABLE tableIdentifier=" + tableIdentifier +
-            " relation=" + relation);
+        "sdeshmukh executing UNREGISTER_SNAPPY_TABLE tableIdentifier=" + tableIdentifier);
 
     LeadNodeMetastoreUpdateContext ctx = new LeadNodeMetastoreUpdateContext(
         LeadNodeMetastoreUpdateContext.Optype.UNREGISTER_TABLE,
         tableIdentifier,
-        null, null, null, null,
-        relationBytes);
+        null, null, null, null, null);
 
     LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(ctx,
         AckResultCollector.INSTANCE);
