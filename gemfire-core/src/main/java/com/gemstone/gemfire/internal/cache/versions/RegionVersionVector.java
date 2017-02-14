@@ -787,11 +787,13 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
           if (holder == null) {
             synchronized (memberToVersionSnapshot) {
               //Look for the holder under lock
-              //holder = memberToVersionSnapshot.get(mbr).clone();
+              holder = memberToVersionSnapshot.get(mbr);
               if (holder == null) {
                 mbr = getCanonicalId(mbr);
                 holder = new RegionVersionHolder<T>(mbr);
                 //memberToVersion.put(holder.id, holder);
+              } else {
+                holder = memberToVersionSnapshot.get(mbr).clone();
               }
             }
           }

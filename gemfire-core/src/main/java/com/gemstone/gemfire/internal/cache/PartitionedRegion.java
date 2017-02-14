@@ -6687,7 +6687,7 @@ public class PartitionedRegion extends LocalRegion implements
     if (context != null
         && (bucketSet = context.getLocalBucketSet(this)) != null) {
       return new PRLocalScanIterator(bucketSet, txState, forUpdate,
-          includeValues, false);
+          includeValues, true);
     }
     return new PRLocalScanIterator(primaryOnly, txState, forUpdate,
         includeValues);
@@ -6698,7 +6698,7 @@ public class PartitionedRegion extends LocalRegion implements
       final boolean forUpdate, boolean includeValues, final TXState txState) {
     if (bucketSet  != null) {
       return new PRLocalScanIterator(bucketSet, txState, forUpdate,
-          includeValues, false);
+          includeValues, true);
     }
     return new PRLocalScanIterator(primaryOnly, txState, forUpdate,
         includeValues);
@@ -7046,6 +7046,7 @@ public class PartitionedRegion extends LocalRegion implements
     private final boolean includeValues;
 
     private Iterator<RegionEntry> bucketEntriesIter;
+    private boolean remoteEntryFetched;
 
     private Object currentEntry;
 
@@ -7102,6 +7103,7 @@ public class PartitionedRegion extends LocalRegion implements
         }
       }
       this.fetchRemoteEntries = false;
+      this.remoteEntryFetched = false;
       this.bucketIdsIter = iter;
       this.numEntries = numEntries;
       if (false && (tx == null && getPartitionedRegion().concurrencyChecksEnabled)) {
@@ -7149,6 +7151,7 @@ public class PartitionedRegion extends LocalRegion implements
         }
       }
       this.fetchRemoteEntries = fetchRemote;
+      this.remoteEntryFetched = false;
       this.bucketIdsIter = iter;
       if (false && (tx == null && getPartitionedRegion().concurrencyChecksEnabled)) {
         getCache().getCacheTransactionManager().begin();
@@ -7215,7 +7218,7 @@ public class PartitionedRegion extends LocalRegion implements
             // Ideally for tx there shouldn't be a case of iterator fetching remote entry
             // For snapshot make sure that it returns either the old entry or new entry depending on the
             // version in snapshot
-            if (this.txState != null) {
+            if (this.txState != null && !remoteEntryFetched) {
               this.currentEntry = this.txState.getLocalEntry(
                   PartitionedRegion.this, this.currentBucketRegion,
                   -1 /* not used */, (AbstractRegionEntry)val, this.forUpdate);
@@ -7278,6 +7281,7 @@ public class PartitionedRegion extends LocalRegion implements
                     + PartitionedRegion.this.toString());
               }
               setLocalBucketEntryIterator(br, bucketId);
+              this.remoteEntryFetched = false;
             } else {
               if (logger.fineEnabled()) {
                 logger.fine("PRLocalScanIterator#hasNext: bucket not "
@@ -7285,6 +7289,7 @@ public class PartitionedRegion extends LocalRegion implements
                     + PartitionedRegion.this.toString() + ". Fetching from remote node");
               }
               setRemoteBucketEntriesIterator(bucketId);
+              this.remoteEntryFetched = true;
             }
             break;
           }
