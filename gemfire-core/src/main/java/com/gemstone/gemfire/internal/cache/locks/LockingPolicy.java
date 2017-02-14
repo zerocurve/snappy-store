@@ -186,11 +186,6 @@ public enum LockingPolicy {
     }
 
     @Override
-    public boolean readCanStartTX() {
-      return true;
-    }
-
-    @Override
     public final boolean isFailFast() {
       return true;
     }
@@ -515,7 +510,7 @@ public enum LockingPolicy {
 
     @Override
     public final IsolationLevel getIsolationLevel() {
-      return IsolationLevel.NONE;
+      return IsolationLevel.SNAPSHOT;
     }
 
     @Override
@@ -529,7 +524,7 @@ public enum LockingPolicy {
         final int iContext, AbstractOperationMessage msg,
         boolean allowTombstones, ReadEntryUnderLock reader) {
       /*
-      // try to see if we can add versioning information here and read
+      // TODO: Suranjan try to see if we can add versioning information here and read
       //return reader.readEntry(lockObj, context, iContext, allowTombstones);
       if (mode == LockMode.SH) {
         //return reader.readEntry(lockObj, context, iContext, allowTombstones);
@@ -541,7 +536,6 @@ public enum LockingPolicy {
       // no locking to be done
       return reader.readEntry(lockObj, context, iContext, allowTombstones);
     }
-
   },
   ;
   ;

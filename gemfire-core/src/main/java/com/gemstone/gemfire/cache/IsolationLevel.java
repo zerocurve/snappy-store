@@ -78,6 +78,22 @@ public enum IsolationLevel {
       return NO_ALTERNATIVE_JDBC_LEVEL;
     }
   },
+
+  /**
+   * Represents an isolation level of SNAPSHOT.
+   */
+  SNAPSHOT {
+
+    @Override
+    public final int getJdbcIsolationLevel() {
+      return Connection.TRANSACTION_NONE;
+    }
+
+    @Override
+    final int getAlternativeJdbcIsolationLevel() {
+      return NO_ALTERNATIVE_JDBC_LEVEL;
+    }
+  },
   ;
 
   /**

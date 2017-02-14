@@ -587,7 +587,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   final Object readOldEntry(final Object entryKey,
       final boolean checkValid) {
     if (oldEntryMap.containsKey(entryKey)) {
-      return oldEntryMap.get(entryKey).first();
+      return oldEntryMap.get(entryKey).last();
     } else {
       return null;
     }
@@ -1231,7 +1231,8 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       lockForSnapshotRvv.readLock().lock();
       Map<String, Map> snapshot = new HashMap();
       for (LocalRegion region : getApplicationRegions()) {
-        if (region.getPartitionAttributes() != null && ((PartitionedRegion)region).isDataStore()) {
+        if (region.getPartitionAttributes() != null && ((PartitionedRegion)region).isDataStore()
+            && ((PartitionedRegion)region).concurrencyChecksEnabled) {
 
           for (BucketRegion br : ((PartitionedRegion)region).getDataStore().getAllLocalBucketRegions()) {
             // if null then create the rvv for that bucket.!

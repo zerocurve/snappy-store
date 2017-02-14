@@ -325,7 +325,6 @@ public final class GemFireTransaction extends RawTransaction implements
   // after commit and rollback generate a new one and send it to the client
   // so that client are aware of the new txid on return of commit and rollback.
   private TXId nextTxID;
-  private boolean snapshotEnabled = false;
 
   /**
    * Create a new {@link GemFireTransaction} object.
@@ -2963,14 +2962,6 @@ public final class GemFireTransaction extends RawTransaction implements
     }
   }
 
-  public void setSnapShotEnabled() {
-    this.snapshotEnabled = true;
-  }
-
-  private boolean isSnapshotEnabled() {
-    return this.snapshotEnabled;
-  }
-
   public static GemFireTransaction findUserTransaction(ContextManager cm,
       String transName, long connectionID) throws StandardException {
     if (SanityManager.DEBUG) {
@@ -3478,7 +3469,7 @@ public final class GemFireTransaction extends RawTransaction implements
 
   @Override
   public final boolean isTransactional() {
-    return (this.isolationLevel != IsolationLevel.NONE) || isSnapshotEnabled();
+    return (this.isolationLevel != IsolationLevel.NONE);
   }
 
   public final TXStateInterface getSuspendedTXState() {

@@ -56,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 import com.gemstone.gemfire.InternalGemFireError;
 import com.gemstone.gemfire.cache.EntryDestroyedException;
 import com.gemstone.gemfire.cache.EntryNotFoundException;
+import com.gemstone.gemfire.cache.IsolationLevel;
 import com.gemstone.gemfire.cache.Region;
 import com.gemstone.gemfire.cache.execute.FunctionContext;
 import com.gemstone.gemfire.cache.execute.RegionFunctionContext;
@@ -406,7 +407,7 @@ public class MemHeapScanController implements MemScanController, RowCountable,
     else {
       if (region.getConcurrencyChecksEnabled() &&
           (region.getCache().getCacheTransactionManager().getTXState() == null)) {
-        region.getCache().getCacheTransactionManager().begin();
+        region.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
         this.txState = region.getCache().getCacheTransactionManager().getTXState().getTXStateForRead();
         this.commitOnClose = true;
         this.txId = this.txState.getTransactionId();
@@ -541,7 +542,7 @@ public class MemHeapScanController implements MemScanController, RowCountable,
       this.templateCompactExecRow = null;
     }
 
-    if (commitOnClose && !lcc.isSkipConstraintChecks() && (this.forUpdate == 0)) {
+    if (commitOnClose && !lcc.isSkipConstraintChecks() /*&& (this.forUpdate == 0)*/) {
       // clear the txState so that other thread local is cleared.
       // it shouldn't be cleared in case of row buffer scan
       TXManagerImpl.getOrCreateTXContext().clearTXState();

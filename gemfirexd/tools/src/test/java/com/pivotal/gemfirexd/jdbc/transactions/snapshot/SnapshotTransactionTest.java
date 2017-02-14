@@ -440,7 +440,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     //assert that old value is returned
   }
 
-  public void testSnapshotAgainstMultipleTable() throws Exception {
+  public void _testSnapshotAgainstMultipleTable() throws Exception {
     Connection conn = getConnection();
     Statement st = conn.createStatement();
     st.execute("Create table t1 (c1 int not null , c2 int not null, "
@@ -669,8 +669,10 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     t.join();
   }
 
-  private void doInsertOpsInTx() throws SQLException, InterruptedException {
+  private void doInsertOpsInTx() throws Exception, InterruptedException {
     final Connection conn2 = getConnection();
+    final Exception[] tx = new Exception[1];
+
     Runnable r = new Runnable(){
       @Override
       public void run() {
@@ -698,16 +700,21 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
           //conn2.commit();
         } catch (SQLException e) {
           e.printStackTrace();
+          tx[0] = e;
         }
       }
     };
     Thread t = new Thread(r);
     t.start();
     t.join();
+    if(tx[0] != null) {
+      throw tx[0];
+    }
   }
 
-  private void doInsertOpsInTxForConcurrencytest() throws SQLException, InterruptedException {
+  private void doInsertOpsInTxForConcurrencytest() throws Exception, InterruptedException {
     final Connection conn2 = getConnection();
+    final Exception[] tx = new Exception[1];
     Runnable r = new Runnable(){
       @Override
       public void run() {
@@ -735,17 +742,23 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
           //conn2.commit();
         } catch (SQLException e) {
           e.printStackTrace();
+          tx[0] = e;
         }
       }
     };
     Thread t = new Thread(r);
     t.start();
     t.join();
+    if(tx[0] != null) {
+      throw tx[0];
+    }
   }
 
   // do both..point update and scan update
-  private void doUpdateOpsInTx() throws SQLException, InterruptedException {
+  private void doUpdateOpsInTx() throws Exception, InterruptedException {
     final Connection conn2 = getConnection();
+    final Exception[] tx = new Exception[1];
+
     Runnable r = new Runnable(){
       @Override
       public void run() {
@@ -764,16 +777,21 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
           conn2.commit();
         } catch (SQLException e) {
           e.printStackTrace();
+          tx[0] = e;
         }
       }
     };
     Thread t = new Thread(r);
     t.start();
     t.join();
+    if(tx[0] != null) {
+      throw tx[0];
+    }
   }
 
-  private void doDeleteOpsInTx() throws SQLException, InterruptedException {
+  private void doDeleteOpsInTx() throws Exception, InterruptedException {
     final Connection conn2 = getConnection();
+    final Exception[] tx = new Exception[1];
     Runnable r = new Runnable(){
       @Override
       public void run() {
@@ -791,13 +809,17 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
           assertEquals("ResultSet should contain eight rows ", 1, numRows);
           conn2.commit();
         } catch (SQLException e) {
-          e.printStackTrace();
+          tx[0] = e;
         }
       }
     };
+
     Thread t = new Thread(r);
     t.start();
     t.join();
+    if(tx[0] != null) {
+      throw tx[0];
+    }
   }
 
 

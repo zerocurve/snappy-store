@@ -3711,7 +3711,11 @@ public final class TXState implements TXStateInterface {
   public final Object getLocalEntry(final LocalRegion region,
       LocalRegion dataRegion, final int bucketId, final AbstractRegionEntry re, boolean isWrite) {
 
-    // suranjan.check version here.
+    if(this.lockPolicy == LockingPolicy.SNAPSHOT) {
+      // just return the version as there will not be any lock taken either
+      // for read or write.
+      //
+    }
     // for local/distributed regions, the key is the RegionEntry itself
     // getDataRegion will work correctly neverthless
 
@@ -3824,7 +3828,7 @@ public final class TXState implements TXStateInterface {
               // For Transaction NONE we can get locally. For tx isolation level RC/RR
               // we will have to get from a common DS.
               //dataRegion.getLocalOldEntry(re.getKey(), snapshot.get(region.getFullPath()));
-              while(getCache().oldEntryMap.get(key)==null) {
+              while (getCache().oldEntryMap.get(key) == null) {
                 try {
                   Thread.sleep(10);
                 } catch (InterruptedException e) {

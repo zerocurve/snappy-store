@@ -2218,7 +2218,8 @@ RETRY_LOOP:
       // TODO: merge: isn't this better done once before commit?
       //Map<AbstractIndex, Long> lockedIndexes = owner
       //    .acquireWriteLocksOnCompactRangeIndexes();
-      //try {
+      RegionEntry oldRe = null;
+      try {
       if (!re.isDestroyedOrRemoved()) {
         final int oldSize = owner.calculateRegionEntryValueSize(re);
         // Create an entry event only if the calling context is
@@ -2252,6 +2253,9 @@ RETRY_LOOP:
         else {
           cbEvent = null;
         }
+
+        oldRe = NonLocalRegionEntry.newEntry(key, re.getValueOffHeapOrDiskWithoutFaultIn(_getOwner()),
+            _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
 
         txRemoveOldIndexEntry(Operation.DESTROY, re);
         boolean clearOccured = false;
@@ -2310,6 +2314,9 @@ RETRY_LOOP:
         else {
           cbEvent = null;
         }
+
+        oldRe = NonLocalRegionEntry.newEntry(key, re.getValueOffHeapOrDiskWithoutFaultIn(_getOwner()),
+            _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
 
         try {
           EntryEventImpl txEvent = null;
@@ -2395,9 +2402,24 @@ RETRY_LOOP:
         }
       */
       }
-      //} finally {
-      //  owner.releaseAcquiredWriteLocksOnIndexes(lockedIndexes);
-      //}
+      } finally {
+        //owner.releaseAcquiredWriteLocksOnIndexes(lockedIndexes);
+        if (shouldCopyOldEntry(_getOwner(), null)) {
+          // TODO: For tx case we will have to maintain common ds.
+          //oldEntryMap.put(event.getKey(), oldRe);
+          // after create/update put the oldRe in all the running tx
+          //for (TXStateProxy tx : _getOwner().getCache().getCacheTransactionManager().
+          //    getHostedTransactionsInProgress()) {
+          // this is not tx op
+          //if (tx.txId != event.getTXState().getTransactionId())
+          //tx.addOldEntry(oldRe);
+          GemFireCacheImpl.getInstance().addOldEntry(oldRe);
+          // }
+        }
+        // we need to keep it at one place.
+        // oldEntry map will be used once we provide Transaction support
+        //oldEntryMap.put(event.getKey(), oldRe);
+      }
     } catch (DiskAccessException dae) {
       owner.handleDiskAccessException(dae, true/* stop bridge servers*/);
       throw dae;
@@ -4412,6 +4434,7 @@ RETRY_LOOP:
     boolean isLockedForTXCacheMod = false;
     boolean opCompleted = false;
     boolean entryCreated = false;
+    RegionEntry oldRe = null;
     try {
       // create new EntryEventImpl in case pendingCallbacks is non-null
       if (pendingCallbacks != null) {
@@ -4546,6 +4569,8 @@ RETRY_LOOP:
             regionStates[i].addOldEntry(NonLocalRegionEntry.newEntry(re, owner, true));
           }
         }*/
+        oldRe = NonLocalRegionEntry.newEntry(key, re._getValue(),
+            owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
 
         re.setValue(owner, re.prepareValueForCache(owner, newValue, !putOp.isCreate(), false));
         if (putOp.isCreate()) {
@@ -4612,6 +4637,15 @@ RETRY_LOOP:
         }
       }
       if (opCompleted) {
+        if (shouldCopyOldEntry(owner, null)) {
+          // for (TXStateProxy tx : owner.getCache().getCacheTransactionManager().
+          //   getHostedTransactionsInProgress()) {
+          // this is not tx ops
+          //if (tx.txId != event.getTXState().getTransactionId())
+          //tx.addOldEntry(oldRe);
+          GemFireCacheImpl.getInstance().addOldEntry(oldRe);
+          // }
+        }
         if (re != null && owner.isUsedForPartitionedRegionBucket()) {
           BucketRegion br = (BucketRegion)owner;
           CachePerfStats stats = br.getPartitionedRegion().getCachePerfStats();
