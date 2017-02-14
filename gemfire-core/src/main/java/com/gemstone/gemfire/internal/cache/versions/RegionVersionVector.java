@@ -48,6 +48,8 @@ import com.gemstone.gemfire.internal.InternalDataSerializer;
 import com.gemstone.gemfire.internal.cache.GemFireCacheImpl;
 import com.gemstone.gemfire.internal.cache.LocalRegion;
 import com.gemstone.gemfire.internal.cache.TXManagerImpl;
+import com.gemstone.gemfire.internal.cache.TXState;
+import com.gemstone.gemfire.internal.cache.TXStateInterface;
 import com.gemstone.gemfire.internal.cache.locks.LockingPolicy;
 import com.gemstone.gemfire.internal.cache.persistence.DiskStoreID;
 import com.gemstone.gemfire.internal.cache.versions.RVVException.ReceivedVersionsIterator;
@@ -750,18 +752,18 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     //Check ThreadLocal and lock if yes then
     // return else if no threadlocal but lock then block else record version
     long currentThreadId = Thread.currentThread().getId();
+    //TXStateInterface tx = TXManagerImpl.getCurrentTXState();
+
     //if (this.snapshotLock.isWriteLocked() && lockingThreadId.get() != null && currentThreadId ==
     if (lockingThreadId.get() != null && currentThreadId == lockingThreadId.get()) {
+    //if (tx != null) {
       //No need to record version in snapshot
+      //tx.recordVersionForSnapshot(member, version);
       return;
     } else {  //(this.snapshotLock.isWriteLocked() && lockingThreadId.get() != null &&
         //currentThreadId != lockingThreadId.get()) {
       //this.snapshotLock.readLock();
       try {
-
-        TXManagerImpl.getCurrentTXState();
-
-
         RegionVersionHolder<T> holder;
 
         if (mbr.equals(this.myId)) {

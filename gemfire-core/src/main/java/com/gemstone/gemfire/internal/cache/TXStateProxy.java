@@ -2183,7 +2183,7 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
    */
   public final boolean isDirty() {
     // we don't have write ops in snapshot isolation with isolation level NONE
-    return this.isDirty && (getLockingPolicy() != LockingPolicy.SNAPSHOT);
+    return this.isDirty /*&& (getLockingPolicy() != LockingPolicy.SNAPSHOT)*/;
   }
 
   /**
@@ -3245,6 +3245,9 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
   }
 
   public final TXState getTXStateForWrite(boolean doLock, boolean checkTX) {
+    if (isSnapshot()) {
+      return null;
+    }
     final TXState localState = this.localTXState;
     if (localState != null) {
       return localState;
@@ -3265,6 +3268,7 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
       return null;
     }
   }
+
 
   private final TXState createTXState(boolean checkTX) {
     final TXState localState;
@@ -3816,6 +3820,10 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
     // update operations; add cacheWrite flag support for proper writer
     // invocation like in other ops; also support for NORMAL/PRELOADED regions?
     markDirty();
+
+    if (isSnapshot()) {
+      region.getSharedDataView().postPutAll(putAllOp, successfulPuts, region);
+    }
     if (region.getPartitionAttributes() != null) {
       // use PutAllPRMessage that already handles transactions
       region.postPutAllSend(putAllOp, this, successfulPuts);
@@ -4678,5 +4686,15 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
   public void rollback(int savepoint) {
     final DM dm = this.txManager.getDM();
     TXRollBackToSavepointMsg.send(dm.getSystem(), dm, this, savepoint);
+  }
+
+  public boolean isSnapshot() {
+    return getLockingPolicy() == LockingPolicy.SNAPSHOT;
+  }
+
+  @Override
+  public void recordVersionForSnapshot(Object member, long version) {
+    final TXState localState = getTXStateForRead();
+    localState.recordVersionForSnapshot(member, version);
   }
 }

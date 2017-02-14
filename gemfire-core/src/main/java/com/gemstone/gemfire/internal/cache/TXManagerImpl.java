@@ -965,6 +965,12 @@ public final class TXManagerImpl implements CacheTransactionManager,
     final TXStateProxy txState = this.hostedTXStates.create(txId,
         txStateProxyCreator, isolationLevel, txFlags, false);
     context.setTXState(txState);
+    // For snapshot isolation, create tx state at the beginning
+    if(txState.isSnapshot()) {
+      txState.getTXStateForRead();
+      //beginSnapshotLock();
+    }
+
     return txState;
   }
 

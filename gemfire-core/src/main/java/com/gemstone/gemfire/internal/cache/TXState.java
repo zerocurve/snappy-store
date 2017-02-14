@@ -474,14 +474,6 @@ public final class TXState implements TXStateInterface {
     return this.lockPolicy;
   }
 
-  public final boolean isSnapShotIsolation() {
-    // we need to
-    // this is called from putAll to do operation on region even if txState is set
-    // will consider later.
-    return false;
-    //return (this.lockPolicy == LockingPolicy.SNAPSHOT);
-  }
-
   public final IsolationLevel getIsolationLevel() {
     return this.lockPolicy.getIsolationLevel();
   }
@@ -3975,4 +3967,24 @@ public final class TXState implements TXStateInterface {
     // TODO Auto-generated method stub
     return 0;
   }
+
+  @Override
+  public boolean isSnapshot() {
+    return getLockingPolicy() == LockingPolicy.SNAPSHOT;
+  }
+
+  @Override
+  public void recordVersionForSnapshot(Object member, long version) {
+
+  }
+
+  class VersionInformation {
+    Object member;
+    long version;
+    public VersionInformation(Object member, long version){
+      this.member = member;
+      this.version = version;
+    }
+  }
+
 }

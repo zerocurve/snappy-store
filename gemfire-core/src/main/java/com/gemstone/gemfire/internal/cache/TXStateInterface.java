@@ -164,4 +164,8 @@ public interface TXStateInterface extends InternalDataView {
   public void setExecutionSequence(int execSeq);
   
   public int getExecutionSequence();
+
+  public boolean isSnapshot();
+
+  public void recordVersionForSnapshot(Object member, long version);
 }

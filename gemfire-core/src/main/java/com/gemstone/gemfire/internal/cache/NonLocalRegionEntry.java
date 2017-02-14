@@ -237,7 +237,7 @@ public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
   }
   
   public boolean isTombstone() {
-    return false;
+    return this.value == Token.TOMBSTONE;
   }
 
   public boolean fillInValue(LocalRegion r,

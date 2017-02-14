@@ -4,17 +4,22 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
+import com.gemstone.gemfire.cache.AttributesFactory;
+import com.gemstone.gemfire.cache.IsolationLevel;
+import com.gemstone.gemfire.cache.PartitionAttributes;
+import com.gemstone.gemfire.cache.PartitionAttributesFactory;
 import com.gemstone.gemfire.cache.Region;
-import com.gemstone.gemfire.internal.cache.BucketRegion;
-import com.gemstone.gemfire.internal.cache.GemFireCacheImpl;
-import com.gemstone.gemfire.internal.cache.PartitionedRegion;
-import com.gemstone.gemfire.internal.cache.TXManagerImpl;
-import com.gemstone.gemfire.internal.cache.TXState;
+import com.gemstone.gemfire.cache.RegionFactory;
+import com.gemstone.gemfire.cache.RegionShortcut;
+import com.gemstone.gemfire.internal.cache.*;
 import com.gemstone.gemfire.internal.cache.versions.RegionVersionHolder;
 import com.gemstone.gemfire.internal.cache.versions.VersionSource;
 import com.gemstone.org.jgroups.oswego.concurrent.CyclicBarrier;
+import com.pivotal.gemfirexd.TestUtil;
 import com.pivotal.gemfirexd.internal.engine.Misc;
 import com.pivotal.gemfirexd.jdbc.JdbcTestBase;
 
@@ -36,6 +41,296 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     return "config";
   }
 
+
+  public void testSnapshotInsertAPI() throws Exception {
+    Connection conn = getConnection();
+    PartitionAttributesFactory paf = new PartitionAttributesFactory();
+    PartitionAttributes prAttr = paf.setTotalNumBuckets(1).create();
+    AttributesFactory attr = new AttributesFactory();
+    attr.setConcurrencyChecksEnabled(true);
+    attr.setPartitionAttributes(prAttr);
+    final Region r = GemFireCacheImpl.getInstance().createRegion("t1", attr.create());
+
+    r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+    r.put(1,1);
+    r.put(2,2);
+    // even before commit it should be visible
+    assertEquals(1, r.get(1));
+    assertEquals(2, r.get(2));
+    r.getCache().getCacheTransactionManager().commit();
+
+    //take an snapshot again//gemfire level
+    // gemfirexd needs to call this to take snapshot
+    r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+    // read the entries
+    assertEquals(1, r.get(1));// get don't need to take from snapshot
+    assertEquals(2, r.get(2));// get don't need to take from snapshot
+
+    //itr will work on a snapshot.
+    TXStateInterface txstate = TXManagerImpl.getCurrentTXState();
+    Iterator txitr = txstate.getLocalEntriesIterator(null, false, false, true, (LocalRegion)r);
+
+    Iterator itr = ((LocalRegion)r).getSharedDataView().getLocalEntriesIterator(null, false, false, true, (LocalRegion)r);
+
+    // after this start another insert in a separate thread and those put shouldn't be visible
+    Runnable run = new Runnable() {
+      @Override
+      public void run() {
+        ((LocalRegion)r).put(3,3);
+        ((LocalRegion)r).put(4,4);
+      }
+    };
+    Thread t = new Thread(run);
+    t.start();
+    t.join();
+
+    int num = 0;
+    while (txitr.hasNext()) {
+      RegionEntry re = (RegionEntry)txitr.next();
+      if(!re.isTombstone())
+        num++;
+    }
+    assertEquals(2, num);
+    // should be visible if read directly from region
+    num = 0;
+    while (itr.hasNext()) {
+      RegionEntry re = (RegionEntry)itr.next();
+      if(!re.isTombstone())
+        num++;
+    }
+    assertEquals(4, num);
+    r.getCache().getCacheTransactionManager().commit();
+
+    // take new snapshot and all the data should be visisble
+    r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+    //itr will work on a snapshot. not other ops
+    txstate = TXManagerImpl.getCurrentTXState();
+    txitr = txstate.getLocalEntriesIterator(null, false, false, true, (LocalRegion)r);
+    num = 0;
+    while (txitr.hasNext()) {
+      RegionEntry re = (RegionEntry)txitr.next();
+      if(!re.isTombstone())
+        num++;
+    }
+    assertEquals(4, num);
+  }
+
+  public void testSnapshotPutAllAPI() throws Exception {
+
+    Connection conn = getConnection();
+    PartitionAttributesFactory paf = new PartitionAttributesFactory();
+    PartitionAttributes prAttr = paf.setTotalNumBuckets(1).create();
+    AttributesFactory attr = new AttributesFactory();
+    attr.setConcurrencyChecksEnabled(true);
+    attr.setPartitionAttributes(prAttr);
+    final Region r = GemFireCacheImpl.getInstance().createRegion("t1", attr.create());
+
+    r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+    Map map = new HashMap();
+    map.put(1,1);
+    map.put(2,2);
+    r.putAll(map);
+
+    // even before commit it should be visible
+    assertEquals(1, r.get(1));
+    assertEquals(2, r.get(2));
+
+    r.getCache().getCacheTransactionManager().commit();
+
+    //take an snapshot again
+    r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+    // read the entries
+    assertEquals(1, r.get(1));// get don't need to take from snapshot
+    assertEquals(2, r.get(2));// get don't need to take from snapshot
+
+    //itr will work on a snapshot.
+    TXStateInterface txstate = TXManagerImpl.getCurrentTXState();
+    Iterator txitr = txstate.getLocalEntriesIterator(null, false, false, true, (LocalRegion)r);
+    Iterator itr = ((LocalRegion)r).getSharedDataView().getLocalEntriesIterator(null, false, false, true, (LocalRegion)r);
+
+    // after this start another insert in a separate thread and those put shouldn't be visible
+    Runnable run = new Runnable() {
+      @Override
+      public void run() {
+        Map m = new HashMap();
+        m.put(3,3);
+        m.put(4,4);
+        ((LocalRegion)r).putAll(m);
+      }
+    };
+    Thread t = new Thread(run);
+    t.start();
+    t.join();
+
+    int num = 0;
+    while (txitr.hasNext()) {
+      RegionEntry re = (RegionEntry)txitr.next();
+      if(!re.isTombstone())
+        num++;
+    }
+    assertEquals(2, num);
+    // should be visible if read directly from region
+    num = 0;
+    while (itr.hasNext()) {
+      RegionEntry re = (RegionEntry)itr.next();
+      if(!re.isTombstone())
+        num++;
+    }
+    assertEquals(4, num);
+    r.getCache().getCacheTransactionManager().commit();
+
+    // take new snapshot and all the data should be visisble
+    r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+    //itr will work on a snapshot. not other ops
+    txstate = TXManagerImpl.getCurrentTXState();
+    txitr = txstate.getLocalEntriesIterator(null, false, false, true, (LocalRegion)r);
+    num = 0;
+    while (txitr.hasNext()) {
+      RegionEntry re = (RegionEntry)txitr.next();
+      if(!re.isTombstone())
+        num++;
+    }
+    assertEquals(4, num);
+  }
+
+  public void testSnapshotInsertUpdateDeleteAPI() throws Exception {
+    Connection conn = getConnection();
+    PartitionAttributesFactory paf = new PartitionAttributesFactory();
+    PartitionAttributes prAttr = paf.setTotalNumBuckets(1).create();
+    AttributesFactory attr = new AttributesFactory();
+    attr.setConcurrencyChecksEnabled(true);
+    attr.setPartitionAttributes(prAttr);
+    final Region r = GemFireCacheImpl.getInstance().createRegion("t1", attr.create());
+
+    r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+    Map map = new HashMap();
+    map.put(1,1);
+    map.put(2,2);
+    r.putAll(map);
+    // even before commit it should be visible
+    assertEquals(1, r.get(1));
+    assertEquals(2, r.get(2));
+    r.getCache().getCacheTransactionManager().commit();
+
+    //itr will work on a snapshot.
+    r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+    // read the entries
+    assertEquals(1, r.get(1));// get don't need to take from snapshot
+    assertEquals(2, r.get(2));// get don't need to take from snapshot
+    TXStateInterface txstate = TXManagerImpl.getCurrentTXState();
+    Iterator txitr = txstate.getLocalEntriesIterator(null, false, false, true, (LocalRegion)r);
+    Iterator itr = ((LocalRegion)r).getSharedDataView().getLocalEntriesIterator(null, false, false, true, (LocalRegion)r);
+    // after this start another insert in a separate thread and those put shouldn't be visible
+    Runnable run = new Runnable() {
+      @Override
+      public void run() {
+        r.put(1, 2);
+        r.destroy(2);
+      }
+    };
+    Thread t = new Thread(run);
+    t.start();
+    t.join();
+
+    int num = 0;
+    while (txitr.hasNext()) {
+      RegionEntry re = (RegionEntry)txitr.next();
+      if(!re.isTombstone()) {
+        num++;
+        // 1,1 and 2,2
+        assertEquals(re.getKey(), re.getValue(null));
+      }
+    }
+    assertEquals(2, num);
+    // should be visible if read directly from region
+    num = 0;
+    while (itr.hasNext()) {
+      RegionEntry re = (RegionEntry)itr.next();
+      if(!re.isTombstone()) {
+        num++;
+        assertEquals(1, re.getKey());
+        assertEquals(2, re.getValue(null));
+      }
+    }
+    assertEquals(1, num);
+    r.getCache().getCacheTransactionManager().commit();
+
+    //take an snapshot again
+    r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+    // read the entries
+    num = 0;
+    while (itr.hasNext()) {
+      RegionEntry re = (RegionEntry)itr.next();
+      if(!re.isTombstone())
+        num++;
+    }
+    assertEquals(1, num);
+    r.getCache().getCacheTransactionManager().commit();
+  }
+
+
+  public void testTwoSnapshotInsertAPI() throws Exception {
+    Connection conn = getConnection();
+    PartitionAttributesFactory paf = new PartitionAttributesFactory();
+    PartitionAttributes prAttr = paf.setTotalNumBuckets(1).create();
+    AttributesFactory attr = new AttributesFactory();
+    attr.setConcurrencyChecksEnabled(true);
+    attr.setPartitionAttributes(prAttr);
+    final Region r1 = GemFireCacheImpl.getInstance().createRegion("t1", attr.create());
+    //final Region r2 = GemFireCacheImpl.getInstance().createRegion("t2", attr.create());
+
+    r1.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+    r1.put(1,1);
+    r1.put(2, 2);
+    r1.getCache().getCacheTransactionManager().commit();
+
+    final Object sync = new Object();
+    Runnable run = new Runnable() {
+      @Override
+      public void run() {
+        r1.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+        r1.put(3,3);
+
+        synchronized (sync) {
+          try {
+            sync.wait();
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+        // wait give control to other thread
+        // that thread should take snapshot and read. and shouldn't see 3,3
+        r1.put(4,4);
+        r1.getCache().getCacheTransactionManager().commit();
+
+      }
+    };
+
+    Thread t = new Thread(run);
+    t.start();
+
+    while(r1.get(3) == null) {
+      Thread.sleep(10);
+    }
+    r1.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+    assertEquals(null, r1.get(4));
+
+    synchronized (sync) {
+      sync.notifyAll();
+    }
+    t.join();
+
+    TXStateInterface txstate = TXManagerImpl.getCurrentTXState();
+    Iterator txitr = txstate.getLocalEntriesIterator(null, false, false, true, (LocalRegion)r1);
+    int num=0;
+    while (txitr.hasNext()) {
+      RegionEntry re = (RegionEntry)txitr.next();
+      if(!re.isTombstone())
+        num++;
+    }
+    assertEquals(2, num);
+
+  }
 
   public void testCommitOnReplicatedTable1() throws Exception {
     Connection conn = getConnection();

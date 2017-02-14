@@ -405,7 +405,7 @@ public class MemHeapScanController implements MemScanController, RowCountable,
       }
     }
     else {
-      if (region.getConcurrencyChecksEnabled() &&
+      if (region.getConcurrencyChecksEnabled() /*&& region.isUsedForMetaRegion()*/ &&
           (region.getCache().getCacheTransactionManager().getTXState() == null)) {
         region.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
         this.txState = region.getCache().getCacheTransactionManager().getTXState().getTXStateForRead();

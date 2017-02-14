@@ -1734,7 +1734,7 @@ public class LocalRegion extends AbstractRegion
   public final InternalDataView getDataView() {
     if (this.supportsTX) {
       final TXStateInterface tx = TXManagerImpl.getCurrentTXState();
-      if (tx != null) {
+      if (tx != null ) {
         // NORMAL/PRELOADED regions are now supported in the new TX model mixed
         // with PRs just like replicated regions
         /*
@@ -7672,7 +7672,7 @@ public class LocalRegion extends AbstractRegion
    * @since 5.7
    */
   public void syncPutAll(final TXStateInterface tx, Runnable r, EventID eventID) {
-    if (this.eventTracker != null && tx == null) {
+    if (this.eventTracker != null && (tx == null || tx.isSnapshot())) {
       this.eventTracker.syncPutAll(r, eventID);
     }
     else {
