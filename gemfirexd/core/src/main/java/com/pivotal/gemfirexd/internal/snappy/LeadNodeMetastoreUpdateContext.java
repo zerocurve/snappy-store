@@ -32,11 +32,16 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
 
   private Optype type;
   private String tableIdentifier;
-  private String jsonSchema;
-  private byte[] partitionColumns;
+  private String userSpecifiedJsonSchema;
+
+
+  private String schemaDDL;
   private String provider;
   private byte[] options;
-  private byte[] relation;
+  private byte[] mode;
+  private Boolean isBuiltIn = true;
+  private Boolean ifExists = false;
+  private String indexIdentifier; //set only by index operations
 
   public LeadNodeMetastoreUpdateContext() {
 
@@ -44,18 +49,22 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
 
   public LeadNodeMetastoreUpdateContext(Optype type,
       String tableIdentifier,
-      String jsonSchema,
-      byte[] partitionColumns,
       String provider,
+      String userSpecifiedJsonSchema,
+      String schemaDDL,
+      byte[] mode,
       byte[] options,
-      byte[] relation) {
+      Boolean isBuiltIn,
+      Boolean ifExists) {
     this.type = type;
     this.tableIdentifier = tableIdentifier;
-    this.jsonSchema = jsonSchema;
-    this.partitionColumns = partitionColumns;
     this.provider = provider;
+    this.userSpecifiedJsonSchema = userSpecifiedJsonSchema;
+    this.schemaDDL = schemaDDL;
+    this.mode = mode;
     this.options = options;
-    this.relation = relation;
+    this.isBuiltIn = isBuiltIn;
+    this.ifExists = ifExists;
   }
 
   @Override
@@ -72,22 +81,28 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
   public void toData(DataOutput out) throws IOException {
     DataSerializer.writeObject(type, out);
     DataSerializer.writeString(tableIdentifier, out);
-    DataSerializer.writeString(jsonSchema, out);
-    DataSerializer.writeByteArray(partitionColumns, out);
+    DataSerializer.writeString(userSpecifiedJsonSchema, out);
+    DataSerializer.writeString(schemaDDL, out);
     DataSerializer.writeString(provider, out);
+    DataSerializer.writeByteArray(mode, out);
     DataSerializer.writeByteArray(options, out);
-    DataSerializer.writeByteArray(relation, out);
+    DataSerializer.writeBoolean(isBuiltIn, out);
+    DataSerializer.writeBoolean(ifExists, out);
+    DataSerializer.writeString(indexIdentifier, out);
   }
 
   @Override
   public void fromData(DataInput in) throws IOException, ClassNotFoundException {
     this.type = DataSerializer.readObject(in);
     this.tableIdentifier = DataSerializer.readString(in);
-    this.jsonSchema = DataSerializer.readString(in);
-    this.partitionColumns = DataSerializer.readByteArray(in);
+    this.userSpecifiedJsonSchema = DataSerializer.readString(in);
+    this.schemaDDL = DataSerializer.readString(in);
     this.provider = DataSerializer.readString(in);
+    this.mode = DataSerializer.readByteArray(in);
     this.options = DataSerializer.readByteArray(in);
-    this.relation = DataSerializer.readByteArray(in);
+    this.isBuiltIn = DataSerializer.readBoolean(in);
+    this.ifExists = DataSerializer.readBoolean(in);
+    this.indexIdentifier = DataSerializer.readString(in);
   }
 
   @Override
@@ -99,14 +114,6 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
     return tableIdentifier;
   }
 
-  public String getJsonSchema() {
-    return jsonSchema;
-  }
-
-  public byte[] getPartitionColumns() {
-    return partitionColumns;
-  }
-
   public String getProvider() {
     return provider;
   }
@@ -115,12 +122,32 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
     return options;
   }
 
-  public byte[] getRelation() {
-    return relation;
-  }
-
   public Optype getType() {
     return type;
+  }
+
+  public String getUserSpecifiedJsonSchema() {
+    return userSpecifiedJsonSchema;
+  }
+
+  public String getSchemaDDL() {
+    return schemaDDL;
+  }
+
+  public byte[] getMode() {
+    return mode;
+  }
+
+  public Boolean getIsBuiltIn() {
+    return isBuiltIn;
+  }
+
+  public Boolean getIfExists() {
+    return ifExists;
+  }
+
+  public String getIndexIdentifier() {
+    return indexIdentifier;
   }
 
 }

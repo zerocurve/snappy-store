@@ -1481,31 +1481,24 @@ public class GfxdSystemProcedures extends SystemProcedures {
     }
   }
 
-  public static void REGISTER_SNAPPY_TABLE(
+  public static void CREATE_SNAPPY_TABLE(
       String tableIdentifier,
-      String userSpecifiedSchema,
-      Blob partitionColumns,
       String provider,
+      String userSpecifiedSchema,
+      String schemaDDL,
+      Blob mode,
       Blob options,
-      Blob relation)
+      Boolean isBuiltIn)
       throws SQLException {
-//    if (GemFireXDUtils.TraceSysProcedures) {
+    if (GemFireXDUtils.TraceSysProcedures) {
       SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
-          "executing REGISTER_SNAPPY_TABLE ");
-//    }
-
-    SanityManager.DEBUG_PRINT("Info",
-        "executing REGISTER_SNAPPY_TABLE ");
-
+          "executing CREATE_SNAPPY_TABLE ");
+    }
     LeadNodeMetastoreUpdateContext ctx = new LeadNodeMetastoreUpdateContext(
         LeadNodeMetastoreUpdateContext.Optype.REGISTER_TABLE,
-        tableIdentifier,
-//        userSpecifiedSchema.getSubString(1, (int)userSpecifiedSchema.length()),
-        userSpecifiedSchema,
-        partitionColumns.getBytes(1, (int)partitionColumns.length()),
-        provider,
-        options.getBytes(1, (int)options.length()),
-        relation.getBytes(1, (int)relation.length()));
+        tableIdentifier, provider, userSpecifiedSchema, schemaDDL,
+        mode.getBytes(1, (int)mode.length()), options.getBytes(1, (int)options.length()),
+        isBuiltIn, false);
 
     LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(ctx,
         AckResultCollector.INSTANCE);
@@ -1516,20 +1509,15 @@ public class GfxdSystemProcedures extends SystemProcedures {
     }
   }
 
-  public static void UNREGISTER_SNAPPY_TABLE(
-      String tableIdentifier) throws SQLException {
+  public static void DROP_SNAPPY_TABLE(String tableIdentifier,
+      Boolean ifExists) throws SQLException {
     if (GemFireXDUtils.TraceSysProcedures) {
       SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
-          "executing UNREGISTER_SNAPPY_TABLE ");
+          "executing DROP_SNAPPY_TABLE ");
     }
-
-    SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
-        "sdeshmukh executing UNREGISTER_SNAPPY_TABLE tableIdentifier=" + tableIdentifier);
-
     LeadNodeMetastoreUpdateContext ctx = new LeadNodeMetastoreUpdateContext(
         LeadNodeMetastoreUpdateContext.Optype.UNREGISTER_TABLE,
-        tableIdentifier,
-        null, null, null, null, null);
+        tableIdentifier, null, null, null, null, null, true, ifExists);
 
     LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(ctx,
         AckResultCollector.INSTANCE);
@@ -1538,6 +1526,84 @@ public class GfxdSystemProcedures extends SystemProcedures {
     } catch(StandardException se) {
       throw PublicAPI.wrapStandardException(se);
     }
+  }
+
+  public static void CREATE_SNAPPY_INDEX(
+      String indexIdentifier,
+      String tableIdentifier,
+      Blob indexColumns,
+      Blob options) throws SQLException {
+    if (GemFireXDUtils.TraceSysProcedures) {
+      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
+          "executing CREATE_SNAPPY_INDEX ");
+    }
+  }
+
+  public static void DROP_SNAPPY_INDEX(String indexIdentifier,
+      Boolean ifExists) throws SQLException {
+    if (GemFireXDUtils.TraceSysProcedures) {
+      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
+          "executing DROP_SNAPPY_INDEX ");
+    }
+  }
+
+  public static void REGISTER_SNAPPY_TABLE(
+      String tableIdentifier,
+      String userSpecifiedSchema,
+      Blob partitionColumns,
+      String provider,
+      Blob options,
+      Blob relation)
+      throws SQLException {
+////    if (GemFireXDUtils.TraceSysProcedures) {
+//      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
+//          "executing REGISTER_SNAPPY_TABLE ");
+////    }
+//
+//    SanityManager.DEBUG_PRINT("Info",
+//        "executing REGISTER_SNAPPY_TABLE ");
+//
+//    LeadNodeMetastoreUpdateContext ctx = new LeadNodeMetastoreUpdateContext(
+//        LeadNodeMetastoreUpdateContext.Optype.REGISTER_TABLE,
+//        tableIdentifier,
+////        userSpecifiedSchema.getSubString(1, (int)userSpecifiedSchema.length()),
+//        userSpecifiedSchema,
+//        partitionColumns.getBytes(1, (int)partitionColumns.length()),
+//        provider,
+//        options.getBytes(1, (int)options.length()),
+//        relation.getBytes(1, (int)relation.length()));
+//
+//    LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(ctx,
+//        AckResultCollector.INSTANCE);
+//    try {
+//      msg.executeFunction();
+//    } catch(StandardException se) {
+//      throw PublicAPI.wrapStandardException(se);
+//    }
+  }
+
+  public static void UNREGISTER_SNAPPY_TABLE(
+      String tableIdentifier) throws SQLException {
+//    if (GemFireXDUtils.TraceSysProcedures) {
+//      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
+//          "executing UNREGISTER_SNAPPY_TABLE ");
+//    }
+//
+//    SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
+//        "sdeshmukh executing UNREGISTER_SNAPPY_TABLE tableIdentifier=" + tableIdentifier);
+//
+//    LeadNodeMetastoreUpdateContext ctx = new LeadNodeMetastoreUpdateContext(
+//        LeadNodeMetastoreUpdateContext.Optype.UNREGISTER_TABLE,
+//        tableIdentifier,
+//        null, null, null, null, null);
+//
+//    LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(ctx,
+//        AckResultCollector.INSTANCE);
+//    try {
+//      msg.executeFunction();
+//    } catch(StandardException se) {
+//      throw PublicAPI.wrapStandardException(se);
+//    }
   }
 
   /**

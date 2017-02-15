@@ -79,8 +79,14 @@ public final class LeadNodeMetastoreUpdateMsg extends MemberExecutorMessage<Obje
     }
     SanityManager.DEBUG_PRINT("info",
         "sdeshmukh LeadNodeMetastoreUpdateMsg.execute: ");
-    CallbackFactoryProvider.getStoreCallbacks().updateMetastore(this.ctx);
-    lastResult(Boolean.TRUE, false, false, true);
+    try {
+      CallbackFactoryProvider.getStoreCallbacks().updateMetastore(this.ctx);
+      lastResult(Boolean.TRUE, false, false, true);
+    } catch (Exception ex) {
+      SanityManager.DEBUG_PRINT("info",
+          "sdeshmukh LeadNodeMetastoreUpdateMsg caught exception: ", ex);
+      throw LeadNodeExecutorMsg.getExceptionToSendToServer(ex);
+    }
   }
 
   @Override
@@ -95,7 +101,6 @@ public final class LeadNodeMetastoreUpdateMsg extends MemberExecutorMessage<Obje
 
   @Override
   protected LeadNodeMetastoreUpdateMsg clone() {
-    SanityManager.DEBUG_PRINT("info", "sdeshmukh LeadNodeMetastoreUpdateMsg#clone");
     final LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(this.ctx, this.userCollector);
     return msg;
   }

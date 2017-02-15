@@ -1644,6 +1644,61 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
     }
 
     {
+      // CREATE_SNAPPY_TABLE
+      String[] arg_names = new String[] { "TABLE_IDENT",
+          "PROVIDER", "USER_SCHEMA", "SCHEMA_DDL", "MODE",
+          "OPTIONS", "IS_BUILTIN"};
+      TypeDescriptor[] arg_types = new TypeDescriptor[] {
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.BLOB),
+          DataTypeDescriptor.getCatalogType(Types.BLOB),
+          DataTypeDescriptor.getCatalogType(Types.BOOLEAN)};
+      super.createSystemProcedureOrFunction("CREATE_SNAPPY_TABLE",
+          sysUUID, arg_names, arg_types, 0, 0, RoutineAliasInfo.READS_SQL_DATA, null,
+          newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
+    }
+
+    {
+      // DROP_SNAPPY_TABLE
+      String[] arg_names = new String[] { "TABLE_IDENT", "IF_EXISTS"};
+      TypeDescriptor[] arg_types = new TypeDescriptor[] {
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.BOOLEAN)};
+      super.createSystemProcedureOrFunction("DROP_SNAPPY_TABLE",
+          sysUUID, arg_names, arg_types, 0, 0, RoutineAliasInfo.READS_SQL_DATA, null,
+          newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
+    }
+
+    {
+      // CREATE_SNAPPY_INDEX
+      String[] arg_names = new String[] { "INDEX_IDENT",
+          "TABLE_IDENT", "INDEX_COLUMNS", "OPTIONS"};
+      TypeDescriptor[] arg_types = new TypeDescriptor[] {
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.BLOB),
+          DataTypeDescriptor.getCatalogType(Types.BLOB)};
+      super.createSystemProcedureOrFunction("CREATE_SNAPPY_INDEX",
+          sysUUID, arg_names, arg_types, 0, 0, RoutineAliasInfo.READS_SQL_DATA, null,
+          newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
+    }
+
+    {
+      // DROP_SNAPPY_INDEX
+      String[] arg_names = new String[] { "INDEX_IDENT", "IF_EXISTS"};
+      TypeDescriptor[] arg_types = new TypeDescriptor[] {
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.BOOLEAN)};
+      super.createSystemProcedureOrFunction("DROP_SNAPPY_INDEX",
+          sysUUID, arg_names, arg_types, 0, 0, RoutineAliasInfo.READS_SQL_DATA, null,
+          newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
+    }
+
+
+    {
       // REGISTER_SNAPPY_TABLE
       String[] arg_names = new String[] { "TABLE_IDENT",
           "USER_SCHEMA", "PARTITION_COLUMNS", "PROVIDER",
