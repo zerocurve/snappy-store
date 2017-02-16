@@ -564,30 +564,44 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 
   private String vmIdRegionPath;
 
-  protected volatile CustomEntryConcurrentHashMap<Object, NavigableSet<Object>/*RegionEntry*/>
-      oldEntryMap;
+  protected volatile ConcurrentHashMap<String, CustomEntryConcurrentHashMap<Object,
+      NavigableSet<Object>/*RegionEntry*/>> oldEntryMap;
+  private Comparator regionEntryVersionComparator = new Comparator<RegionEntry>() {
+    @Override
+    public int compare(RegionEntry o1, RegionEntry o2) {
+      return ((Long)o1.getVersionStamp().getRegionVersion()).compareTo(o2.getVersionStamp()
+          .getRegionVersion());
+    }
+  };
 
-  public void addOldEntry(RegionEntry oldRe) {
-    if (!this.oldEntryMap.containsKey(oldRe.getKey())) {
-      NavigableSet listOfOldEntries = new TreeSet<RegionEntry>(new Comparator<RegionEntry>() {
-        @Override
-        public int compare(RegionEntry o1, RegionEntry o2) {
-          return ((Long)o1.getVersionStamp().getRegionVersion()).compareTo(o2.getVersionStamp()
-              .getRegionVersion());
-        }
-      });
-      listOfOldEntries.add(oldRe);
-      this.oldEntryMap.put(oldRe.getKey(), listOfOldEntries);
+  public void addOldEntry(RegionEntry oldRe, String regionName) {
+
+    if (oldEntryMap.containsKey(regionName)) {
+
+      if (!this.oldEntryMap.get(regionName).containsKey(oldRe.getKeyCopy())) {
+        NavigableSet listOfOldEntries = new TreeSet<RegionEntry>(regionEntryVersionComparator);
+        listOfOldEntries.add(oldRe);
+        //this.oldEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
+        this.oldEntryMap.get(regionName).put(oldRe.getKeyCopy(), listOfOldEntries);
+      } else {
+        this.oldEntryMap.get(regionName).get(oldRe.getKeyCopy()).add(oldRe);
+      }
     } else {
-      this.oldEntryMap.get(oldRe.getKey()).add(oldRe);
+      NavigableSet listOfOldEntries = new TreeSet<RegionEntry>(regionEntryVersionComparator);
+      CustomEntryConcurrentHashMap regionEntryMap = new CustomEntryConcurrentHashMap<Object,
+          NavigableSet<Object>>();
+      listOfOldEntries.add(oldRe);
+      regionEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
+      this.oldEntryMap.put(regionName, regionEntryMap);
     }
   }
 
   //TODO: For now this method will return only first element in the set
-  final Object readOldEntry(final Object entryKey,
+  final Object readOldEntry(String regionName, final Object entryKey,
       final boolean checkValid) {
-    if (oldEntryMap.containsKey(entryKey)) {
-      return oldEntryMap.get(entryKey).last();
+    if (oldEntryMap.containsKey(regionName) && this.oldEntryMap.get(regionName).containsKey(((RegionEntry)entryKey)
+        .getKeyCopy())) {
+      return oldEntryMap.get(regionName).get(((RegionEntry)entryKey).getKeyCopy()).last();
     } else {
       return null;
     }
@@ -595,9 +609,9 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 
   //TODO: This method is currently not in use but is need in future when concurrent write is
   // supported
-  final Object readOldEntry(final Object entryKey,
+  final Object readOldEntry(String regionName , final Object entryKey,
       final RegionEntry version, final boolean checkValid) {
-    return oldEntryMap.get(entryKey).lower(version);
+    return oldEntryMap.get(regionName).get(entryKey).lower(version);
   }
 
   /**
@@ -757,7 +771,8 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     this.clientpf = pf;
     this.cacheConfig = cacheConfig; // do early for bug 43213
 
-    this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
+    //this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
+    this.oldEntryMap = new ConcurrentHashMap<>();
     // initialize advisor for normal DMs immediately
     InternalDistributedSystem ids = (InternalDistributedSystem)system;
     StaticSystemCallbacks sysCallbacks = getInternalProductCallbacks();

@@ -2254,8 +2254,10 @@ RETRY_LOOP:
           cbEvent = null;
         }
 
-        oldRe = NonLocalRegionEntry.newEntry(key, re.getValueOffHeapOrDiskWithoutFaultIn(_getOwner()),
-            _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+        /*oldRe = NonLocalRegionEntry.newEntry(re.getKey(), re.getValueOffHeapOrDiskWithoutFaultIn(_getOwner
+                ()),
+            _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null)*/;
+        oldRe = NonLocalRegionEntry.newEntry(re, owner, true);
 
         txRemoveOldIndexEntry(Operation.DESTROY, re);
         boolean clearOccured = false;
@@ -2315,8 +2317,10 @@ RETRY_LOOP:
           cbEvent = null;
         }
 
-        oldRe = NonLocalRegionEntry.newEntry(key, re.getValueOffHeapOrDiskWithoutFaultIn(_getOwner()),
-            _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+        /*oldRe = NonLocalRegionEntry.newEntry(re.getKey(), re.getValueOffHeapOrDiskWithoutFaultIn
+                (_getOwner()),
+            _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);*/
+        oldRe = NonLocalRegionEntry.newEntry(re, owner, true);
 
         try {
           EntryEventImpl txEvent = null;
@@ -2413,7 +2417,7 @@ RETRY_LOOP:
           // this is not tx op
           //if (tx.txId != event.getTXState().getTransactionId())
           //tx.addOldEntry(oldRe);
-          GemFireCacheImpl.getInstance().addOldEntry(oldRe);
+          GemFireCacheImpl.getInstance().addOldEntry(oldRe,cbEvent.region.getName());
           // }
         }
         // we need to keep it at one place.
@@ -3971,8 +3975,9 @@ RETRY_LOOP:
                         // update
                         if (shouldCopyOldEntry(owner,event)) {
                           // we need to do the same for secondary as well.
-                          oldRe = NonLocalRegionEntry.newEntry(event.getKey(), re._getValue(),
-                              owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+                          /*oldRe = NonLocalRegionEntry.newEntry(re.getKey(), re._getValue(),
+                              owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);*/
+                          oldRe = NonLocalRegionEntry.newEntry(re, event.getRegion(), true);
                           //RegionEntry oldRe = getEntryFactory().createEntry((RegionEntryContext)owner, event.getKey(),
                           //    re._getValue());
                           // need to set the version information.
@@ -3981,7 +3986,9 @@ RETRY_LOOP:
                       } else {
                         if (shouldCopyOldEntry(owner,event)) {
                           // we need to do the same for secondary as well.
-                          oldRe = NonLocalRegionEntry.newEntry(event.getKey(), Token.TOMBSTONE,
+                          /*oldRe = NonLocalRegionEntry.newEntry(re.getKey(), Token.TOMBSTONE,
+                              owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);*/
+                          oldRe = NonLocalRegionEntry.newEntry(re.getKeyCopy(), Token.TOMBSTONE,
                               owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
                           // if value already present then we should add a list of RE.
                           // TODO: SuranjanFor tx case we will have to maintain common ds.
@@ -4003,7 +4010,7 @@ RETRY_LOOP:
                           // this is not tx ops
                           //if (tx.txId != event.getTXState().getTransactionId())
                           //tx.addOldEntry(oldRe);
-                          GemFireCacheImpl.getInstance().addOldEntry(oldRe);
+                          GemFireCacheImpl.getInstance().addOldEntry(oldRe, event.region.getName());
                        // }
                       }
                       owner.recordEvent(event);
@@ -4374,13 +4381,14 @@ RETRY_LOOP:
       boolean createdForDestroy, boolean removeRecoveredEntry)
       throws CacheWriterException, TimeoutException, EntryNotFoundException,
       RegionClearedException {
-    RegionEntry oldRe = NonLocalRegionEntry.newEntry(event.getKey(), re.getValueOffHeapOrDiskWithoutFaultIn(_getOwner()),
-        _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+/*    RegionEntry oldRe = NonLocalRegionEntry.newEntry(re.getKey(), re
+            .getValueOffHeapOrDiskWithoutFaultIn(_getOwner()),
+        _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);*/
 
+    RegionEntry oldRe = NonLocalRegionEntry.newEntry(re,event.getRegion() ,true);
     if (shouldCopyOldEntry(_getOwner(), event)) {
       // we need to do the same for secondary as well.
-      oldRe = NonLocalRegionEntry.newEntry(event.getKey(), re._getValue(),
-          _getOwner(), re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+      oldRe = NonLocalRegionEntry.newEntry(re, event.getRegion(),true);
     }
     processVersionTag(re, event);
     final int oldSize = _getOwner().calculateRegionEntryValueSize(re);
@@ -4398,7 +4406,7 @@ RETRY_LOOP:
           // this is not tx op
           //if (tx.txId != event.getTXState().getTransactionId())
           //tx.addOldEntry(oldRe);
-          GemFireCacheImpl.getInstance().addOldEntry(oldRe);
+          GemFireCacheImpl.getInstance().addOldEntry(oldRe,event.region.getName());
        // }
       }
       // we need to keep it at one place.
@@ -4569,8 +4577,9 @@ RETRY_LOOP:
             regionStates[i].addOldEntry(NonLocalRegionEntry.newEntry(re, owner, true));
           }
         }*/
-        oldRe = NonLocalRegionEntry.newEntry(key, re._getValue(),
-            owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+        /*oldRe = NonLocalRegionEntry.newEntry(re.getKey(), re._getValue(),
+            owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);*/
+        oldRe = NonLocalRegionEntry.newEntry(re, owner, true);
 
         re.setValue(owner, re.prepareValueForCache(owner, newValue, !putOp.isCreate(), false));
         if (putOp.isCreate()) {
@@ -4643,7 +4652,7 @@ RETRY_LOOP:
           // this is not tx ops
           //if (tx.txId != event.getTXState().getTransactionId())
           //tx.addOldEntry(oldRe);
-          GemFireCacheImpl.getInstance().addOldEntry(oldRe);
+          GemFireCacheImpl.getInstance().addOldEntry(oldRe, cbEvent.region.getName());
           // }
         }
         if (re != null && owner.isUsedForPartitionedRegionBucket()) {
