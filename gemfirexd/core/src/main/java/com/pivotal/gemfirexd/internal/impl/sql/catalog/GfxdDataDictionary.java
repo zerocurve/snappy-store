@@ -1697,34 +1697,6 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
           newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
     }
 
-
-    {
-      // REGISTER_SNAPPY_TABLE
-      String[] arg_names = new String[] { "TABLE_IDENT",
-          "USER_SCHEMA", "PARTITION_COLUMNS", "PROVIDER",
-          "OPTIONS", "RELATION"};
-      TypeDescriptor[] arg_types = new TypeDescriptor[] {
-          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
-          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
-          DataTypeDescriptor.getCatalogType(Types.BLOB),
-          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
-          DataTypeDescriptor.getCatalogType(Types.BLOB),
-          DataTypeDescriptor.getCatalogType(Types.BLOB)};
-      super.createSystemProcedureOrFunction("REGISTER_SNAPPY_TABLE",
-          sysUUID, arg_names, arg_types, 0, 0, RoutineAliasInfo.READS_SQL_DATA, null,
-          newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
-    }
-
-    {
-      // UNREGISTER_SNAPPY_TABLE
-      String[] arg_names = new String[] { "TABLE_IDENT"};
-      TypeDescriptor[] arg_types = new TypeDescriptor[] {
-          DataTypeDescriptor.getCatalogType(Types.VARCHAR)};
-      super.createSystemProcedureOrFunction("UNREGISTER_SNAPPY_TABLE",
-          sysUUID, arg_names, arg_types, 0, 0, RoutineAliasInfo.READS_SQL_DATA, null,
-          newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
-    }
-
     {
       // GET_BUCKET_TO_SERVER_MAPPING
       String[] arg_names = new String[] { "FQTN", "BKT_TO_SERVER_MAPPING" };

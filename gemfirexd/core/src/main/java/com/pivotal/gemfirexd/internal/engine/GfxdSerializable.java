@@ -364,7 +364,7 @@ public interface GfxdSerializable extends GfxdDSFID {
 
   public final static byte SNAPPY_REGION_STATS_RESULT = 122;
 
-  public final static byte LEAD_NODE_META_UPDATE_MSG = 123;
+  public final static byte LEAD_NODE_CONN_OP_MSG = 123;
 
-  public final static byte LEAD_NODE_META_UPDATE_CTX = 124;
+  public final static byte LEAD_NODE_CONN_OP_CTX = 124;
 }

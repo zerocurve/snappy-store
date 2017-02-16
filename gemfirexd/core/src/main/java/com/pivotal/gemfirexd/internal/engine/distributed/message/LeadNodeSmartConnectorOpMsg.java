@@ -33,24 +33,24 @@ import com.pivotal.gemfirexd.internal.engine.Misc;
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.GemFireXDUtils;
 import com.pivotal.gemfirexd.internal.iapi.error.StandardException;
 import com.pivotal.gemfirexd.internal.shared.common.sanity.SanityManager;
-import com.pivotal.gemfirexd.internal.snappy.LeadNodeMetastoreUpdateContext;
+import com.pivotal.gemfirexd.internal.snappy.LeadNodeSmartConnectorOpContext;
 
 /**
  * This message is used in Smart Connector mode that uses thin client. This message is
- * sent to lead node to update the Hive metastore for DDL operations on external
- * cluster (connector). This is sent from a system proc invoked by the connector.
+ * sent to lead node for DDL operations on external cluster (connector). This is sent from
+ * a system proc invoked by the connector.
  */
-public final class LeadNodeMetastoreUpdateMsg extends MemberExecutorMessage<Object> {
+public final class LeadNodeSmartConnectorOpMsg extends MemberExecutorMessage<Object> {
 
-  private LeadNodeMetastoreUpdateContext ctx;
+  private LeadNodeSmartConnectorOpContext ctx;
 
-  public LeadNodeMetastoreUpdateMsg(LeadNodeMetastoreUpdateContext ctx,
+  public LeadNodeSmartConnectorOpMsg(LeadNodeSmartConnectorOpContext ctx,
       final ResultCollector<Object, Object> rc) {
     super(rc, null, false, true);
     this.ctx = ctx;
   }
 
-  public LeadNodeMetastoreUpdateMsg() {super(true);}
+  public LeadNodeSmartConnectorOpMsg() {super(true);}
 
   @Override
   public Set<DistributedMember> getMembers() {
@@ -75,16 +75,12 @@ public final class LeadNodeMetastoreUpdateMsg extends MemberExecutorMessage<Obje
   protected void execute() throws Exception {
     if (GemFireXDUtils.TraceQuery) {
       SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_QUERYDISTRIB,
-          "LeadNodeMetastoreUpdateMsg.execute: ");
+          "LeadNodeSmartConnectorOpMsg.execute: ");
     }
-    SanityManager.DEBUG_PRINT("info",
-        "sdeshmukh LeadNodeMetastoreUpdateMsg.execute: ");
     try {
-      CallbackFactoryProvider.getStoreCallbacks().updateMetastore(this.ctx);
+      CallbackFactoryProvider.getStoreCallbacks().performConnectorOp(this.ctx);
       lastResult(Boolean.TRUE, false, false, true);
     } catch (Exception ex) {
-      SanityManager.DEBUG_PRINT("info",
-          "sdeshmukh LeadNodeMetastoreUpdateMsg caught exception: ", ex);
       throw LeadNodeExecutorMsg.getExceptionToSendToServer(ex);
     }
   }
@@ -100,14 +96,14 @@ public final class LeadNodeMetastoreUpdateMsg extends MemberExecutorMessage<Obje
   }
 
   @Override
-  protected LeadNodeMetastoreUpdateMsg clone() {
-    final LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(this.ctx, this.userCollector);
+  protected LeadNodeSmartConnectorOpMsg clone() {
+    final LeadNodeSmartConnectorOpMsg msg = new LeadNodeSmartConnectorOpMsg(this.ctx, this.userCollector);
     return msg;
   }
 
   @Override
   public byte getGfxdID() {
-    return LEAD_NODE_META_UPDATE_MSG;
+    return LEAD_NODE_CONN_OP_MSG;
   }
 
   @Override

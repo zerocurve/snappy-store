@@ -165,7 +165,6 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
       }
       cause = cause.getCause();
     }
-    SanityManager.DEBUG_PRINT("info", "sdeshmukh returning exception ", ex);
     return ex;
   }
 

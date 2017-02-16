@@ -67,7 +67,7 @@ import com.pivotal.gemfirexd.internal.engine.distributed.AckResultCollector;
 import com.pivotal.gemfirexd.internal.engine.distributed.GfxdMessage;
 import com.pivotal.gemfirexd.internal.engine.distributed.QueryCancelFunction;
 import com.pivotal.gemfirexd.internal.engine.distributed.QueryCancelFunction.QueryCancelFunctionArgs;
-import com.pivotal.gemfirexd.internal.engine.distributed.message.LeadNodeMetastoreUpdateMsg;
+import com.pivotal.gemfirexd.internal.engine.distributed.message.LeadNodeSmartConnectorOpMsg;
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.GemFireXDUtils;
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.SecurityUtils;
 import com.pivotal.gemfirexd.internal.engine.store.CustomRowsResultSet;
@@ -85,8 +85,10 @@ import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.AliasDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.DataDictionary;
+import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.SchemaDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.StatementRoutinePermission;
+import com.pivotal.gemfirexd.internal.iapi.sql.dictionary.TableDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.store.access.TransactionController;
 import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.types.HarmonySerialBlob;
@@ -108,7 +110,7 @@ import com.pivotal.gemfirexd.internal.jdbc.InternalDriver;
 import com.pivotal.gemfirexd.internal.shared.common.SharedUtils;
 import com.pivotal.gemfirexd.internal.shared.common.reference.SQLState;
 import com.pivotal.gemfirexd.internal.shared.common.sanity.SanityManager;
-import com.pivotal.gemfirexd.internal.snappy.LeadNodeMetastoreUpdateContext;
+import com.pivotal.gemfirexd.internal.snappy.LeadNodeSmartConnectorOpContext;
 import com.pivotal.gemfirexd.load.Import;
 import io.snappydata.thrift.ServerType;
 
@@ -1415,10 +1417,6 @@ public class GfxdSystemProcedures extends SystemProcedures {
       }
     }
 
-    SanityManager.DEBUG_PRINT("info", "sdeshmukh GET_TABLE_METADATA " +
-        " tableObject ="  + tableObject[0] +
-        " tableName =" + tableName + " columns[0] =" + partColumns[0] +
-        " bucketCount[0] =" + bucketCount[0] + " bucketToServerMapping =" + bucketToServerMapping[0]);
   }
 
   private static void getPRMetaData(final PartitionedRegion region,
@@ -1466,19 +1464,53 @@ public class GfxdSystemProcedures extends SystemProcedures {
     }
   }
 
-  private static void getIndexColumns(String[] indexColumns, LocalRegion region) {
-    GfxdIndexManager im = (GfxdIndexManager)region.getIndexUpdater();
-    if (im != null && im.getIndexConglomerateDescriptors() != null) {
-      String cols = null;
-      String[] baseColumns = im.getContainer().getTableDescriptor().getColumnNamesArray();
-      Iterator<ConglomerateDescriptor> itr = im.getIndexConglomerateDescriptors().iterator();
-      while (itr.hasNext()) {
-        // first column of index has to be present in filter to be usable
-        int[] indexColsPositions = itr.next().getIndexDescriptor().baseColumnPositions();
-        cols = baseColumns[indexColsPositions[0] - 1] + ":";
+  /**
+   * Returns the index columns in string format separated by ":"
+   * in the element indexColumns[0]
+   * for example, "col1:col2:col3"
+   * @param indexColumns
+   * @param region
+   * @throws StandardException
+   */
+  public static void getIndexColumns(String[] indexColumns, LocalRegion region) throws StandardException {
+//    GfxdIndexManager im = (GfxdIndexManager)region.getIndexUpdater();
+//    if (im != null && im.getIndexConglomerateDescriptors() != null) {
+//      String cols = null;
+//      String[] baseColumns = im.getContainer().getTableDescriptor().getColumnNamesArray();
+//      Iterator<ConglomerateDescriptor> itr = im.getIndexConglomerateDescriptors().iterator();
+//      while (itr.hasNext()) {
+//        // first column of index has to be present in filter to be usable
+//        int[] indexColsPositions = itr.next().getIndexDescriptor().baseColumnPositions();
+//        cols = baseColumns[indexColsPositions[0] - 1] + ":";
+//      }
+//      indexColumns[0] = cols;
+//    }
+
+    GemFireContainer container = (GemFireContainer)region.getUserAttribute();
+    TableDescriptor td = container.getTableDescriptor();
+    String cols = null;
+    if (td != null) {
+      String[] baseColumns = td.getColumnNamesArray();
+      GfxdIndexManager im = container.getIndexManager();
+      if ((im != null) && (im.getIndexConglomerateDescriptors() != null)) {
+        Iterator<ConglomerateDescriptor> itr = im.getIndexConglomerateDescriptors().iterator();
+        while (itr.hasNext()) {
+          // first column of index has to be present in filter to be usable
+          int[] indexCols = itr.next().getIndexDescriptor().baseColumnPositions();
+          cols += baseColumns[indexCols[0] - 1] + ":";
+        }
       }
-      indexColumns[0] = cols;
+      // also add primary key
+      ReferencedKeyConstraintDescriptor primaryKey = td.getPrimaryKey();
+      if (primaryKey != null) {
+        // first column of primary key has to be present in filter to be usable
+        int[] pkCols = primaryKey.getKeyColumns();
+        if (pkCols != null && pkCols.length > 0) {
+          cols += baseColumns[pkCols[0] - 1];
+        }
+      }
     }
+    indexColumns[0] = cols;
   }
 
   public static void CREATE_SNAPPY_TABLE(
@@ -1494,13 +1526,13 @@ public class GfxdSystemProcedures extends SystemProcedures {
       SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
           "executing CREATE_SNAPPY_TABLE ");
     }
-    LeadNodeMetastoreUpdateContext ctx = new LeadNodeMetastoreUpdateContext(
-        LeadNodeMetastoreUpdateContext.Optype.REGISTER_TABLE,
+    LeadNodeSmartConnectorOpContext ctx = new LeadNodeSmartConnectorOpContext(
+        LeadNodeSmartConnectorOpContext.OpType.CREATE_TABLE,
         tableIdentifier, provider, userSpecifiedSchema, schemaDDL,
         mode.getBytes(1, (int)mode.length()), options.getBytes(1, (int)options.length()),
-        isBuiltIn, false);
+        isBuiltIn, false, null, null);
 
-    LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(ctx,
+    LeadNodeSmartConnectorOpMsg msg = new LeadNodeSmartConnectorOpMsg(ctx,
         AckResultCollector.INSTANCE);
     try {
       msg.executeFunction();
@@ -1515,11 +1547,12 @@ public class GfxdSystemProcedures extends SystemProcedures {
       SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
           "executing DROP_SNAPPY_TABLE ");
     }
-    LeadNodeMetastoreUpdateContext ctx = new LeadNodeMetastoreUpdateContext(
-        LeadNodeMetastoreUpdateContext.Optype.UNREGISTER_TABLE,
-        tableIdentifier, null, null, null, null, null, true, ifExists);
+    LeadNodeSmartConnectorOpContext ctx = new LeadNodeSmartConnectorOpContext(
+        LeadNodeSmartConnectorOpContext.OpType.DROP_TABLE,
+        tableIdentifier, null, null, null, null, null, true, ifExists,
+        null, null);
 
-    LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(ctx,
+    LeadNodeSmartConnectorOpMsg msg = new LeadNodeSmartConnectorOpMsg(ctx,
         AckResultCollector.INSTANCE);
     try {
       msg.executeFunction();
@@ -1537,6 +1570,21 @@ public class GfxdSystemProcedures extends SystemProcedures {
       SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
           "executing CREATE_SNAPPY_INDEX ");
     }
+
+    LeadNodeSmartConnectorOpContext ctx = new LeadNodeSmartConnectorOpContext(
+        LeadNodeSmartConnectorOpContext.OpType.CREATE_INDEX,
+        tableIdentifier, null, null, null, null,
+        options.getBytes(1, (int)options.length()), true, false,
+        indexIdentifier, indexColumns.getBytes(1, (int)indexColumns.length()));
+
+    LeadNodeSmartConnectorOpMsg msg = new LeadNodeSmartConnectorOpMsg(ctx,
+        AckResultCollector.INSTANCE);
+    try {
+      msg.executeFunction();
+    } catch(StandardException se) {
+      throw PublicAPI.wrapStandardException(se);
+    }
+
   }
 
   public static void DROP_SNAPPY_INDEX(String indexIdentifier,
@@ -1545,65 +1593,19 @@ public class GfxdSystemProcedures extends SystemProcedures {
       SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
           "executing DROP_SNAPPY_INDEX ");
     }
-  }
 
-  public static void REGISTER_SNAPPY_TABLE(
-      String tableIdentifier,
-      String userSpecifiedSchema,
-      Blob partitionColumns,
-      String provider,
-      Blob options,
-      Blob relation)
-      throws SQLException {
-////    if (GemFireXDUtils.TraceSysProcedures) {
-//      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
-//          "executing REGISTER_SNAPPY_TABLE ");
-////    }
-//
-//    SanityManager.DEBUG_PRINT("Info",
-//        "executing REGISTER_SNAPPY_TABLE ");
-//
-//    LeadNodeMetastoreUpdateContext ctx = new LeadNodeMetastoreUpdateContext(
-//        LeadNodeMetastoreUpdateContext.Optype.REGISTER_TABLE,
-//        tableIdentifier,
-////        userSpecifiedSchema.getSubString(1, (int)userSpecifiedSchema.length()),
-//        userSpecifiedSchema,
-//        partitionColumns.getBytes(1, (int)partitionColumns.length()),
-//        provider,
-//        options.getBytes(1, (int)options.length()),
-//        relation.getBytes(1, (int)relation.length()));
-//
-//    LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(ctx,
-//        AckResultCollector.INSTANCE);
-//    try {
-//      msg.executeFunction();
-//    } catch(StandardException se) {
-//      throw PublicAPI.wrapStandardException(se);
-//    }
-  }
+    LeadNodeSmartConnectorOpContext ctx = new LeadNodeSmartConnectorOpContext(
+        LeadNodeSmartConnectorOpContext.OpType.DROP_INDEX,
+        null, null, null, null, null, null, true, ifExists,
+        indexIdentifier, null);
 
-  public static void UNREGISTER_SNAPPY_TABLE(
-      String tableIdentifier) throws SQLException {
-//    if (GemFireXDUtils.TraceSysProcedures) {
-//      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
-//          "executing UNREGISTER_SNAPPY_TABLE ");
-//    }
-//
-//    SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
-//        "sdeshmukh executing UNREGISTER_SNAPPY_TABLE tableIdentifier=" + tableIdentifier);
-//
-//    LeadNodeMetastoreUpdateContext ctx = new LeadNodeMetastoreUpdateContext(
-//        LeadNodeMetastoreUpdateContext.Optype.UNREGISTER_TABLE,
-//        tableIdentifier,
-//        null, null, null, null, null);
-//
-//    LeadNodeMetastoreUpdateMsg msg = new LeadNodeMetastoreUpdateMsg(ctx,
-//        AckResultCollector.INSTANCE);
-//    try {
-//      msg.executeFunction();
-//    } catch(StandardException se) {
-//      throw PublicAPI.wrapStandardException(se);
-//    }
+    LeadNodeSmartConnectorOpMsg msg = new LeadNodeSmartConnectorOpMsg(ctx,
+        AckResultCollector.INSTANCE);
+    try {
+      msg.executeFunction();
+    } catch(StandardException se) {
+      throw PublicAPI.wrapStandardException(se);
+    }
   }
 
   /**

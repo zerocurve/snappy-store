@@ -75,7 +75,7 @@ public abstract class CallbackFactoryProvider {
     }
 
     @Override
-    public void updateMetastore(Object ctx) {
+    public void performConnectorOp(Object ctx) {
     }
 
     @Override

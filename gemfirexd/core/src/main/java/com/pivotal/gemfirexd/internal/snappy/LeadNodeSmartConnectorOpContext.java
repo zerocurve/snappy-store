@@ -25,16 +25,21 @@ import com.gemstone.gemfire.DataSerializer;
 import com.gemstone.gemfire.internal.DataSerializableFixedID;
 import com.gemstone.gemfire.internal.shared.Version;
 import com.pivotal.gemfirexd.internal.engine.GfxdSerializable;
+import com.pivotal.gemfirexd.internal.iapi.services.sanity.SanityManager;
 
-public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
+/**
+ * A class that holds parameters for operations to be done do for LeadNodeSmartConnectorOpMsg
+ */
+public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
 
-  public enum Optype { REGISTER_TABLE, UNREGISTER_TABLE }
+  public enum OpType {CREATE_TABLE, DROP_TABLE, CREATE_INDEX, DROP_INDEX}
 
-  private Optype type;
+  private OpType type;
+
+  // not all of these members are always used
+  // these are used based on the OpType
   private String tableIdentifier;
   private String userSpecifiedJsonSchema;
-
-
   private String schemaDDL;
   private String provider;
   private byte[] options;
@@ -42,12 +47,13 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
   private Boolean isBuiltIn = true;
   private Boolean ifExists = false;
   private String indexIdentifier; //set only by index operations
+  private byte[] indexColumns; //set only by index operations
 
-  public LeadNodeMetastoreUpdateContext() {
+  public LeadNodeSmartConnectorOpContext() {
 
   }
 
-  public LeadNodeMetastoreUpdateContext(Optype type,
+  public LeadNodeSmartConnectorOpContext(OpType type,
       String tableIdentifier,
       String provider,
       String userSpecifiedJsonSchema,
@@ -55,7 +61,9 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
       byte[] mode,
       byte[] options,
       Boolean isBuiltIn,
-      Boolean ifExists) {
+      Boolean ifExists,
+      String indexIdentifier,
+      byte[] indexColumns) {
     this.type = type;
     this.tableIdentifier = tableIdentifier;
     this.provider = provider;
@@ -65,11 +73,13 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
     this.options = options;
     this.isBuiltIn = isBuiltIn;
     this.ifExists = ifExists;
+    this.indexIdentifier = indexIdentifier;
+    this.indexColumns = indexColumns;
   }
 
   @Override
   public byte getGfxdID() {
-    return LEAD_NODE_META_UPDATE_CTX;
+    return LEAD_NODE_CONN_OP_CTX;
   }
 
   @Override
@@ -82,13 +92,14 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
     DataSerializer.writeObject(type, out);
     DataSerializer.writeString(tableIdentifier, out);
     DataSerializer.writeString(userSpecifiedJsonSchema, out);
+    DataSerializer.writeByteArray(indexColumns, out);
+    DataSerializer.writeString(indexIdentifier, out);
     DataSerializer.writeString(schemaDDL, out);
     DataSerializer.writeString(provider, out);
     DataSerializer.writeByteArray(mode, out);
     DataSerializer.writeByteArray(options, out);
     DataSerializer.writeBoolean(isBuiltIn, out);
     DataSerializer.writeBoolean(ifExists, out);
-    DataSerializer.writeString(indexIdentifier, out);
   }
 
   @Override
@@ -96,13 +107,14 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
     this.type = DataSerializer.readObject(in);
     this.tableIdentifier = DataSerializer.readString(in);
     this.userSpecifiedJsonSchema = DataSerializer.readString(in);
+    this.indexColumns = DataSerializer.readByteArray(in);
+    this.indexIdentifier = DataSerializer.readString(in);
     this.schemaDDL = DataSerializer.readString(in);
     this.provider = DataSerializer.readString(in);
     this.mode = DataSerializer.readByteArray(in);
     this.options = DataSerializer.readByteArray(in);
     this.isBuiltIn = DataSerializer.readBoolean(in);
     this.ifExists = DataSerializer.readBoolean(in);
-    this.indexIdentifier = DataSerializer.readString(in);
   }
 
   @Override
@@ -122,7 +134,7 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
     return options;
   }
 
-  public Optype getType() {
+  public OpType getType() {
     return type;
   }
 
@@ -149,5 +161,8 @@ public final class LeadNodeMetastoreUpdateContext implements GfxdSerializable {
   public String getIndexIdentifier() {
     return indexIdentifier;
   }
+
+  public byte[] getIndexColumns() { return indexColumns; }
+
 
 }
