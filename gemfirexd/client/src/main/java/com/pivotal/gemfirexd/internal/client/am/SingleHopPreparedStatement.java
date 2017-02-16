@@ -159,7 +159,8 @@ public abstract class SingleHopPreparedStatement extends PreparedStatement {
       }
 
       if (isCaseOfSQLDARDI()) {
-        StringTokenizer strToken = new StringTokenizer(this.sql_, "?");
+        String editedSql = this.sql_.replaceAll("//.*?\n","\n");
+        StringTokenizer strToken = new StringTokenizer(editedSql, "?");
         // TODO: Similar effort as SnappyActivation
         hackInitialization(strToken.countTokens() - 1);
       }

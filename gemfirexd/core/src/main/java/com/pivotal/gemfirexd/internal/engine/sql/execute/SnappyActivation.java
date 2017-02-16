@@ -38,6 +38,10 @@ import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.ExecPreparedStatement;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.NoPutResultSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.TemporaryRowHolder;
+import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
+import com.pivotal.gemfirexd.internal.iapi.types.TypeId;
+import com.pivotal.gemfirexd.internal.impl.sql.GenericParameter;
+import com.pivotal.gemfirexd.internal.impl.sql.GenericParameterValueSet;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericPreparedStatement;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericResultDescription;
 import com.pivotal.gemfirexd.internal.impl.sql.compile.Token;
@@ -46,9 +50,12 @@ import com.pivotal.gemfirexd.internal.shared.common.sanity.SanityManager;
 import com.pivotal.gemfirexd.internal.snappy.LeadNodeExecutionContext;
 
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
+
+import static java.sql.Types.*;
 
 /**
  * Activation implementation for getting results from lead node.
@@ -287,10 +294,11 @@ public class SnappyActivation extends BaseActivation {
     return false;
   }
 
-  public static String getModifiedSql(ExecPreparedStatement preStmt, String sql,
+  public static String getModifiedSql(ExecPreparedStatement preStmt, String raw_sql,
       ParameterValueSet pvs) throws
       StandardException {
     String errorMsg = "";
+    String sql = raw_sql.replaceAll("//.*?\n","\n");
     if (preStmt instanceof GenericPreparedStatement) {
       GenericPreparedStatement gps = (GenericPreparedStatement)preStmt;
       // List<Token> tokenList = gps.getDynamicTokenList(); This is invalid / null
@@ -306,8 +314,20 @@ public class SnappyActivation extends BaseActivation {
           }
           final StringBuilder modifiedSqlStr = new StringBuilder(sql.length());
           for (int i = 0; i < pvs.getParameterCount(); i ++) {
-            modifiedSqlStr.append(strToken.nextToken()).append(" ").append(pvs
-                .getParameter(i).toString()).append(" ");
+            boolean needSingleQuotes = false;
+            if (pvs instanceof GenericParameterValueSet) {
+              final GenericParameter gp = ((GenericParameterValueSet)pvs).getGenericParameter(i);
+              int jdbcTypeId = gp.getJDBCTypeId();
+              needSingleQuotes = requiresSingleQuote(jdbcTypeId);
+            }
+
+            if (needSingleQuotes) {
+              modifiedSqlStr.append(strToken.nextToken()).append(" '").append(pvs
+                  .getParameter(i).toString()).append("' ");
+            } else {
+              modifiedSqlStr.append(strToken.nextToken()).append(" ").append(pvs
+                  .getParameter(i).toString()).append(" ");
+            }
           }
           if (strToken.hasMoreTokens()) {
             modifiedSqlStr.append(strToken.nextToken()).append(" ");
@@ -334,5 +354,29 @@ public class SnappyActivation extends BaseActivation {
     }
     throw StandardException.newException(
         SQLState.LANG_UNEXPECTED_USER_EXCEPTION, errorMsg);
+  }
+
+  public static boolean requiresSingleQuote(int JDBCTypeId) {
+    switch (JDBCTypeId) {
+      case Types.LONGVARCHAR:
+      case Types.CHAR:
+      case Types.VARCHAR:
+      case Types.DATE:
+      case Types.TIME:
+      case Types.TIMESTAMP:
+        return true;
+
+
+      case Types.BIT:
+      case Types.BOOLEAN:
+      case Types.BINARY:
+      case Types.VARBINARY:
+      case Types.LONGVARBINARY:
+      case Types.BLOB:
+      case Types.CLOB:
+      default:
+        return false;
+    }
+
   }
 }
