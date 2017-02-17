@@ -234,6 +234,8 @@ import com.gemstone.gnu.trove.THashSet;
  */
 public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePerfStats, DistributionAdvisee {
 
+ public  ThreadLocal<TXStateInterface> currentTxState = new ThreadLocal<TXStateInterface>();
+
   // moved *SERIAL_NUMBER stuff to DistributionAdvisor
 
   /** The default number of seconds to wait for a distributed lock */
@@ -599,9 +601,8 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   //TODO: For now this method will return only first element in the set
   final Object readOldEntry(String regionName, final Object entryKey,
       final boolean checkValid) {
-    if (oldEntryMap.containsKey(regionName) && this.oldEntryMap.get(regionName).containsKey(((RegionEntry)entryKey)
-        .getKeyCopy())) {
-      return oldEntryMap.get(regionName).get(((RegionEntry)entryKey).getKeyCopy()).last();
+    if (oldEntryMap.containsKey(regionName) && this.oldEntryMap.get(regionName).containsKey(entryKey)) {
+      return oldEntryMap.get(regionName).get(entryKey).last();
     } else {
       return null;
     }

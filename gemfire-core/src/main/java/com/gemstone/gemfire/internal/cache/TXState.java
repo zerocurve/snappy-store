@@ -3728,7 +3728,7 @@ public final class TXState implements TXStateInterface {
           + checkTX);
     }
     if (checkTX) {
-      final Object key = re.getKey();
+      final Object key = re.getKeyCopy();
       if (dataRegion == null) {
         dataRegion = region.getDataRegionForRead(key, null, bucketId,
             Operation.GET_ENTRY);
@@ -3775,7 +3775,7 @@ public final class TXState implements TXStateInterface {
       }
     } else if (!isWrite) {
       //Suranjan: should always read from txr?
-      final Object key = re.getKey();
+      final Object key = re.getKeyCopy();
       if (dataRegion == null) {
         dataRegion = region.getDataRegionForRead(key, null, bucketId,
             Operation.GET_ENTRY);
@@ -3832,14 +3832,14 @@ public final class TXState implements TXStateInterface {
               // For Transaction NONE we can get locally. For tx isolation level RC/RR
               // we will have to get from a common DS.
               //dataRegion.getLocalOldEntry(re.getKey(), snapshot.get(region.getFullPath()));
-              while (getCache().oldEntryMap.get(key) == null) {
+              while (getCache().readOldEntry(dataRegion.getName(),key, true) == null) {
                 try {
                   Thread.sleep(10);
                 } catch (InterruptedException e) {
                   e.printStackTrace();
                 }
               }
-              return oldEntryMap.get(key);
+              return getCache().readOldEntry(dataRegion.getName(),key, true);
             }
           }
           else {
