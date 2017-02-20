@@ -1413,10 +1413,18 @@ public class GfxdSystemProcedures extends SystemProcedures {
           getIndexColumns(indexColumns, region);
         }
       } catch (StandardException se) {
-        throw PublicAPI.wrapStandardException(se);
+        // getContainerForTable can throw error for external tables
+        // (parquet / csv etc.)
+        if (se.getSQLState().equals(SQLState.LANG_TABLE_NOT_FOUND)) {
+          bucketCount[0] = 0;
+          partColumns[0] = null;
+          indexColumns[0] = null;
+          bucketToServerMapping[0] = new HarmonySerialClob(""); // to avoid NPE
+        } else {
+          throw PublicAPI.wrapStandardException(se);
+        }
       }
     }
-
   }
 
   private static void getPRMetaData(final PartitionedRegion region,
