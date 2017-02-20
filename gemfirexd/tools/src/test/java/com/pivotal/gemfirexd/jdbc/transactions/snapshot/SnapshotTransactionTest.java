@@ -191,6 +191,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
         num++;
     }
     assertEquals(4, num);
+    r.getCache().getCacheTransactionManager().commit();
   }
 
   public void testSnapshotInsertUpdateDeleteAPI() throws Exception {
@@ -1325,7 +1326,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     t.start();
   }
 
-
+  // we need to see how to provide snapshot isolation across table for user.
   public void testSnapshotAcrossRegion() throws Exception {
 
     Connection conn = getConnection();

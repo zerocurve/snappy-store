@@ -953,7 +953,7 @@ public class LocalRegion extends AbstractRegion
       // copy the versions that we have recovered from disk into
       // the version vector.
       this.versionVector.recordVersions(diskVector
-          .getCloneForTransmission());
+          .getCloneForTransmission(), null);
     } else if (!dataPolicy.withStorage()) {
       // version vectors are currently only necessary in empty regions for
       // tracking canonical member IDs
@@ -6190,7 +6190,7 @@ public class LocalRegion extends AbstractRegion
     //like it's not doing the right thing if the current member is the member
     //we just recovered.
     //We need to update the RVV in memory
-    this.versionVector.recordGCVersion(member, gcVersion);
+    this.versionVector.recordGCVersion(member, gcVersion, null);
     
     //We also need to update the RVV that represents what we have persisted on disk
     DiskRegion dr = this.getDiskRegion();
@@ -6212,7 +6212,7 @@ public class LocalRegion extends AbstractRegion
   
   @Override
   public void recordRecoveredVersionTag(VersionTag tag) {
-    this.versionVector.recordVersion(tag.getMemberID(), tag.getRegionVersion());
+    this.versionVector.recordVersion(tag.getMemberID(), tag.getRegionVersion(), null);
     DiskRegion dr = this.getDiskRegion();
     //We also need to update the RVV that represents what we have persisted on disk
     if(dr != null) {
@@ -6277,7 +6277,7 @@ public class LocalRegion extends AbstractRegion
         id = myId;
       }
       //Make sure the version is applied to the regions RVV
-      rvv.recordVersion(id, stamp.getRegionVersion());
+      rvv.recordVersion(id, stamp.getRegionVersion(), null);
       
     }
   }
@@ -6321,7 +6321,7 @@ public class LocalRegion extends AbstractRegion
           "LR.basicInvalidate: this cache has already seen this event " + event);
       }
       if (this.concurrencyChecksEnabled && event.getVersionTag() != null && !event.getVersionTag().isRecorded()) {
-        getVersionVector().recordVersion((InternalDistributedMember) event.getDistributedMember(), event.getVersionTag());
+        getVersionVector().recordVersion((InternalDistributedMember) event.getDistributedMember(), event.getVersionTag(), event);
       }
       return;
     }
@@ -7041,7 +7041,8 @@ public class LocalRegion extends AbstractRegion
           + event);
       }
       if (this.concurrencyChecksEnabled && event.getVersionTag() != null && !event.getVersionTag().isRecorded()) {
-        getVersionVector().recordVersion((InternalDistributedMember) event.getDistributedMember(), event.getVersionTag());
+        getVersionVector().recordVersion((InternalDistributedMember) event.getDistributedMember(),
+            event.getVersionTag(), event);
       }
       return;
     }
@@ -8103,7 +8104,8 @@ public class LocalRegion extends AbstractRegion
           + event);
       }
       if (this.concurrencyChecksEnabled && event.getVersionTag() != null && !event.getVersionTag().isRecorded()) {
-        getVersionVector().recordVersion((InternalDistributedMember) event.getDistributedMember(), event.getVersionTag());
+        getVersionVector().recordVersion((InternalDistributedMember) event.getDistributedMember(),
+            event.getVersionTag(), event);
       }
       // Bug 49449: When client retried and returned with hasSeenEvent for both LR and DR, the server should still 
       // notifyGatewayHubs even the event could be duplicated in gateway queues1 
@@ -8133,6 +8135,7 @@ public class LocalRegion extends AbstractRegion
     }
     tx = discoverJTA();
     event.setTXState(tx);
+
     return tx;
   }
 
@@ -10317,7 +10320,6 @@ public class LocalRegion extends AbstractRegion
     final TXStateInterface tx = context.getTXState();
     final StaticSystemCallbacks sysCb;
     if (tx != null) {
-//      getLogWriterI18n().fine("DEBUG: getJTAEnlistedTX for " + getName() + ".  ignoreJTA="+ignoreJTA + "; tx=" + tx);
       if (!ignoreJTA && tx.getProxy().isJCA()) {
         cache.getTxManager().setTXState(null);
         tx.rollback(null);
@@ -10328,6 +10330,7 @@ public class LocalRegion extends AbstractRegion
       return tx;
     }
     else if ((sysCb = GemFireCacheImpl.getInternalProductCallbacks()) != null) {
+
       return sysCb.getJTAEnlistedTX(this);
     }
     else {
@@ -11180,7 +11183,7 @@ public class LocalRegion extends AbstractRegion
         // generate a new version for the operation
         VersionTag tag = VersionTag.create(getVersionMember());
         tag.setVersionTimeStamp(cacheTimeMillis());
-        tag.setRegionVersion(myVector.getNextVersionWhileLocked());
+        tag.setRegionVersion(myVector.getNextVersionWhileLocked(null));
         if (log.fineEnabled() || RegionVersionVector.DEBUG) {
           log.info(LocalizedStrings.DEBUG, "recording version tag for clear: " + tag);
         }
@@ -11191,7 +11194,7 @@ public class LocalRegion extends AbstractRegion
           if (log.fineEnabled()) {
             log.fine("recording version tag for clear: " + tag);
           }
-          myVector.recordVersion(tag.getMemberID(), tag); // clear() events always have the ID in the tag
+          myVector.recordVersion(tag.getMemberID(), tag, null); // clear() events always have the ID in the tag
         }
       }
     }

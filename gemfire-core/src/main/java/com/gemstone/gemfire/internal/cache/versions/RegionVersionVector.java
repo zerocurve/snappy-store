@@ -45,6 +45,7 @@ import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.Assert;
 import com.gemstone.gemfire.internal.DataSerializableFixedID;
 import com.gemstone.gemfire.internal.InternalDataSerializer;
+import com.gemstone.gemfire.internal.cache.EntryEventImpl;
 import com.gemstone.gemfire.internal.cache.GemFireCacheImpl;
 import com.gemstone.gemfire.internal.cache.LocalRegion;
 import com.gemstone.gemfire.internal.cache.TXManagerImpl;
@@ -427,22 +428,22 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
   /**
    * return the next local version number
    */
-  public final long getNextVersion() {
-    return getNextVersion(true);
+  public final long getNextVersion(EntryEventImpl event) {
+    return getNextVersion(true, event);
   }
   
   /**
    * return the next local version number for a clear() operation,
    * bypassing lock checks
    */
-  public final long getNextVersionWhileLocked() {
-    return getNextVersion(false);
+  public final long getNextVersionWhileLocked(EntryEventImpl event) {
+    return getNextVersion(false, event);
   }
   
   /**
    * return the next local version number
    */
-  private final long getNextVersion(boolean checkLocked) {
+  private final long getNextVersion(boolean checkLocked, EntryEventImpl event) {
     if (checkLocked && this.locked) {
       // this should never be the case.  If version generation is locked and we get here
       // then the path to this point is not protected by getting the version generation
@@ -454,7 +455,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     }
     long new_version = localVersion.incrementAndGet();
     // since there could be special exception, we have to use recordVersion()
-    recordVersion(getOwnerId(), new_version);
+    recordVersion(getOwnerId(), new_version, event);
     return new_version;
   }
 
@@ -462,7 +463,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * reserves the next delta version numbers
    * required for tx when
    */
-  private final long getNextVersion(int delta, boolean checkLocked) {
+  private final long getNextVersion(int delta, boolean checkLocked, EntryEventImpl event) {
     if (checkLocked && this.locked) {
       // this should never be the case.  If version generation is locked and we get here
       // then the path to this point is not protected by getting the version generation
@@ -474,7 +475,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     }
     long new_version = localVersion.addAndGet(delta);
     // since there could be special exception, we have to use recordVersion()
-    recordVersion(getOwnerId(), new_version);
+    recordVersion(getOwnerId(), new_version, event);
     return new_version;
   }
 
@@ -614,7 +615,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
   /**
    * record all of the version information from an initial image provider
    */
-  public void recordVersions(RegionVersionVector<T> otherVector) {
+  public void recordVersions(RegionVersionVector<T> otherVector, EntryEventImpl event) {
     synchronized(this.memberToVersion) {
       for (Map.Entry<T, RegionVersionHolder<T>> entry: otherVector.getMemberToVersion().entrySet()) {
         T mbr = entry.getKey();
@@ -629,7 +630,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
       
       if (otherVector.getCurrentVersion() > 0 &&
           !this.memberToVersion.containsKey(otherVector.getOwnerId())) {
-        recordVersion(otherVector.getOwnerId(), otherVector.getCurrentVersion());
+        recordVersion(otherVector.getOwnerId(), otherVector.getCurrentVersion(), event);
       }
   
       // check if I have updates from members that the otherVector does not have
@@ -702,7 +703,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * in messages between peers and from servers to clients.
    * @param tag the version information
    */
-  public void recordVersion(T mbr, VersionTag<T> tag) {
+  public void recordVersion(T mbr, VersionTag<T> tag, EntryEventImpl event) {
 //    if (getLoggerI18n().fineEnabled()) {
 //      this.log.fine("Recording version tag @" + System.identityHashCode(tag) + ": " + tag + " isRecorded=" + tag.isRecorded());
 //    }
@@ -727,7 +728,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
       }
     }
     
-    recordVersion(member, tag.getRegionVersion());
+    recordVersion(member, tag.getRegionVersion(), event);
   }
 
   /**
@@ -742,7 +743,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * @param member the peer that performed the operation
    * @param version the version of the peers region that reflects the operation
    */
-  public void recordVersionForSnapshot(T member, long version) {
+  public void recordVersionForSnapshot(T member, long version, EntryEventImpl event) {
     LogWriterI18n logger = getLoggerI18n();
       T mbr = member;
 
@@ -751,39 +752,46 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
       }
     //Check ThreadLocal and lock if yes then
     // return else if no threadlocal but lock then block else record version
-    long currentThreadId = Thread.currentThread().getId();
-    //TXStateInterface tx = TXManagerImpl.getCurrentTXState();
+    //long currentThreadId = Thread.currentThread().getId();
+    if (event != null) {
+      TXStateInterface tx = event.getTXState();
+      if (tx != null) {
+        tx.recordVersionForSnapshot(member, version, event.getRegion());
+        return;
+      }
+    }
+
 
     //if (this.snapshotLock.isWriteLocked() && lockingThreadId.get() != null && currentThreadId ==
-    if (lockingThreadId.get() != null && currentThreadId == lockingThreadId.get()) {
-    //if (tx != null) {
+    //if (lockingThreadId.get() != null && currentThreadId == lockingThreadId.get()) {
+    if (false) {
       //No need to record version in snapshot
-      //tx.recordVersionForSnapshot(member, version);
-      return;
+
     } else {  //(this.snapshotLock.isWriteLocked() && lockingThreadId.get() != null &&
         //currentThreadId != lockingThreadId.get()) {
       //this.snapshotLock.readLock();
       try {
         RegionVersionHolder<T> holder;
 
-        if (mbr.equals(this.myId)) {
+        //if (mbr.equals(this.myId)) {
           //If we are recording a version for the local member,
           //use the local exception list.
-          holder = this.localExceptions.clone();
+          //holder = this.localExceptions.clone();
 
-          synchronized (holder) {
+          //synchronized (holder) {
             //Advance the version held in the local
             //exception list to match the atomic long
             //we using for the local version.
-            holder.version = this.localVersion.get();
-          }
-          updateLocalVersion(version);
+            //holder.version = this.localVersion.get();
+          //}
+          //updateLocalVersion(version);
 
-          holder.recordVersion(version, logger);
-          holder.id = this.myId;
-          memberToVersionSnapshot.put(this.myId, holder);
+//          holder.recordVersion(version, logger);
+//          holder.id = this.myId;
+//
+//          memberToVersionSnapshot.put(this.myId, holder);
 
-        } else {
+        //} else {
           //Find the version holder object
           holder = memberToVersionSnapshot.get(mbr);
           if (holder == null) {
@@ -798,10 +806,12 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
                 holder = memberToVersionSnapshot.get(mbr).clone();
               }
             }
+          } else {
+            holder = holder.clone();
           }
           holder.recordVersion(version, logger);
           memberToVersionSnapshot.put(holder.id, holder);
-        }
+        //}
 
         //Update the version holder
         if (DEBUG && logger != null) {
@@ -845,11 +855,11 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * @param member the peer that performed the operation
    * @param version the version of the peers region that reflects the operation
    */
-  public void recordVersion(T member, long version) {
+  public void recordVersion(T member, long version, EntryEventImpl event) {
 
     T mbr = member;
     if(isSnapshotEnabled()) {
-      recordVersionForSnapshot(member, version);
+      recordVersionForSnapshot(member, version, event);
     }
     if (this.recordingDisabled || clientVector) {
       return;
@@ -1441,14 +1451,14 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * @param mbr
    * @param regionVersion
    */
-  public void recordGCVersion(T mbr, long regionVersion) {
+  public void recordGCVersion(T mbr, long regionVersion, EntryEventImpl event) {
     if(mbr == null) {
       mbr = this.myId;
     }
     //record the GC version to make sure we know we have seen this version
     //during recovery, this will prevent us from recording exceptions
     //for entries less than the GC version.
-    recordVersion(mbr, regionVersion);
+    recordVersion(mbr, regionVersion, event);
     if (mbr == null || mbr.equals(this.myId)) {
       boolean succeeded;
       do {
@@ -1474,11 +1484,11 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * record all of the GC versions in the given vector
    * @param other
    */
-  public void recordGCVersions(RegionVersionVector<T> other) {
+  public void recordGCVersions(RegionVersionVector<T> other, EntryEventImpl event) {
     assert other.memberToGCVersion != null : "incoming gc version set is null";
-    recordGCVersion(other.myId, other.localGCVersion.get());
+    recordGCVersion(other.myId, other.localGCVersion.get(), event);
     for (Map.Entry<T, Long> entry: other.memberToGCVersion.entrySet()) {
-      recordGCVersion(entry.getKey(), entry.getValue().longValue());
+      recordGCVersion(entry.getKey(), entry.getValue().longValue(), event);
     }
   }
   
@@ -1792,4 +1802,21 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     }
   }
 
+
+  //Test methods
+  public void recordVersion(T member, long version) {
+    recordVersion(member, version, null);
+  }
+
+  public void recordGCVersion(T member, long version) {
+    recordGCVersion(member, version, null);
+  }
+
+  public long getNextVersion() {
+    return getNextVersion(null);
+  }
+
+  public void recordVersions(RegionVersionVector<T> rvv) {
+    recordVersions(rvv, null);
+  }
 }

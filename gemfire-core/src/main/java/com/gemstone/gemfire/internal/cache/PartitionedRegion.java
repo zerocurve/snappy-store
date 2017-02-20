@@ -148,6 +148,7 @@ import com.gemstone.gemfire.internal.cache.execute.PartitionedRegionFunctionResu
 import com.gemstone.gemfire.internal.cache.execute.RegionFunctionContextImpl;
 import com.gemstone.gemfire.internal.cache.execute.ServerToClientFunctionResultSender;
 import com.gemstone.gemfire.internal.cache.ha.ThreadIdentifier;
+import com.gemstone.gemfire.internal.cache.locks.LockingPolicy;
 import com.gemstone.gemfire.internal.cache.lru.HeapEvictor;
 import com.gemstone.gemfire.internal.cache.lru.LRUStatistics;
 import com.gemstone.gemfire.internal.cache.partitioned.Bucket;
@@ -2680,6 +2681,11 @@ public class PartitionedRegion extends LocalRegion implements
     Set<InternalDistributedMember> currentTargets = null;
     if(txProxy == null) {
       currentTarget = getNodeForBucketWrite(bucketId.intValue(), null);
+      if (prMsg.getTXState() != null && prMsg.getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+        final RegionAdvisor ra = getRegionAdvisor();
+        ProxyBucketRegion pbr = ra.getProxyBucketArray()[bucketId];
+        ((TXStateProxy)prMsg.getTXState()).addAffectedRegion(pbr);
+      }
     }
     else {
       currentTargets = getAllBucketOwners(bucketId, txProxy, null, null);
@@ -2706,6 +2712,7 @@ public class PartitionedRegion extends LocalRegion implements
     try {
     final boolean isResponseCall = response != null;
     RetryTimeKeeper retryTime = null;
+
     long timeOut = 0;
     int count = 0;
     for (;;) {
@@ -2765,6 +2772,11 @@ public class PartitionedRegion extends LocalRegion implements
 
         if (txProxy == null) {
           currentTarget = waitForNodeOrCreateBucket(retryTime, event, bucketId);
+          if (prMsg.getTXState() != null && prMsg.getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+            final RegionAdvisor ra = getRegionAdvisor();
+            ProxyBucketRegion pbr = ra.getProxyBucketArray()[bucketId];
+            ((TXStateProxy)prMsg.getTXState()).addAffectedRegion(pbr);
+          }
         }
         else {
           currentTargets = getAllBucketOwners(bucketId, txProxy, retryTime, event);
@@ -2856,6 +2868,11 @@ public class PartitionedRegion extends LocalRegion implements
           lastTarget = currentTarget;
           currentTarget = getNodeForBucketWrite(bucketId.intValue(), retryTime);
           currTarget = currentTarget;
+          if (prMsg.getTXState() != null && prMsg.getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+            final RegionAdvisor ra = getRegionAdvisor();
+            ProxyBucketRegion pbr = ra.getProxyBucketArray()[bucketId];
+            ((TXStateProxy)prMsg.getTXState()).addAffectedRegion(pbr);
+          }
         }
         else {
           lastTarget = currentTargets;
@@ -2894,6 +2911,11 @@ public class PartitionedRegion extends LocalRegion implements
         
         if (txProxy == null) {
           currentTarget = getNodeForBucketWrite(bucketId.intValue(), retryTime);
+          if (prMsg.getTXState() != null && prMsg.getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+            final RegionAdvisor ra = getRegionAdvisor();
+            ProxyBucketRegion pbr = ra.getProxyBucketArray()[bucketId];
+            ((TXStateProxy)prMsg.getTXState()).addAffectedRegion(pbr);
+          }
         }
         else {
           currentTargets = getAllBucketOwners(bucketId, txProxy, retryTime,

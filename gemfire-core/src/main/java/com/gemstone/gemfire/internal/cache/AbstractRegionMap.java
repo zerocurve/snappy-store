@@ -677,7 +677,7 @@ abstract class AbstractRegionMap implements RegionMap {
         int tombstones = 0;
         VersionSource myId = _getOwner().getVersionMember();
         if (localRvv != rvv) {
-          localRvv.recordGCVersions(rvv);
+          localRvv.recordGCVersions(rvv, null);
         }
         for (RegionEntry re : regionEntries()) {
           synchronized (re) {
@@ -2740,7 +2740,8 @@ RETRY_LOOP:
                         + "'");
                   }
                   if (event.getVersionTag() != null && owner.getVersionVector() != null) {
-                    owner.getVersionVector().recordVersion((InternalDistributedMember) event.getDistributedMember(), event.getVersionTag());
+                    owner.getVersionVector().recordVersion((InternalDistributedMember) event.getDistributedMember(),
+                        event.getVersionTag(), event);
                   }
                 }
                 else { // previous value not invalid
@@ -5282,7 +5283,7 @@ RETRY_LOOP:
                 if (isScheduledTombstone) {
                   _getOwner().incTombstoneCount(-1);
                 }
-                _getOwner().getVersionVector().recordGCVersion(version.getMemberID(), version.getRegionVersion());
+                _getOwner().getVersionVector().recordGCVersion(version.getMemberID(), version.getRegionVersion(), null);
               }
             } catch (RegionClearedException e) {
               // if the region has been cleared we don't need to remove the tombstone

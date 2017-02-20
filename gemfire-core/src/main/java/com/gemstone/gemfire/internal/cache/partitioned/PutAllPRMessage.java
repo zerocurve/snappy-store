@@ -621,8 +621,14 @@ public final class PutAllPRMessage extends PartitionMessageWithDirectReply {
             // So we have to manually set useFakeEventId for this DPAO
             dpao.setUseFakeEventId(true);
             r.checkReadiness();
-            bucketRegion.getDataView(tx).postPutAll(dpao, this.versions,
-                bucketRegion);
+            if (tx != null && tx.isSnapshot()) {
+              bucketRegion.getSharedDataView().postPutAll(dpao, this.versions,
+                  bucketRegion);
+            } else {
+              bucketRegion.getDataView(tx).postPutAll(dpao, this.versions,
+                  bucketRegion);
+            }
+
           /*
           if (tx != null && hasRedundancy) {
             tx.flushPendingOps(null);

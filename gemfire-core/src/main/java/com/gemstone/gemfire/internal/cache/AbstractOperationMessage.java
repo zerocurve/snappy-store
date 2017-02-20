@@ -195,10 +195,14 @@ public abstract class AbstractOperationMessage extends DistributionMessage
       }
     }
     if (this.txId != null) {
+      if (GemFireCacheImpl.getInstance().getLoggerI18n().fineEnabled()) {
+        GemFireCacheImpl.getInstance().getLoggerI18n().fine(" The operation tx id is not null " + this.txId +
+            " locking policy " + getLockingPolicy() + " txState " + getTXState());
+      }
       try {
         basicProcess(dm);
       } finally {
-        if (requireFinishTX() && finishTXProxyRead()) {
+        if (requireFinishTX() && finishTXProxyRead() && this.lockPolicy != LockingPolicy.SNAPSHOT) {
           // in case there is nothing in the TXStateProxy then get rid of it
           // so that commit/rollback will not be required for this node;
           // this is now a requirement since commit/rollback targets only the

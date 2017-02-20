@@ -5131,7 +5131,7 @@ public class DiskStoreImpl implements DiskStore, ResourceListener<MemoryEvent> {
     // If the GC version is less than what we have on disk, go ahead
     // and record it.
     if (memoryGCVersion <= diskVersion) {
-      diskRVV.recordGCVersion(member, memoryGCVersion);
+      diskRVV.recordGCVersion(member, memoryGCVersion, null);
     }
 
   }

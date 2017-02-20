@@ -954,7 +954,7 @@ public final class DistributedPutAllOperation extends AbstractUpdateOperation {
   protected CacheOperationMessage createMessage()
  {
     EntryEventImpl event = getEvent();
-    PutAllMessage msg = new PutAllMessage();
+    PutAllMessage msg = new PutAllMessage(event.getTXState());
     msg.eventId = event.getEventId();
     msg.context = event.getContext();
     msg.lastModified = event.getEntryLastModified();
@@ -1142,6 +1142,11 @@ public final class DistributedPutAllOperation extends AbstractUpdateOperation {
   public static class PutAllMessage extends AbstractUpdateMessage
    {
 
+     public PutAllMessage(){}
+     public PutAllMessage(TXStateInterface tx) {
+       super(tx);
+     }
+
     protected PutAllEntryData[] putAllData;
 
     protected int putAllDataSize;
@@ -1229,7 +1234,7 @@ public final class DistributedPutAllOperation extends AbstractUpdateOperation {
       } finally {
         if (ev.getVersionTag() != null && !ev.getVersionTag().isRecorded()) {
           if (rgn.getVersionVector() != null) {
-            rgn.getVersionVector().recordVersion(getSender(), ev.getVersionTag());
+            rgn.getVersionVector().recordVersion(getSender(), ev.getVersionTag(), ev);
           }
         }
         ev.release();
@@ -1318,19 +1323,35 @@ public final class DistributedPutAllOperation extends AbstractUpdateOperation {
       }
       
       final TXStateInterface tx = ev.getTXState(rgn);
-
-      rgn.syncPutAll(tx, new Runnable() {
-        public void run() {
-          final boolean requiresRegionContext = rgn.keyRequiresRegionContext();
-          for (int i = 0; i < putAllDataSize; ++i) {
-            if (rgn.getLogWriterI18n().finerEnabled()) {
-              rgn.getLogWriterI18n().finer("putAll processing " + putAllData[i] + " with " + putAllData[i].versionTag);
+      TXManagerImpl txMgr = null;
+      TXManagerImpl.TXContext context = null;
+      if (getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+        txMgr = GemFireCacheImpl.getInstance()
+            .getTxManager();
+        context = txMgr.masqueradeAs(this, false,
+            true);
+        ev.setTXState(getTXState());
+      }
+      ev.setTXState(tx);
+      try {
+        rgn.syncPutAll(tx, new Runnable() {
+          public void run() {
+            final boolean requiresRegionContext = rgn.keyRequiresRegionContext();
+            for (int i = 0; i < putAllDataSize; ++i) {
+              if (rgn.getLogWriterI18n().finerEnabled()) {
+                rgn.getLogWriterI18n().finer("putAll processing " + putAllData[i] + " with " + putAllData[i].versionTag);
+              }
+              putAllData[i].setSender(sender);
+              doEntryPut(putAllData[i], rgn, requiresRegionContext, tx, fetchFromHDFS, isPutDML, ev.getEntryLastModified());
             }
-            putAllData[i].setSender(sender);
-            doEntryPut(putAllData[i], rgn, requiresRegionContext, tx, fetchFromHDFS, isPutDML, ev.getEntryLastModified());
           }
+        }, ev.getEventId());
+      }
+      finally {
+        if (getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+          txMgr.unmasquerade(context, true);
         }
-      }, ev.getEventId());
+      }
     }
 
     public int getDSFID() {

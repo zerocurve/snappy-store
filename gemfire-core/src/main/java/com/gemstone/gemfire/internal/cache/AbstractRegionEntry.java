@@ -2081,7 +2081,7 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
               mbr));
         }
         else {
-          tag.setRegionVersion(region.getVersionVector().getNextVersion());
+          tag.setRegionVersion(region.getVersionVector().getNextVersion(event));
         }
       }
       if (withDelta) {
@@ -2268,7 +2268,7 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
         if (who == null) {
           who = originator;
         }
-        r.getVersionVector().recordVersion(who, tag);
+        r.getVersionVector().recordVersion(who, tag, (EntryEventImpl)cacheEvent);
       }
 
       assert !tag.isFromOtherMember() || tag.getMemberID() != null : "remote tag is missing memberID";

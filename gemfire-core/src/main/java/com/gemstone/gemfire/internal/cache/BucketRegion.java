@@ -56,6 +56,7 @@ import com.gemstone.gemfire.internal.cache.FilterRoutingInfo.FilterInfo;
 import com.gemstone.gemfire.internal.cache.control.MemoryEvent;
 import com.gemstone.gemfire.internal.cache.delta.Delta;
 import com.gemstone.gemfire.internal.cache.locks.ExclusiveSharedLockObject;
+import com.gemstone.gemfire.internal.cache.locks.LockingPolicy;
 import com.gemstone.gemfire.internal.cache.locks.LockingPolicy.ReadEntryUnderLock;
 import com.gemstone.gemfire.internal.cache.partitioned.Bucket;
 import com.gemstone.gemfire.internal.cache.partitioned.DestroyMessage;
@@ -645,8 +646,13 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       setBatchUUID(event);
     }
 
-    return getDataView(event).putEntry(event, ifNew, ifOld, null, false,
-        cacheWrite, lastModified, overwriteDestroyed);
+    if (event.getTXState() != null && event.getTXState().isSnapshot()) {
+      return getSharedDataView().putEntry(event, ifNew, ifOld, null, false,
+          cacheWrite, lastModified, overwriteDestroyed);
+    } else {
+      return getDataView(event).putEntry(event, ifNew, ifOld, null, false,
+          cacheWrite, lastModified, overwriteDestroyed);
+    }
   }
 
   // Entry (Put/Create) rules
@@ -768,7 +774,8 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       }
 
 
-      getCache().getCacheTransactionManager().beginSnapshotLock(this);
+      getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+      //getCache().getCacheTransactionManager().beginSnapshotLock(this);
       Set keysToDestroy = createCachedBatchAndPutInColumnTable();
 
       //Check if shutdown hook is set
@@ -781,8 +788,8 @@ public class BucketRegion extends DistributedRegion implements Bucket {
 
       // create new batchUUID
       generateAndSetBatchIDIfNULL(true);
-
-      getCache().getCacheTransactionManager().commitSnapshotLock(this);
+      getCache().getCacheTransactionManager().commit();
+      //getCache().getCacheTransactionManager().commitSnapshotLock(this);
       return true;
     } else {
       return false;

@@ -24,6 +24,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -137,7 +140,9 @@ public final class TXState implements TXStateInterface {
 
   volatile State state;
 
-  Map<String, Map<VersionSource,RegionVersionHolder>> snapshot;
+  final Map<String, Map<VersionSource,RegionVersionHolder>> snapshot;
+
+  BlockingQueue<VersionInformation> queue;
 
   protected CustomEntryConcurrentHashMap<Object, Object/*RegionEntry*/> oldEntryMap;
 
@@ -411,6 +416,7 @@ public final class TXState implements TXStateInterface {
 
     if (getCache().snaphshotEnabled() && (lockPolicy == LockingPolicy.SNAPSHOT)) {
       this.snapshot = getCache().getSnapshotRVV();
+      queue = new LinkedBlockingQueue<VersionInformation>();
     } else {
       this.snapshot = null;
     }
@@ -1055,6 +1061,9 @@ public final class TXState implements TXStateInterface {
         final LocalRegion dataRegion = txrs.region;
         // TODO: Suranjan MVCC
         // first take a lock at cache level so that we don't go into deadlock or sort array before
+        // This is for tx RC, for snapshot just record all the versions from the queue
+        // this is not needed with event being present in rvv.record
+        // now just apply all the versions from the queue
         if (GemFireCacheImpl.getInstance().snaphshotEnabled()) {
           TXManagerImpl.beginSnapshotLock(dataRegion);
           hasSnapshotLocks = true;
@@ -1122,6 +1131,9 @@ public final class TXState implements TXStateInterface {
             TXManagerImpl.commitSnapshotLock(dataRegion);
           }
         }
+      }
+      for(VersionInformation vi: queue) {
+        ((LocalRegion)vi.region).getVersionVector().recordVersionForSnapshot((VersionSource)vi.member, vi.version, null);
       }
       if (reuseEV) {
         cbEvent.release();
@@ -1658,6 +1670,20 @@ public final class TXState implements TXStateInterface {
       final boolean overwriteDestroyed) {
 
     final LocalRegion region = event.getRegion();
+
+    if (isSnapshot()) {
+      event.setTXState(this);
+      if (TXStateProxy.LOG_FINE) {
+        final LogWriterI18n logger = getTxMgr().getLogger();
+        logger.info(LocalizedStrings.DEBUG, "putEntry Region " + region.getFullPath()
+            + ", event: " + (TXStateProxy.LOG_FINE ? event.toString()
+            : event.shortToString()) + " for " + this.txId.toString()
+            +", sending it back to region for snapshot isolation.");
+      }
+      return region.getSharedDataView().putEntry(event, ifNew, ifOld, requireOldValue, checkResources, cacheWrite,
+          lastModified, overwriteDestroyed);
+    }
+
     if (checkResources) {
       if (!MemoryThresholds.isLowMemoryExceptionDisabled()) {
         region.checkIfAboveThreshold(event);
@@ -2392,6 +2418,11 @@ public final class TXState implements TXStateInterface {
     final Operation op = event.getOperation();
     final LocalRegion region = event.getRegion();
     final LocalRegion dataRegion = region.getDataRegionForWrite(event, op);
+
+    if (isSnapshot()) {
+      dataRegion.getSharedDataView().destroyExistingEntry(event, cacheWrite, expectedOldValue);
+      return true;
+    }
 
     // if coordinator, then wait for region to initialize
     if (isCoordinator()) {
@@ -3576,6 +3607,8 @@ public final class TXState implements TXStateInterface {
      * see bug #41498
      */
     //event.setOriginRemote(true);
+    // SNAPSHOT: Apply the operation in the region directly
+
     return putEntry(event, ifNew, ifOld, expectedOldValue, requireOldValue,
         cacheWrite, lastModified, overwriteDestroyed);
   }
@@ -3586,11 +3619,13 @@ public final class TXState implements TXStateInterface {
 
   public void destroyOnRemote(EntryEventImpl event, boolean cacheWrite,
       Object expectedOldValue) throws DataLocationException {
+    // SNAPSHOT: Apply the operation in the region directly
     txDestroyExistingEntry(event, cacheWrite, false, expectedOldValue);
   }
 
   public void invalidateOnRemote(EntryEventImpl event, boolean invokeCallbacks,
       boolean forceNewEntry) throws DataLocationException {
+    // SNAPSHOT: Apply the operation in the region directly
     invalidateExistingEntry(event, invokeCallbacks, forceNewEntry);
   }
 
@@ -3713,7 +3748,7 @@ public final class TXState implements TXStateInterface {
 
     // need to check in TXState only if the entry has been locked by a TX
     final boolean checkTX = getLockingPolicy().lockedForWrite(re, null, null);
-    if (TXStateProxy.LOG_FINEST) {
+    if (TXStateProxy.LOG_FINE) {
       final LogWriterI18n logger = region.getLogWriterI18n();
       logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
           + region.getFullPath() + " RegionEntry(" + re + ") checkTX="
@@ -3854,6 +3889,12 @@ public final class TXState implements TXStateInterface {
    */
   public boolean isVersionInSnapshot(Region region, VersionSource id, long version) {
     // For snapshot we don't  need to check from the current version
+    for(String regionName : snapshot.keySet()) {
+      final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
+      logger.fine(" the snapshot is for region  " + regionName + " is : "
+          + snapshot.get(regionName) + " txstate " + this + " snapshot is " + Integer.toHexString(System.identityHashCode(snapshot)));
+    }
+
     RegionVersionHolder holder = this.snapshot.get(region.getFullPath()).get(id);
     if (holder == null) {
         return false;
@@ -3881,15 +3922,30 @@ public final class TXState implements TXStateInterface {
         id = InternalDistributedSystem.getAnyInstance().getDistributedMember();
       }
       // if rvv is not present then
-      if (snapshot!=null) {
-        if(isVersionInSnapshot(((LocalRegion)region),id, stamp.getRegionVersion())) {
+      if (snapshot != null) {
+        if (TXStateProxy.LOG_FINE) {
+          final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
+          logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
+              + region.getFullPath() + " RegionEntry(" + entry + stamp.getRegionVersion());
+        }
+        if (isVersionInSnapshot(((LocalRegion)region), id, stamp.getRegionVersion())) {
           return true;
         }
+      }
+      if (TXStateProxy.LOG_FINE) {
+        final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
+        logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region returning false."
+            );
       }
       return false;
     }
     return true;
   }
+
+  public Map<String, Map<VersionSource, RegionVersionHolder>> getCurrentSnapshot() {
+    return snapshot;
+  }
+
 
   /**
    * This method is only for test purpose to check the current Rvv
@@ -3974,16 +4030,18 @@ public final class TXState implements TXStateInterface {
   }
 
   @Override
-  public void recordVersionForSnapshot(Object member, long version) {
-
+  public void recordVersionForSnapshot(Object member, long version, Region region ) {
+    queue.add(new VersionInformation(member, version, region));
   }
 
   class VersionInformation {
     Object member;
     long version;
-    public VersionInformation(Object member, long version){
+    Region region;
+    public VersionInformation(Object member, long version, Region reg){
       this.member = member;
       this.version = version;
+      this.region = reg;
     }
   }
 
