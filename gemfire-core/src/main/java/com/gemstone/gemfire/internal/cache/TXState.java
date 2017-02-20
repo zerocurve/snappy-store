@@ -414,8 +414,9 @@ public final class TXState implements TXStateInterface {
     this.isGFXD = this.proxy.isGFXD;
     this.state = State.OPEN;
 
-    if (getCache().snaphshotEnabled() && (lockPolicy == LockingPolicy.SNAPSHOT)) {
+    if (getCache().snaphshotEnabled()) {
       this.snapshot = getCache().getSnapshotRVV();
+      GemFireCacheImpl.getInstance().getLoggerI18n().info(LocalizedStrings.DEBUG, " The snapshot taken in txStats is " + this.snapshot);
       queue = new LinkedBlockingQueue<VersionInformation>();
     } else {
       this.snapshot = null;
@@ -1132,8 +1133,13 @@ public final class TXState implements TXStateInterface {
           }
         }
       }
-      for(VersionInformation vi: queue) {
-        ((LocalRegion)vi.region).getVersionVector().recordVersionForSnapshot((VersionSource)vi.member, vi.version, null);
+
+      if(isSnapshot()) {
+        cache.acquireWriteLockOnSnapshotRvv();
+        for (VersionInformation vi : queue) {
+          ((LocalRegion)vi.region).getVersionVector().recordVersionForSnapshot((VersionSource)vi.member, vi.version, null);
+        }
+        cache.releaseWriteLockOnSnapshotRvv();
       }
       if (reuseEV) {
         cbEvent.release();
