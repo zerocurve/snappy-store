@@ -542,10 +542,17 @@ public class MemHeapScanController implements MemScanController, RowCountable,
       this.templateCompactExecRow = null;
     }
 
-    if (commitOnClose && !lcc.isSkipConstraintChecks() /*&& (this.forUpdate == 0)*/) {
-      // clear the txState so that other thread local is cleared.
-      // it shouldn't be cleared in case of row buffer scan
+
+
+    if (commitOnClose) {
       TXManagerImpl.getOrCreateTXContext().clearTXState();
+      if (lcc.isSkipConstraintChecks() /*&& (this.forUpdate == 0)*/) {
+        // clear the txState so that other thread local is cleared.
+        // it shouldn't be cleared in case of row buffer scan
+        GemFireCacheImpl.getInstance().currentTxState.set(this.txState);
+      }
+
+
     }
   }
 
@@ -804,21 +811,8 @@ public class MemHeapScanController implements MemScanController, RowCountable,
     final Iterator<?> entryIterator = this.entryIterator;
     final PREntriesIterator<?> prEntryIterator = this.prEntryIterator;
 
-    if (commitOnClose) {
-      getGemFireContainer().getRegion().getCache().getCacheTransactionManager().masqueradeAs(this.txState);
-    }
     // if the scan has been closed, then return false
     if (entryIterator == null) {
-      if (commitOnClose) {
-        getGemFireContainer().getRegion().getCache().getCacheTransactionManager().masqueradeAs(this.txState);
-        this.commitOnClose = false;
-        // in some cases we dont have to commit specially if conn has some property hinting that
-        getGemFireContainer().getRegion().getCache().getCacheTransactionManager().commit();
-        // infact we need to clearTXState just after starting and returning the iterator
-        // each next should masquerade as the saved txState in this scan controller.
-        TXManagerImpl.getOrCreateTXContext().clearTXState();
-        this.txState = null;
-      }
       return false;
     }
 
@@ -1014,21 +1008,7 @@ public class MemHeapScanController implements MemScanController, RowCountable,
     if (entryIterator instanceof CloseableIterator) {
       ((CloseableIterator<?>)entryIterator).close();
     }
-    if (commitOnClose) {
-      //this.txState shouldn't be null.
-      getGemFireContainer().getRegion().getCache().getCacheTransactionManager().masqueradeAs(this.txState);
-      this.commitOnClose = false;
-      // in some cases we dont have to commit specially if conn has some property hinting that
-      if (!lcc.isSkipConstraintChecks()) {
-        getGemFireContainer().getRegion().getCache().getCacheTransactionManager().commit();
-        // infact we need to clearTXState just after starting and returning the iterator
-        // each next should masquerade as the saved txState in this scan controller.
-        // don't clear the txState from threadlocal. this is for the case where column table scan is being performned.
-        // the same txState will be used in column store scan
-        TXManagerImpl.getOrCreateTXContext().clearTXState();
-      }
-      this.txState = null;
-    }
+
     return false;
   }
 

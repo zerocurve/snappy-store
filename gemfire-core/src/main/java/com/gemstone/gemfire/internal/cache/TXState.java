@@ -3761,7 +3761,7 @@ public final class TXState implements TXStateInterface {
           + checkTX);
     }
     if (checkTX) {
-      final Object key = re.getKey();
+      final Object key = re.getKeyCopy();
       if (dataRegion == null) {
         dataRegion = region.getDataRegionForRead(key, null, bucketId,
             Operation.GET_ENTRY);
@@ -3796,7 +3796,9 @@ public final class TXState implements TXStateInterface {
             if (!checkEntryVersion(dataRegion, re)) {
               // txr should be created by other writer if not created by this region.
               //final Object oldEntry = txr.readOldEntry(key);
-              final Object oldEntry = getCache().readOldEntry(key, true);//txr.readOldEntry(key);
+              final Object oldEntry = getCache().readOldEntry(dataRegion.getName(),key, true);//txr
+              // .readOldEntry
+              // (key);
               return oldEntry;
             }
           }
@@ -3806,7 +3808,7 @@ public final class TXState implements TXStateInterface {
       }
     } else if (!isWrite) {
       //Suranjan: should always read from txr?
-      final Object key = re.getKey();
+      final Object key = re.getKeyCopy();
       if (dataRegion == null) {
         dataRegion = region.getDataRegionForRead(key, null, bucketId,
             Operation.GET_ENTRY);
@@ -3822,7 +3824,8 @@ public final class TXState implements TXStateInterface {
           if (!checkEntryVersion(dataRegion, re)) {
             // txr should be created by other writer if not created by this region.
             //final Object oldEntry = txr.readOldEntry(key);
-            final Object oldEntry = getCache().readOldEntry(key, true);//txr.readOldEntry(key);
+            final Object oldEntry = getCache().readOldEntry(dataRegion.getName(),key, true);//txr
+            // .readOldEntry(key);
             return oldEntry;
           }
         } finally {
@@ -3840,7 +3843,8 @@ public final class TXState implements TXStateInterface {
          // if ((snapshot != null) && snapshot.get(dataRegion.getFullPath())!= null) {
           if (dataRegion.getVersionVector() != null) {
             //RegionEntry oldEntry = (RegionEntry)this.oldEntryMap.get(key);
-            RegionEntry oldEntry = (RegionEntry)getCache().readOldEntry(key, true); //this
+            RegionEntry oldEntry = (RegionEntry)getCache().readOldEntry(dataRegion.getName(), key,
+                true); //this
             // .oldEntryMap.get(key);
             if (oldEntry != null) {
               return oldEntry;
@@ -3861,14 +3865,14 @@ public final class TXState implements TXStateInterface {
               // For Transaction NONE we can get locally. For tx isolation level RC/RR
               // we will have to get from a common DS.
               //dataRegion.getLocalOldEntry(re.getKey(), snapshot.get(region.getFullPath()));
-              while (getCache().oldEntryMap.get(key) == null) {
+              while (getCache().readOldEntry(dataRegion.getName(),key, true) == null) {
                 try {
                   Thread.sleep(10);
                 } catch (InterruptedException e) {
                   e.printStackTrace();
                 }
               }
-              return oldEntryMap.get(key);
+              return getCache().readOldEntry(dataRegion.getName(),key, true);
             }
           }
           else {
