@@ -1481,19 +1481,6 @@ public class GfxdSystemProcedures extends SystemProcedures {
    * @throws StandardException
    */
   public static void getIndexColumns(String[] indexColumns, LocalRegion region) throws StandardException {
-//    GfxdIndexManager im = (GfxdIndexManager)region.getIndexUpdater();
-//    if (im != null && im.getIndexConglomerateDescriptors() != null) {
-//      String cols = null;
-//      String[] baseColumns = im.getContainer().getTableDescriptor().getColumnNamesArray();
-//      Iterator<ConglomerateDescriptor> itr = im.getIndexConglomerateDescriptors().iterator();
-//      while (itr.hasNext()) {
-//        // first column of index has to be present in filter to be usable
-//        int[] indexColsPositions = itr.next().getIndexDescriptor().baseColumnPositions();
-//        cols = baseColumns[indexColsPositions[0] - 1] + ":";
-//      }
-//      indexColumns[0] = cols;
-//    }
-
     GemFireContainer container = (GemFireContainer)region.getUserAttribute();
     TableDescriptor td = container.getTableDescriptor();
     String cols = null;
