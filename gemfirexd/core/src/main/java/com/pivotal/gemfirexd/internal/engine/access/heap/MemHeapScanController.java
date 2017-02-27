@@ -69,6 +69,7 @@ import com.gemstone.gemfire.internal.cache.locks.LockMode;
 import com.gemstone.gemfire.internal.cache.locks.LockingPolicy;
 import com.gemstone.gemfire.internal.cache.partitioned.PREntriesIterator;
 import com.gemstone.gemfire.internal.cache.persistence.query.CloseableIterator;
+import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.offheap.annotations.Unretained;
 import com.gemstone.gemfire.internal.util.ArrayUtils;
 import com.pivotal.gemfirexd.internal.engine.Misc;
@@ -377,6 +378,7 @@ public class MemHeapScanController implements MemScanController, RowCountable,
 
     final boolean restoreBatching;
     if (this.txState != null) {
+      // TODO: Suranjan take snapshot, each time we open a scan controller.
       this.txId = this.txState.getTransactionId();
       this.lockPolicy = this.txState.getLockingPolicy();
       if (this.forUpdate != 0) {
@@ -407,8 +409,10 @@ public class MemHeapScanController implements MemScanController, RowCountable,
     else {
       if (region.getConcurrencyChecksEnabled() /*&& region.isUsedForMetaRegion()*/ &&
           (region.getCache().getCacheTransactionManager().getTXState() == null)) {
+        // We can begin each time as we have to clear below as we don't know when commit will take place.
         region.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
-        this.txState = region.getCache().getCacheTransactionManager().getTXState().getTXStateForRead();
+        this.txState = region.getCache().getCacheTransactionManager().getTXState();
+        this.localTXState = region.getCache().getCacheTransactionManager().getTXState().getTXStateForRead();
         this.commitOnClose = true;
         this.txId = this.txState.getTransactionId();
         this.lockPolicy = this.txState.getLockingPolicy();
@@ -543,16 +547,16 @@ public class MemHeapScanController implements MemScanController, RowCountable,
     }
 
 
-
     if (commitOnClose) {
+      // clear the txState so that other thread local is cleared.
+      // it shouldn't be cleared in case of row buffer scan
       TXManagerImpl.getOrCreateTXContext().clearTXState();
       if (lcc.isSkipConstraintChecks() /*&& (this.forUpdate == 0)*/) {
-        // clear the txState so that other thread local is cleared.
-        // it shouldn't be cleared in case of row buffer scan
-        GemFireCacheImpl.getInstance().currentTxState.set(this.txState);
+        if (!this.getGemFireContainer().isRowBuffer()) {
+          GemFireCacheImpl.getInstance().snapshotTxState.set(null);
+        }
       }
-
-
+      commitOnClose = false;
     }
   }
 

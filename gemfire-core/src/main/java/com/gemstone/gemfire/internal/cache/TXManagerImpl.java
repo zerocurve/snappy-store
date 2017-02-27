@@ -968,6 +968,7 @@ public final class TXManagerImpl implements CacheTransactionManager,
     // For snapshot isolation, create tx state at the beginning
     if(txState.isSnapshot()) {
       txState.getTXStateForRead();
+      GemFireCacheImpl.getInstance().snapshotTxState.set(txState);
       //beginSnapshotLock();
     }
 
@@ -1024,7 +1025,11 @@ public final class TXManagerImpl implements CacheTransactionManager,
    *
    */
   public void commit() throws TransactionException {
+
+    TXStateInterface st = getTXState();
     commit(getTXState(), null, FULL_COMMIT, null, false);
+    // set the txState set in the cache also to null
+    GemFireCacheImpl.getInstance().snapshotTxState.set(null);
   }
 
   public final TXManagerImpl.TXContext commit(

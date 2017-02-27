@@ -775,6 +775,11 @@ public class BucketRegion extends DistributedRegion implements Bucket {
 
 
       getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+      if (getCache().getLoggerI18n().fineEnabled()) {
+        getCache().getLoggerI18n().info(LocalizedStrings.DEBUG, "createAndInsertCachedBatch: " +
+            "The snapshot after creating cached batch is " + getTXState().getLocalTXState().getCurrentSnapshot() +
+            " the current rvv is " + getVersionVector());
+      }
       //getCache().getCacheTransactionManager().beginSnapshotLock(this);
       Set keysToDestroy = createCachedBatchAndPutInColumnTable();
 

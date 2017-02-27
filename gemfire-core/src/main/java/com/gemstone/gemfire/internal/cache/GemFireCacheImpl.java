@@ -234,7 +234,7 @@ import com.gemstone.gnu.trove.THashSet;
  */
 public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePerfStats, DistributionAdvisee {
 
- public  ThreadLocal<TXStateInterface> currentTxState = new ThreadLocal<TXStateInterface>();
+ public  ThreadLocal<TXStateInterface> snapshotTxState = new ThreadLocal<TXStateInterface>();
 
   // moved *SERIAL_NUMBER stuff to DistributionAdvisor
 

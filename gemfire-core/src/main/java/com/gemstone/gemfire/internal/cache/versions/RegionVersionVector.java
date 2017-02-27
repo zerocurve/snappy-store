@@ -36,6 +36,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.gemstone.gemfire.CancelCriterion;
 import com.gemstone.gemfire.LogWriter;
+import com.gemstone.gemfire.cache.GemFireCache;
 import com.gemstone.gemfire.distributed.DistributedMember;
 import com.gemstone.gemfire.distributed.internal.DM;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
@@ -747,16 +748,18 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     LogWriterI18n logger = getLoggerI18n();
       T mbr = member;
 
-      if (this.recordingDisabled || clientVector ) {
-        return;
-      }
-    //Check ThreadLocal and lock if yes then
-    // return else if no threadlocal but lock then block else record version
-    //long currentThreadId = Thread.currentThread().getId();
+    if (this.recordingDisabled || clientVector) {
+      return;
+    }
+
     if (event != null) {
       TXStateInterface tx = event.getTXState();
       if (tx != null) {
         tx.recordVersionForSnapshot(member, version, event.getRegion());
+        if(logger.fineEnabled()) {
+          logger.fine(" Recording snapshot in tx " +
+              version + " region " + event.getRegion() + " for tx " + tx);
+        }
         return;
       }
     }
@@ -774,17 +777,17 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
         RegionVersionHolder<T> holder;
 
         //if (mbr.equals(this.myId)) {
-          //If we are recording a version for the local member,
-          //use the local exception list.
-          //holder = this.localExceptions.clone();
+        //If we are recording a version for the local member,
+        //use the local exception list.
+        //holder = this.localExceptions.clone();
 
-          //synchronized (holder) {
-            //Advance the version held in the local
-            //exception list to match the atomic long
-            //we using for the local version.
-            //holder.version = this.localVersion.get();
-          //}
-          //updateLocalVersion(version);
+        //synchronized (holder) {
+        //Advance the version held in the local
+        //exception list to match the atomic long
+        //we using for the local version.
+        //holder.version = this.localVersion.get();
+        //}
+        //updateLocalVersion(version);
 
 //          holder.recordVersion(version, logger);
 //          holder.id = this.myId;
@@ -792,31 +795,34 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
 //          memberToVersionSnapshot.put(this.myId, holder);
 
         //} else {
-          //Find the version holder object
+        //Find the version holder object
+        synchronized (memberToVersionSnapshot) {
           holder = memberToVersionSnapshot.get(mbr);
+
           if (holder == null) {
-            synchronized (memberToVersionSnapshot) {
-              //Look for the holder under lock
-              holder = memberToVersionSnapshot.get(mbr);
-              if (holder == null) {
-                mbr = getCanonicalId(mbr);
-                holder = new RegionVersionHolder<T>(mbr);
-                //memberToVersion.put(holder.id, holder);
-              } else {
-                holder = memberToVersionSnapshot.get(mbr).clone();
-              }
-            }
+
+            //Look for the holder under lock
+            //holder = memberToVersionSnapshot.get(mbr);
+            //if (holder == null) {
+            mbr = getCanonicalId(mbr);
+            holder = new RegionVersionHolder<T>(mbr);
+
+            //memberToVersion.put(holder.id, holder);
           } else {
+            //holder = memberToVersionSnapshot.get(mbr).clone();
             holder = holder.clone();
           }
-          holder.recordVersion(version, logger);
-          memberToVersionSnapshot.put(holder.id, holder);
+
+//          } else {
+//            holder = holder.clone();
+//          }
+        //}
+        holder.recordVersion(version, logger);
+        memberToVersionSnapshot.put(holder.id, holder);
+      }
         //}
 
         //Update the version holder
-        if (DEBUG && logger != null) {
-          logger.info(LocalizedStrings.DEBUG, "recording rv" + version + " for " + mbr);
-        }
       } finally {
        // this.snapshotLock.readLock().unlock();
       }
