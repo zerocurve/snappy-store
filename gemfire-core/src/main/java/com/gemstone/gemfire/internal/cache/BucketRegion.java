@@ -772,17 +772,13 @@ public class BucketRegion extends DistributedRegion implements Bucket {
             "Creating the cached batch for bucket " + this.getId()
             + ", and batchID " + this.batchUUID);
       }
-
-
       getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
       if (getCache().getLoggerI18n().fineEnabled()) {
         getCache().getLoggerI18n().info(LocalizedStrings.DEBUG, "createAndInsertCachedBatch: " +
             "The snapshot after creating cached batch is " + getTXState().getLocalTXState().getCurrentSnapshot() +
             " the current rvv is " + getVersionVector());
       }
-      //getCache().getCacheTransactionManager().beginSnapshotLock(this);
       Set keysToDestroy = createCachedBatchAndPutInColumnTable();
-
       //Check if shutdown hook is set
       if(null != getCache().getRvvSnapshotTestHook()) {
         getCache().notifyRvvTestHook();
@@ -790,11 +786,9 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       }
       // provide a callback  to separate these two operations to test the snapshot
       destroyAllEntries(keysToDestroy);
-
       // create new batchUUID
       generateAndSetBatchIDIfNULL(true);
       getCache().getCacheTransactionManager().commit();
-      //getCache().getCacheTransactionManager().commitSnapshotLock(this);
       return true;
     } else {
       return false;

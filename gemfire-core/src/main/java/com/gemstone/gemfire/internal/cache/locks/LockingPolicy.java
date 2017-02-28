@@ -471,12 +471,12 @@ public enum LockingPolicy {
 
     @Override
     public LockMode getReadLockMode() {
-      return null;//LockMode.SH;
+      return null;
     }
 
     @Override
     public LockMode getWriteLockMode() {
-      return null;//LockMode.EX_SH;
+      return null;
     }
 
     @Override
@@ -499,6 +499,8 @@ public enum LockingPolicy {
         LockMode mode, int flags, Object lockOwner, Object context,
         AbstractOperationMessage msg) throws ConflictException,
         LockTimeoutException {
+      // TODO: Suranjan Ideally no request should come in this mode.
+      // put an assert here!
       acquireLockFailFast(lockObj, mode, flags, lockOwner, context, msg);
     }
 
@@ -523,17 +525,7 @@ public enum LockingPolicy {
         LockMode mode, Object lockOwner, final Object context,
         final int iContext, AbstractOperationMessage msg,
         boolean allowTombstones, ReadEntryUnderLock reader) {
-      /*
       // TODO: Suranjan try to see if we can add versioning information here and read
-      //return reader.readEntry(lockObj, context, iContext, allowTombstones);
-      if (mode == LockMode.SH) {
-        //return reader.readEntry(lockObj, context, iContext, allowTombstones);
-      }
-      else {
-        //return reader.readEntry(lockObj, context, iContext, allowTombstones);
-        //can we read version here and return
-      }*/
-      // no locking to be done
       return reader.readEntry(lockObj, context, iContext, allowTombstones);
     }
   },

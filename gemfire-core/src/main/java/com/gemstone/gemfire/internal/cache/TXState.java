@@ -1060,15 +1060,6 @@ public final class TXState implements TXStateInterface {
       final SetKeyRegionContext setContext = new SetKeyRegionContext();
       for (TXRegionState txrs : finalRegions) {
         final LocalRegion dataRegion = txrs.region;
-        // TODO: Suranjan MVCC
-        // first take a lock at cache level so that we don't go into deadlock or sort array before
-        // This is for tx RC, for snapshot just record all the versions from the queue
-        // this is not needed with event being present in rvv.record
-        // now just apply all the versions from the queue
-        if (GemFireCacheImpl.getInstance().snaphshotEnabled()) {
-          TXManagerImpl.beginSnapshotLock(dataRegion);
-          hasSnapshotLocks = true;
-        }
         final RegionVersionVector<?> rvv = dataRegion.getVersionVector();
         if (rvv != null) {
           rvv.lockForCacheModification(dataRegion);
@@ -1092,10 +1083,6 @@ public final class TXState implements TXStateInterface {
         final LocalRegion dataRegion = txr.region;
         final RegionVersionVector<?> rvv = dataRegion.getVersionVector();
         if (rvv != null) {
-          if(GemFireCacheImpl.getInstance().snaphshotEnabled()) {
-            TXManagerImpl.beginSnapshotLock(dataRegion);
-            hasSnapshotLocks = true;
-          }
           rvv.lockForCacheModification(dataRegion);
           hasRVVLocks = true;
         }
@@ -1124,20 +1111,18 @@ public final class TXState implements TXStateInterface {
           }
         }
       }
-      if (hasSnapshotLocks) {
-        // Figure out how to remove cache level locks in future.
-        for (TXRegionState txr : finalRegions) {
-          final LocalRegion dataRegion = txr.region;
-          if (GemFireCacheImpl.getInstance().snaphshotEnabled()) {
-            TXManagerImpl.commitSnapshotLock(dataRegion);
-          }
-        }
-      }
 
+      // No need to check for snapshot if we want to enable it for RC.
       if(isSnapshot()) {
+        // TODO: Suranjan MVCC
+        // first take a lock at cache level so that we don't go into deadlock or sort array before
+        // This is for tx RC, for snapshot just record all the versions from the queue
+        // this is not needed with event being present in rvv.record
+        // now just apply all the versions from the queue
         cache.acquireWriteLockOnSnapshotRvv();
         for (VersionInformation vi : queue) {
-          ((LocalRegion)vi.region).getVersionVector().recordVersionForSnapshot((VersionSource)vi.member, vi.version, null);
+          ((LocalRegion)vi.region).getVersionVector().
+              recordVersionForSnapshot((VersionSource)vi.member, vi.version, null);
         }
         cache.releaseWriteLockOnSnapshotRvv();
       }
@@ -3744,11 +3729,6 @@ public final class TXState implements TXStateInterface {
   public final Object getLocalEntry(final LocalRegion region,
       LocalRegion dataRegion, final int bucketId, final AbstractRegionEntry re, boolean isWrite) {
 
-    if(this.lockPolicy == LockingPolicy.SNAPSHOT) {
-      // just return the version as there will not be any lock taken either
-      // for read or write.
-      //
-    }
     // for local/distributed regions, the key is the RegionEntry itself
     // getDataRegion will work correctly neverthless
 
@@ -3772,7 +3752,6 @@ public final class TXState implements TXStateInterface {
         try {
           final Object txEntry = txr.readEntry(key);
           if (txEntry instanceof TXEntryState) {
-            // I have modified it.
             final TXEntryState tx = (TXEntryState)txEntry;
             if (TXStateProxy.LOG_FINEST) {
               final LogWriterI18n logger = dataRegion.getLogWriterI18n();
@@ -3793,13 +3772,8 @@ public final class TXState implements TXStateInterface {
           } else if (!isWrite) {
             // the re has not been modified by this tx
             // check the re version with the snapshot version and then search in oldEntry
-            if (!checkEntryVersion(dataRegion, re)) {
-              // txr should be created by other writer if not created by this region.
-              //final Object oldEntry = txr.readOldEntry(key);
-              final Object oldEntry = getCache().readOldEntry(dataRegion.getName(),key, true);//txr
-              // .readOldEntry
-              // (key);
-              return oldEntry;
+            if (dataRegion.getVersionVector() != null && !checkEntryVersion(dataRegion, re)) {
+              return getOldVersionedEntry(dataRegion, key);
             }
           }
         } finally {
@@ -3807,90 +3781,52 @@ public final class TXState implements TXStateInterface {
         }
       }
     } else if (!isWrite) {
-      //Suranjan: should always read from txr?
       final Object key = re.getKeyCopy();
       if (dataRegion == null) {
         dataRegion = region.getDataRegionForRead(key, null, bucketId,
             Operation.GET_ENTRY);
       }
-      final TXRegionState txr = readRegion(dataRegion);
-      // if null, then should we create it? as old value will be in txr only.
-      // so, we should check version first and then get the old value from txr or some common location
-      if (txr != null) {
-        txr.lock();
-        try {
-          // the re has not been modified by this tx
-          // check the re version with the snapshot version and then search in oldEntry
-          if (!checkEntryVersion(dataRegion, re)) {
-            // txr should be created by other writer if not created by this region.
-            //final Object oldEntry = txr.readOldEntry(key);
-            final Object oldEntry = getCache().readOldEntry(dataRegion.getName(),key, true);//txr
-            // .readOldEntry(key);
-            return oldEntry;
-          }
-        } finally {
-          txr.unlock();
-        }
-      } else {
+      if (dataRegion.getVersionVector() != null) {
         if (!checkEntryVersion(dataRegion, re)) {
-          // May be reading old entry can be moved to common place like..txr.readEntry. Explore that.
-          // txr should be created by other writer if not created by this region.
-          // Writer should add old entry with tombstone with region version in the common map
-          //TODO: for the time being wait till writer has written to txr
-          //final Object oldEntry = txr.readOldEntry(key);
-          //return oldEntry;
-          // getOldEntry
-         // if ((snapshot != null) && snapshot.get(dataRegion.getFullPath())!= null) {
-          if (dataRegion.getVersionVector() != null) {
-            //RegionEntry oldEntry = (RegionEntry)this.oldEntryMap.get(key);
-            RegionEntry oldEntry = (RegionEntry)getCache().readOldEntry(dataRegion.getName(), key,
-                true); //this
-            // .oldEntryMap.get(key);
-            if (oldEntry != null) {
-              return oldEntry;
-            }
-            else {
-              //wait till it is populated..
-              // The update/destroy guy can update the region version first and then modify the RE
-              // later copy it to running tx so that when tx misses the entry it is sure that
-              // it will be copied by writer thread
-              // If we copy first and then update the region version and RE then there is a window where
-              // concurrent tx can miss the old entry.
-              // 1. Copy of the old value
-              // 2. New tx starts and takes the snapshot
-              // 3. old tx increments the regionVersion
-              // 4. old tx changes the RE
-              // 5. New tx scans and misses the changed RE as its version is higher than the snapshot.
-
-              // For Transaction NONE we can get locally. For tx isolation level RC/RR
-              // we will have to get from a common DS.
-              //dataRegion.getLocalOldEntry(re.getKey(), snapshot.get(region.getFullPath()));
-              while (getCache().readOldEntry(dataRegion.getName(),key, true) == null) {
-                try {
-                  Thread.sleep(10);
-                } catch (InterruptedException e) {
-                  e.printStackTrace();
-                }
-              }
-              return getCache().readOldEntry(dataRegion.getName(),key, true);
-            }
-          }
-          else {
-            // this fails in case of persistence! Need to check
-            Assert.fail("There must have been old Entry corresponding to re " + re);
-              // there is a problema//FAIL
-            // we should wait here to get from the oldEntryMap as writer thread will be eventually going
-            // to put it into the map.
-            //return NonLocalRegionEntry.newEntry(key, Token.TOMBSTONE,
-            //    dataRegion, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
-          }
-
+          return getOldVersionedEntry(dataRegion, key);
         }
       }
     }
     return re;
   }
 
+  // Writer should add old entry with tombstone with region version in the common map
+  // wait till writer has written to common old entry map.
+  private Object getOldVersionedEntry(LocalRegion dataRegion, Object key){
+    RegionEntry oldEntry = (RegionEntry)getCache().readOldEntry(dataRegion.getName(), key,
+        true);
+    if (oldEntry != null) {
+      return oldEntry;
+    } else {
+      // wait till it is populated..
+      // The update/destroy guy can update the region version first and then modify the RE
+      // later copy it to running tx so that when tx misses the entry it is sure that
+      // it will be copied by writer thread
+      // If we copy first and then update the region version and RE then there is a window where
+      // concurrent tx can miss the old entry.
+      // 1. Copy of the old value
+      // 2. New tx starts and takes the snapshot
+      // 3. old tx increments the regionVersion
+      // 4. old tx changes the RE
+      // 5. New tx scans and misses the changed RE as its version is higher than the snapshot.
+
+      // For Transaction NONE we can get locally. For tx isolation level RC/RR
+      // we will have to get from a common DS.
+      while (getCache().readOldEntry(dataRegion.getName(), key, true) == null) {
+        try {
+          Thread.sleep(10);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+      return getCache().readOldEntry(dataRegion.getName(), key, true);
+    }
+  }
 
   /**
    * Test to see if this vector has seen the given version.

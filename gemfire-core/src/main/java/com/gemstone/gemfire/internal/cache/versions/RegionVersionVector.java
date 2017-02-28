@@ -167,9 +167,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     this.isLiveVector = true;
 
     this.localExceptions = new RegionVersionHolder<T>(0);
-    if(isSnapshotEnabled()) {
-      this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>();
-    }
+    this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>();
     this.memberToVersion = new ConcurrentHashMap<T, RegionVersionHolder<T>>(INITIAL_CAPACITY, LOAD_FACTOR, CONCURRENCY_LEVEL);
     this.memberToGCVersion = new ConcurrentHashMap<T, Long> (INITIAL_CAPACITY, LOAD_FACTOR, CONCURRENCY_LEVEL);
   }
@@ -733,20 +731,20 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
   }
 
   /**
-   * Records a received region-version.  These are transmitted in VersionTags
-   * in messages between peers and from servers to clients.  In general you
-   * should use recordVersion(mbr, versionTag) so that the tag is marked as having
-   * been recorded.  This will keep DistributedCacheOperation.basicProcess()
-   * from trying to record it again.
+   * Records a received region-version in snapshot or txState.
+   * For a tx, we record the version in txState and at the time of commit
+   * record them in snaoshit RVV.
+   * For normal operations we record them in snapshot RVV.
    *
    * This method is also called for versions which have been recovered from disk.
    *
    * @param member the peer that performed the operation
    * @param version the version of the peers region that reflects the operation
+   * @param event the event which is causing this operations. if null then record the version in snapshot
    */
   public void recordVersionForSnapshot(T member, long version, EntryEventImpl event) {
     LogWriterI18n logger = getLoggerI18n();
-      T mbr = member;
+    T mbr = member;
 
     if (this.recordingDisabled || clientVector) {
       return;
@@ -756,98 +754,30 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
       TXStateInterface tx = event.getTXState();
       if (tx != null) {
         tx.recordVersionForSnapshot(member, version, event.getRegion());
-        if(logger.fineEnabled()) {
-          logger.fine(" Recording snapshot in tx " +
-              version + " region " + event.getRegion() + " for tx " + tx);
+        if (logger.fineEnabled()) {
+          logger.fine(" Recording version: " + version + " in the snapshot tx " +
+              " region " + event.getRegion() + " for tx " + tx);
         }
         return;
       }
     }
 
-
-    //if (this.snapshotLock.isWriteLocked() && lockingThreadId.get() != null && currentThreadId ==
-    //if (lockingThreadId.get() != null && currentThreadId == lockingThreadId.get()) {
-    if (false) {
-      //No need to record version in snapshot
-
-    } else {  //(this.snapshotLock.isWriteLocked() && lockingThreadId.get() != null &&
-        //currentThreadId != lockingThreadId.get()) {
-      //this.snapshotLock.readLock();
-      try {
-        RegionVersionHolder<T> holder;
-
-        //if (mbr.equals(this.myId)) {
-        //If we are recording a version for the local member,
-        //use the local exception list.
-        //holder = this.localExceptions.clone();
-
-        //synchronized (holder) {
-        //Advance the version held in the local
-        //exception list to match the atomic long
-        //we using for the local version.
-        //holder.version = this.localVersion.get();
-        //}
-        //updateLocalVersion(version);
-
-//          holder.recordVersion(version, logger);
-//          holder.id = this.myId;
-//
-//          memberToVersionSnapshot.put(this.myId, holder);
-
-        //} else {
-        //Find the version holder object
-        synchronized (memberToVersionSnapshot) {
-          holder = memberToVersionSnapshot.get(mbr);
-
-          if (holder == null) {
-
-            //Look for the holder under lock
-            //holder = memberToVersionSnapshot.get(mbr);
-            //if (holder == null) {
-            mbr = getCanonicalId(mbr);
-            holder = new RegionVersionHolder<T>(mbr);
-
-            //memberToVersion.put(holder.id, holder);
-          } else {
-            //holder = memberToVersionSnapshot.get(mbr).clone();
-            holder = holder.clone();
-          }
-
-//          } else {
-//            holder = holder.clone();
-//          }
-        //}
-        holder.recordVersion(version, logger);
-        memberToVersionSnapshot.put(holder.id, holder);
+    RegionVersionHolder<T> holder;
+    //Find the version holder object
+    synchronized (memberToVersionSnapshot) {
+      holder = memberToVersionSnapshot.get(mbr);
+      if (holder == null) {
+        mbr = getCanonicalId(mbr);
+        holder = new RegionVersionHolder<T>(mbr);
+      } else {
+        holder = holder.clone();
       }
-        //}
 
-        //Update the version holder
-      } finally {
-       // this.snapshotLock.readLock().unlock();
-      }
+      holder.recordVersion(version, logger);
+      memberToVersionSnapshot.put(holder.id, holder);
     }
+
   }
-
-  private boolean isSnapshotEnabled() {
-
-/*
-    if (null != TXManagerImpl.getCurrentTXState()) {
-      LockingPolicy policy = TXManagerImpl.getCurrentTXState().getLockingPolicy();
-
-      if (null != policy)
-        return policy == LockingPolicy.SNAPSHOT;
-      else
-        return false;
-    } else {
-      return false;
-    }
-*/
-    return true;
-
-    //TXManagerImpl.getCurrentTXState().getLockingPolicy() == LockingPolicy.SNAPSHOT;
-  }
-
 
   /**
    * Records a received region-version.  These are transmitted in VersionTags
@@ -864,13 +794,13 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
   public void recordVersion(T member, long version, EntryEventImpl event) {
 
     T mbr = member;
-    if(isSnapshotEnabled()) {
-      recordVersionForSnapshot(member, version, event);
-    }
+
     if (this.recordingDisabled || clientVector) {
       return;
     }
-    
+
+    recordVersionForSnapshot(member, version, event);
+
     LogWriterI18n logger = getLoggerI18n();
     RegionVersionHolder<T> holder;
     
@@ -1350,9 +1280,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
   
   /** deserialize a cloned vector */
   public RegionVersionVector() {
-    if(isSnapshotEnabled()) {
-      this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>();
-    }
+    this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>();
     this.memberToVersion = new ConcurrentHashMap<T, RegionVersionHolder<T>>(INITIAL_CAPACITY, LOAD_FACTOR, CONCURRENCY_LEVEL);
     this.memberToGCVersion = new ConcurrentHashMap<T, Long>(INITIAL_CAPACITY, LOAD_FACTOR, CONCURRENCY_LEVEL);
   }
@@ -1803,9 +1731,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
   }
 
   public void reInitializeSnapshotRvv() {
-    if(isSnapshotEnabled()) {
-      this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>(memberToVersion);
-    }
+    this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>(memberToVersion);
   }
 
 
