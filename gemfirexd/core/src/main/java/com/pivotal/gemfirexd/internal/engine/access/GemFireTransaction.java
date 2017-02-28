@@ -48,7 +48,6 @@ import com.gemstone.gemfire.internal.cache.TXManagerImpl.TXContext;
 import com.gemstone.gemfire.internal.cache.TXStateInterface;
 import com.gemstone.gemfire.internal.cache.TXStateProxy;
 import com.gemstone.gemfire.internal.cache.partitioned.Bucket;
-import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.offheap.annotations.Released;
 import com.gemstone.gemfire.internal.offheap.annotations.Retained;
 import com.gemstone.gemfire.internal.offheap.annotations.Unretained;
@@ -2257,7 +2256,7 @@ public final class GemFireTransaction extends RawTransaction implements
                 "unexpected commit on remote node or from function execution"));
       }
       try {
-        TXStateInterface gfTx = GemFireCacheImpl.getInstance().snapshotTxState.get();
+        TXStateInterface gfTx = TXManagerImpl.snapshotTxState.get();
         if (tx != gfTx) {
           context = this.txManager.commit(tx, this.connectionID, commitPhase,
               context, false);
@@ -2905,7 +2904,7 @@ public final class GemFireTransaction extends RawTransaction implements
         this.txManager.commit(tx, this.connectionID, TXManagerImpl.FULL_COMMIT,
             null, false);
       }
-      final TXStateInterface gemfireTx = GemFireCacheImpl.getInstance().snapshotTxState.get();
+      final TXStateInterface gemfireTx = TXManagerImpl.snapshotTxState.get();
       // now start tx for every operation.
       if (isolationLevel != IsolationLevel.NONE /*|| isSnapshotEnabled()*/) {
 
@@ -2960,7 +2959,7 @@ public final class GemFireTransaction extends RawTransaction implements
           cm = getContextManager();
         }
         setTXState(gemfireTx);
-
+        getTransactionManager().masqueradeAs(gemfireTx);
         //Don't setthe TXId in EmbedConnection finalizer the commit must be called
         // explicitely.
         /*final EmbedConnection conn = EmbedConnectionContext
@@ -3406,19 +3405,26 @@ public final class GemFireTransaction extends RawTransaction implements
 
   private final TXStateInterface getActiveTXState(final TXStateInterface myTX) {
     final IsolationLevel isolationLevel = this.isolationLevel;
+    final TXStateInterface gfTx = TXManagerImpl.snapshotTxState
+                .get();
     if (isolationLevel != IsolationLevel.NONE) {
       if (myTX != null && myTX != TXStateProxy.TX_NOT_SET) {
         return myTX;
       }
     }
-    else if (myTX == null) {
+    else if (myTX == null && gfTx == null) {
       return null;
     }
 
     final TXStateInterface tx = getTXState(myTX);
-    if (tx != null || isolationLevel == IsolationLevel.NONE) {
+    if (tx != null) {
       return tx;
     }
+    if (isolationLevel == IsolationLevel.NONE &&
+        gfTx == null) {
+      return tx;
+    }
+
     // never start a new transaction at this point on a remote node
     final LanguageConnectionContext lcc = getLanguageConnectionContext();
     if (lcc == null || lcc.isConnectionForRemote()) {

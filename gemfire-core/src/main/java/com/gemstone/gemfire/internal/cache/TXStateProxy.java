@@ -425,12 +425,6 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
     }
   };
 
-  public void addOldEntry(RegionEntry oldRe) {
-    if (this.localTXState != null) {
-      this.localTXState.addOldEntry(oldRe);
-    }
-  }
-
   public static final class MemberToGIIRegions implements
       THashMapWithCreate.ValueCreator {
     final THashMapWithCreate members;

@@ -928,8 +928,6 @@ public class BucketRegion extends DistributedRegion implements Bucket {
                     + this.eventSeqNum.get() + ". was it a tx operation? " + event.hasTX());
           }  
         }
-        
-        
       } else {
         // Can there be a race here? Like one thread has done put in primary but
         // its update comes later

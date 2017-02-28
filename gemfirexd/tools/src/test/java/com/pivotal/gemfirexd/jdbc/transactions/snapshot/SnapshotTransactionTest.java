@@ -38,7 +38,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
 
   @Override
   protected String reduceLogging() {
-    return "config";
+    return "fine";
   }
 
 
@@ -113,6 +113,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
         num++;
     }
     assertEquals(4, num);
+    r.getCache().getCacheTransactionManager().commit();
   }
 
 
@@ -187,6 +188,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
         num++;
     }
     assertEquals(4, num);
+    r.getCache().getCacheTransactionManager().commit();
   }
 
   public void testSnapshotPutAllAPI() throws Exception {
@@ -404,6 +406,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
         num++;
     }
     assertEquals(2, num);
+    r1.getCache().getCacheTransactionManager().commit();
 
   }
 
@@ -792,7 +795,6 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     }
     // withing tx also the row count should be 2
     assertEquals("ResultSet should contain two row ", 2, numRows);
-
     conn.commit(); // commit two rows.
 
     // start a read tx
@@ -1169,6 +1171,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
           Statement st = conn2.createStatement();
           conn2.setTransactionIsolation(Connection.TRANSACTION_NONE);
           conn2.setAutoCommit(false);
+          //GemFireCacheImpl.getInstance().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
           st.execute("delete from t1 where c2 = 20");
           conn2.commit();
           ResultSet rs = st.executeQuery("Select * from t1");
@@ -1178,6 +1181,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
           }
           assertEquals("ResultSet should contain eight rows ", 1, numRows);
           conn2.commit();
+          //GemFireCacheImpl.getInstance().getCacheTransactionManager().commit();
         } catch (SQLException e) {
           tx[0] = e;
         }
@@ -1196,7 +1200,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
   /**
    * Check supported isolation levels.
    */
-  public void SURtestIsolationLevels() throws Exception {
+  public void testIsolationLevels() throws Exception {
     // try {
     Connection conn = getConnection();
     conn.setTransactionIsolation(Connection.TRANSACTION_NONE);
@@ -1217,7 +1221,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
 
 
   // only insert operations to ignore
-  public void testReadSnapshotOnPartitionedTableInConcurrency() throws Exception {
+  public void SURtestReadSnapshotOnPartitionedTableInConcurrency() throws Exception {
     Connection conn = getConnection();
     GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
     Statement st = conn.createStatement();
@@ -1243,28 +1247,23 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
 
     ResultSet rs = st.executeQuery("Select * from t1");
 
-    rs.next();
-
-    TXState txState = TXManagerImpl.getCurrentTXState().getLocalTXState();
+    TXState txState = TXManagerImpl.getCurrentSnapshotTXState().getLocalTXState();
     long initialVersion = getRegionVersionForTransaction(txState, bucketRegion);
-
-
     int numRows = 0;
     while (rs.next()) {
       numRows++;
     }
 
     st = conn.createStatement();
-
-    // rvv.getCurrentVersion();
     // withing tx also the row count should be 34 as we have done rs.next once to begin transaction
-    assertEquals("ResultSet should contain two row ", 34, numRows);
+    assertEquals("ResultSet should contain 35 rows ", 35, numRows);
 
     st.execute("delete from t1 where c1=1");
 
     rs = st.executeQuery("Select * from t1");
-    rs.next();
-    TXState txState1 = TXManagerImpl.getCurrentTXState().getLocalTXState();
+
+    TXState txState1 = TXManagerImpl.getCurrentSnapshotTXState().getLocalTXState();
+
     long versionAfterDelete = getRegionVersionForTransaction(txState1, bucketRegion);
     doInsertOpsInTxForConcurrencytest();
     long actualVersionAfterInsert = getRegionVersionForTransaction(txState, bucketRegion);
@@ -1291,7 +1290,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
 
     rs.next();
 
-    TXState txState2 = TXManagerImpl.getCurrentTXState().getLocalTXState();
+    TXState txState2 = TXManagerImpl.getCurrentSnapshotTXState().getLocalTXState();
 
     long versionBeforeExecutingThread = getRegionVersionForTransaction(txState2, bucketRegion);
     doInsertOpsInThread(msg);
@@ -1304,7 +1303,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     conn.commit();
     rs = st.executeQuery("Select * from t1");
     rs.next();
-    TXState txState3 = TXManagerImpl.getCurrentTXState().getLocalTXState();
+    TXState txState3 = TXManagerImpl.getCurrentSnapshotTXState().getLocalTXState();
     //Iterating rs till last record in order for cleaning up the transaction
     while(rs.next());
     long versionAfterExecutingThreadWithNewTx = getRegionVersionForTransaction(txState3,
@@ -1327,7 +1326,7 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     //Get old snapshot version of previous transaction to see the effect
     versionAfterExecutingThreadWithNewTx = getRegionVersionForTransaction(txState3,
         bucketRegion);
-    TXState txState4 = TXManagerImpl.getCurrentTXState().getLocalTXState();
+    TXState txState4 = TXManagerImpl.getCurrentSnapshotTXState().getLocalTXState();
     long versionAfterExecutingUpdate = getRegionVersionForTransaction(txState4,
         bucketRegion);
     assert(versionAfterExecutingUpdate == (versionAfterExecutingThreadWithNewTx+1));
@@ -1418,44 +1417,98 @@ public class SnapshotTransactionTest  extends JdbcTestBase {
     conn = getConnection();
     conn.setTransactionIsolation(getIsolationLevel());
 
-
-    //Inserting 34 records to avoid null pointer exception while getting TxState
-    for(int i=0;i<10;i++) {
-      st.execute("insert into t1 values ("+i+", 10)");
-      st.execute("insert into t2 values ("+(i+11)+","+(20+i)+")");
+    for (int i = 0; i < 10; i++) {
+      st.execute("insert into t1 values (" + i + ", 10)");
+      st.execute("insert into t2 values (" + (i + 11) + "," + (20 + i) + ")");
     }
+    conn.commit();
 
-    //As there is only one bucket there will be only one bucket region
-    PartitionedRegion region = (PartitionedRegion)Misc.getRegionForTableByPath("/APP/T1", false);
+    GemFireCacheImpl.getInstance().getTxManager().begin(IsolationLevel.SNAPSHOT, null);
 
-    for(BucketRegion bucketRegion :region.getDataStore().getAllLocalBucketRegions()) {
-      bucketRegion.getVersionVector().setCurrentThreadIdInThreadLocal(Thread.currentThread().getId());
-      System.out.println(bucketRegion);
-    }
     st.execute("insert into t1 values (100,101)");
-    ResultSet rs =st.executeQuery("select * from t1 union select * from t2");
+    st.execute("insert into t1 values (200,201)");
+    Thread t = new Thread() {
+      @Override
+      public void run() {
+        try {
+          final Connection conn2 = getConnection();
+          Statement st2 = conn2.createStatement();
+          ResultSet rs = st2.executeQuery("select * from t1 union select * from t2");
+          int numRows = 0;
+          while (rs.next()) {
+            numRows++;
+          }
+          System.out.println(numRows);
+          // The count should be 20 as one insert was done by pausing recroding version for snapshot
+          assert (numRows == 20);
+          rs.close();
+          conn2.close();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    };
+    t.start();
+    t.join();
+
+    //conn.commit();
+    GemFireCacheImpl.getInstance().getTxManager().commit();
+
+    st.execute("insert into t1 values (300,101)");
+    st.execute("insert into t1 values (400,201)");
+    conn.commit();
+
+    GemFireCacheImpl.getInstance().getTxManager().begin(IsolationLevel.SNAPSHOT, null);
+
+    st.execute("insert into t1 values (500,101)");
+    st.execute("insert into t1 values (600,201)");
+
+
+    Thread t2 = new Thread() {
+      @Override
+      public void run() {
+        try {
+          final Connection conn = getConnection();
+          Statement st = conn.createStatement();
+          ResultSet rs = st.executeQuery("select * from t1 union select * from t2");
+          int numRows = 0;
+          while (rs.next()) {
+            numRows++;
+          }
+
+          System.out.println(numRows);
+          // The count should be 20 as one insert was done by pausing recroding version for snapshot
+          assert (numRows == 24);
+          rs.close();
+          conn.close();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    };
+    t2.start();
+    t2.join();
+    GemFireCacheImpl.getInstance().getTxManager().commit();
+
+    ResultSet rs = st.executeQuery("select * from t1 union select * from t2");
     int numRows = 0;
     while (rs.next()) {
       numRows++;
     }
     System.out.println(numRows);
-    // The count should be 20 as one insert was done by pausing recroding version for snapshot
-    assert(numRows==20);
-
-    for(BucketRegion bucketRegion :region.getDataStore().getAllLocalBucketRegions()) {
-      bucketRegion.getVersionVector().reSetCurrentThreadIdInThreadLocal();
-      bucketRegion.getVersionVector().reInitializeSnapshotRvv();
-    }
+    // The count should be 26 as one insert was done by pausing recroding version for snapshot
+    assert (numRows == 26);
 
 
-    ResultSet rs1 =st.executeQuery("select * from t1 union select * from t2");
+
+    ResultSet rs1 = st.executeQuery("select * from t1 union select * from t2");
     int numRows1 = 0;
     while (rs1.next()) {
       numRows1++;
     }
     System.out.println(numRows1);
     // The count should be 21 after releasing the lock and re-initializing snapshot map
-    assert(numRows1==21);
+    assert (numRows1 == 26);
 
   }
 }

@@ -144,8 +144,6 @@ public final class TXState implements TXStateInterface {
 
   BlockingQueue<VersionInformation> queue;
 
-  protected CustomEntryConcurrentHashMap<Object, Object/*RegionEntry*/> oldEntryMap;
-
   /*
   private TXLockRequest locks = null;
 
@@ -211,10 +209,6 @@ public final class TXState implements TXStateInterface {
    */
   final NonReentrantLock txLock;
   private final AtomicBoolean txLocked;
-  //TODO: Unused kept it till testing is passed
-  public void addOldEntry(RegionEntry oldRe) {
-    this.oldEntryMap.put(oldRe.getKey(), oldRe);
-  }
 
   /**
    * Denotes the state of this TXState.
@@ -416,13 +410,15 @@ public final class TXState implements TXStateInterface {
 
     if (getCache().snaphshotEnabled()) {
       this.snapshot = getCache().getSnapshotRVV();
-      GemFireCacheImpl.getInstance().getLoggerI18n().info(LocalizedStrings.DEBUG, " The snapshot taken in txStats is " + this.snapshot);
+      if (TXStateProxy.LOG_FINE) {
+        this.txManager.getLogger().info(LocalizedStrings.DEBUG,
+            " The snapshot taken in txStats is " + this.snapshot);
+      }
       queue = new LinkedBlockingQueue<VersionInformation>();
     } else {
+      //TODO: Suranjan, FOR RC: We should set create snapshot and set it in every stmt.
       this.snapshot = null;
     }
-
-    this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
 
     if (TXStateProxy.LOG_FINE) {
       this.txManager.getLogger().info(LocalizedStrings.DEBUG,
