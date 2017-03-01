@@ -746,11 +746,6 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       sync.unlock();
     }
   }
-  public enum CachedBatchCreationTestHook {
-    beforeCachedBatchInsert,
-    afterCachedBatchInsertBeforeDestroy,
-    afterCachedBatchInsertAndDestroy
-  }
 
   private boolean internalCreateAndInsertCachedBatch(boolean forceFlush) {
     // TODO: with forceFlush, ideally we should merge with an existing
@@ -780,7 +775,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
       }
       Set keysToDestroy = createCachedBatchAndPutInColumnTable();
       //Check if shutdown hook is set
-      if(null != getCache().getRvvSnapshotTestHook()) {
+      if (null != getCache().getRvvSnapshotTestHook()) {
         getCache().notifyRvvTestHook();
         getCache().waitOnRvvSnapshotTestHook();
       }
@@ -868,7 +863,6 @@ public class BucketRegion extends DistributedRegion implements Bucket {
   // This destroy is under a lock which makes sure that there is no put into the region
   // No need to take the lock on key
   private void destroyAllEntries(Set keysToDestroy) {
-    getCache().getLoggerI18n().info(LocalizedStrings.DEBUG, "SJ: In destroy all entries");
     for(Object key : keysToDestroy) {
       if (getCache().getLoggerI18n().fineEnabled()) {
         getCache()
@@ -3195,22 +3189,5 @@ public class BucketRegion extends DistributedRegion implements Bucket {
     
   }
 
-  /**
-   * Return all of the user PR buckets for this bucket region.
-   * TODO: Can remove colocated user regions later.
-   */
-  public Collection<BucketRegion> getCorrespondingChildPRBuckets() {
-    List<BucketRegion> userPRBuckets = new ArrayList<BucketRegion>(4);
-    Map<String, PartitionedRegion> colocatedPRs = ColocationHelper
-        .getAllColocationRegions(getPartitionedRegion());
-    for (PartitionedRegion colocatedPR : colocatedPRs.values()) {
-      BucketRegion parentBucket = colocatedPR.getDataStore()
-          .getLocalBucketById(getId());
-      if (parentBucket != null)
-        userPRBuckets.add(parentBucket);
-
-    }
-    return userPRBuckets;
-  }
 }
 

@@ -199,7 +199,7 @@ public class MemHeapScanController implements MemScanController, RowCountable,
 
   private TXId txId;
 
-  private boolean commitOnClose;
+  private boolean snashotTxStarted;
 
   private LockingPolicy lockPolicy;
 
@@ -412,7 +412,7 @@ public class MemHeapScanController implements MemScanController, RowCountable,
         region.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
         this.txState = region.getCache().getCacheTransactionManager().getTXState();
         this.localTXState = this.txState.getTXStateForRead();
-        this.commitOnClose = true;
+        this.snashotTxStarted = true;
         this.txId = this.txState.getTransactionId();
         this.lockPolicy = this.txState.getLockingPolicy();
         this.readLockMode = this.lockPolicy.getReadLockMode();
@@ -545,14 +545,14 @@ public class MemHeapScanController implements MemScanController, RowCountable,
     }
 
 
-    if (commitOnClose) {
+    if (snashotTxStarted) {
       // clear the txState so that other thread local is cleared.
       TXManagerImpl.getOrCreateTXContext().clearTXState();
       // gemfire tx shouldn't be cleared in case of row buffer scan
       if (!(this.getGemFireContainer().isRowBuffer() && lcc.isSkipConstraintChecks())) {
         TXManagerImpl.snapshotTxState.set(null);
       }
-      commitOnClose = false;
+      snashotTxStarted = false;
     }
   }
 

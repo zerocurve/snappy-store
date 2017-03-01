@@ -505,7 +505,7 @@ public class DistributedRegion extends LocalRegion implements
      * force shared data view so that we just do the virtual op, accruing things
      * in the put all operation for later
      */
-    if (tx != null /*&& tx.getLockingPolicy() != LockingPolicy.SNAPSHOT*/) {
+    if (tx != null) {
       event.getPutAllOperation().addEntry(event);
     }
     else {

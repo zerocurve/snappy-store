@@ -285,8 +285,7 @@ public abstract class AbstractUpdateOperation extends DistributedCacheOperation 
       TXManagerImpl txMgr = null;
       TXManagerImpl.TXContext context = null;
       if (getLockingPolicy() == LockingPolicy.SNAPSHOT) {
-        txMgr = GemFireCacheImpl.getInstance()
-            .getTxManager();
+        txMgr = rgn.getCache().getTxManager();
         context = txMgr.masqueradeAs(this, false,
             true);
         ev.setTXState(getTXState());
