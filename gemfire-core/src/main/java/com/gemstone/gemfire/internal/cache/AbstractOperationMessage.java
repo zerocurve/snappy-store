@@ -32,6 +32,7 @@ import com.gemstone.gemfire.distributed.internal.DistributionStats;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
 import com.gemstone.gemfire.distributed.internal.ReplyMessage;
 import com.gemstone.gemfire.distributed.internal.ReplyProcessor21;
+import com.gemstone.gemfire.i18n.LogWriterI18n;
 import com.gemstone.gemfire.internal.Assert;
 import com.gemstone.gemfire.internal.InternalDataSerializer;
 import com.gemstone.gemfire.internal.cache.locks.ExclusiveSharedLockObject;
@@ -195,8 +196,9 @@ public abstract class AbstractOperationMessage extends DistributionMessage
       }
     }
     if (this.txId != null) {
-      if (GemFireCacheImpl.getInstance().getLoggerI18n().fineEnabled()) {
-        GemFireCacheImpl.getInstance().getLoggerI18n().fine(" The operation tx id is not null " + this.txId +
+      LogWriterI18n logger = GemFireCacheImpl.getInstance().getLoggerI18n();
+      if (logger.fineEnabled()) {
+        logger.fine(" The operation tx id " + this.txId +
             " locking policy " + getLockingPolicy() + " txState " + getTXState());
       }
       try {

@@ -119,7 +119,6 @@ public final class RegionEntryUtils {
    */
   public static Object getValue(final LocalRegion region,
       final RegionEntry entry) {
-    // here will have to get version check or tx oldRegionEntry
     final Object value = entry.getValue(getDataRegion(region, entry));
     if (!isValueToken(value)) {
       return value;
@@ -136,7 +135,6 @@ public final class RegionEntryUtils {
   @Retained
   public static Object getValueWithoutFaultIn(final LocalRegion region,
       final RegionEntry entry) {
-    // here will have to get version check or tx oldRegionEntry
     @Retained final Object value = entry.getValueOffHeapOrDiskWithoutFaultIn(getDataRegion(
         region, entry));
     if (!isValueToken(value)) {
@@ -153,7 +151,6 @@ public final class RegionEntryUtils {
    */
   public static Object getValueWithoutFaultInOrOffHeapEntry(
       final LocalRegion region, final RowLocation entry) {
-    // here will have to get version check or tx oldRegionEntry
     final Object value = entry.getValueWithoutFaultInOrOffHeapEntry(region);
     if (!isValueToken(value)) {
       return value;
@@ -163,7 +160,6 @@ public final class RegionEntryUtils {
 
   public static Object getValueOrOffHeapEntry(final LocalRegion region,
       final RowLocation entry) {
-    // here will have to get version check or tx oldRegionEntry
     final Object value = entry.getValueOrOffHeapEntry(region);
     if (!isValueToken(value)) {
       return value;
@@ -230,7 +226,6 @@ public final class RegionEntryUtils {
   public static Object getValueWithoutFaultIn(
       final GemFireContainer baseContainer, final int bucketId,
       final RegionEntry entry) {
-   // here will have to get version check or tx oldRegionEntry
 
     assert bucketId != -1 : "The bucket ID should not be -1: " + baseContainer;
     // need BucketRegion only if overflow to get value

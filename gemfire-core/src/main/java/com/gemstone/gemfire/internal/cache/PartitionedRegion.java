@@ -2681,11 +2681,7 @@ public class PartitionedRegion extends LocalRegion implements
     Set<InternalDistributedMember> currentTargets = null;
     if(txProxy == null) {
       currentTarget = getNodeForBucketWrite(bucketId.intValue(), null);
-      if (prMsg.getTXState() != null && prMsg.getLockingPolicy() == LockingPolicy.SNAPSHOT) {
-        final RegionAdvisor ra = getRegionAdvisor();
-        ProxyBucketRegion pbr = ra.getProxyBucketArray()[bucketId];
-        ((TXStateProxy)prMsg.getTXState()).addAffectedRegion(pbr);
-      }
+      addAffectedRegionForSnapshotIsolation(prMsg, bucketId);
     }
     else {
       currentTargets = getAllBucketOwners(bucketId, txProxy, null, null);
@@ -2702,6 +2698,14 @@ public class PartitionedRegion extends LocalRegion implements
     return sendOrWaitForRespWithRetry(currentTarget, currentTargets, bucketId,
         prMsg, txProxy, event, null);
     // event.freeOffHeapResources called by sendOrWaitForRespWithRetry.
+  }
+
+  private void addAffectedRegionForSnapshotIsolation(PutAllPRMessage prMsg, int bucketId) {
+    if (prMsg.getTXState() != null && prMsg.getLockingPolicy() == LockingPolicy.SNAPSHOT) {
+      final RegionAdvisor ra = getRegionAdvisor();
+      ProxyBucketRegion pbr = ra.getProxyBucketArray()[bucketId];
+      ((TXStateProxy)prMsg.getTXState()).addAffectedRegion(pbr);
+    }
   }
 
   private PutAllPRMessage.PutAllResponse sendOrWaitForRespWithRetry(
@@ -2772,11 +2776,7 @@ public class PartitionedRegion extends LocalRegion implements
 
         if (txProxy == null) {
           currentTarget = waitForNodeOrCreateBucket(retryTime, event, bucketId);
-          if (prMsg.getTXState() != null && prMsg.getLockingPolicy() == LockingPolicy.SNAPSHOT) {
-            final RegionAdvisor ra = getRegionAdvisor();
-            ProxyBucketRegion pbr = ra.getProxyBucketArray()[bucketId];
-            ((TXStateProxy)prMsg.getTXState()).addAffectedRegion(pbr);
-          }
+          addAffectedRegionForSnapshotIsolation(prMsg, bucketId);
         }
         else {
           currentTargets = getAllBucketOwners(bucketId, txProxy, retryTime, event);
@@ -2868,11 +2868,7 @@ public class PartitionedRegion extends LocalRegion implements
           lastTarget = currentTarget;
           currentTarget = getNodeForBucketWrite(bucketId.intValue(), retryTime);
           currTarget = currentTarget;
-          if (prMsg.getTXState() != null && prMsg.getLockingPolicy() == LockingPolicy.SNAPSHOT) {
-            final RegionAdvisor ra = getRegionAdvisor();
-            ProxyBucketRegion pbr = ra.getProxyBucketArray()[bucketId];
-            ((TXStateProxy)prMsg.getTXState()).addAffectedRegion(pbr);
-          }
+          addAffectedRegionForSnapshotIsolation(prMsg, bucketId);
         }
         else {
           lastTarget = currentTargets;
@@ -2911,11 +2907,7 @@ public class PartitionedRegion extends LocalRegion implements
         
         if (txProxy == null) {
           currentTarget = getNodeForBucketWrite(bucketId.intValue(), retryTime);
-          if (prMsg.getTXState() != null && prMsg.getLockingPolicy() == LockingPolicy.SNAPSHOT) {
-            final RegionAdvisor ra = getRegionAdvisor();
-            ProxyBucketRegion pbr = ra.getProxyBucketArray()[bucketId];
-            ((TXStateProxy)prMsg.getTXState()).addAffectedRegion(pbr);
-          }
+          addAffectedRegionForSnapshotIsolation(prMsg, bucketId);
         }
         else {
           currentTargets = getAllBucketOwners(bucketId, txProxy, retryTime,
@@ -7128,14 +7120,7 @@ public class PartitionedRegion extends LocalRegion implements
       this.remoteEntryFetched = false;
       this.bucketIdsIter = iter;
       this.numEntries = numEntries;
-      if (false && (tx == null && getPartitionedRegion().concurrencyChecksEnabled)) {
-        getCache().getCacheTransactionManager().begin();
-        this.txState = getCache().getCacheTransactionManager().getTXState().getTXStateForRead();
-        commitOnClose = true;
-      } else {
-        this.txState = tx;
-      }
-
+      this.txState = tx;
       this.forUpdate = forUpdate;
       this.includeValues = includeValues;
       this.diskIteratorInitialized = false;
@@ -7175,13 +7160,7 @@ public class PartitionedRegion extends LocalRegion implements
       this.fetchRemoteEntries = fetchRemote;
       this.remoteEntryFetched = false;
       this.bucketIdsIter = iter;
-      if (false && (tx == null && getPartitionedRegion().concurrencyChecksEnabled)) {
-        getCache().getCacheTransactionManager().begin();
-        this.txState = getCache().getCacheTransactionManager().getTXState().getTXStateForRead();
-        commitOnClose = true;
-      } else {
-        this.txState = tx;
-      }
+      this.txState = tx;
       this.forUpdate = forUpdate;
       this.includeValues = includeValues;
       this.numEntries = numEntries;

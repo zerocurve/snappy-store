@@ -841,7 +841,6 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
           }
         }
       }
-      // For snapshot does it need to be postponed.. or we will do it only for tx operations.(most probably)
       region.recordEvent(event);
       // don't do index maintenance on a destroy if the value in the
       // RegionEntry (the old value) is invalid
@@ -934,7 +933,6 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
       if (removeEntry || forceRemoveEntry) {
         boolean isThisTombstone = isTombstone();
         if(inTokenMode && !event.getOperation().isEviction()) {
-          // here too it can be changed.
           setValue(region, Token.DESTROYED);
         } else {
 //          if (event.getRegion().getLogWriterI18n().fineEnabled()) {

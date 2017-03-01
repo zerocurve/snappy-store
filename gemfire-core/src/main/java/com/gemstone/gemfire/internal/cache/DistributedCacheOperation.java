@@ -1304,7 +1304,8 @@ public abstract class DistributedCacheOperation {
         SystemFailure.checkFailure();
         thr = t;
       } finally {
-        checkVersionIsRecorded(this.versionTag, lclRgn, event.getOperation().isEntry()?(EntryEventImpl)event: null);
+        checkVersionIsRecorded(this.versionTag, lclRgn,
+            event.getOperation().isEntry() ? (EntryEventImpl)event : null);
         if (sendReply) {
           // logger.fine("basicProcess: <" + this + ">: sending reply");
           ReplyException rex = null;
