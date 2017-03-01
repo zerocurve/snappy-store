@@ -4432,10 +4432,12 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
         int flags) {
       final LocalRegion r = event.getLocalRegion();
       final LogWriterI18n logger = r.getLogWriterI18n();
-      logger.info(LocalizedStrings.DEBUG, "destroyExistingEntry Region " + r.getFullPath()
-          + ", event: " + (LOG_FINEST ? event.toString()
-          : event.shortToString()) + " for " + event.getTXState().getTransactionId().toString()
-          +", sending it back to region for snapshot isolation.");
+      if(LOG_FINE) {
+        logger.info(LocalizedStrings.DEBUG, "destroyExistingEntry Region " + r.getFullPath()
+            + ", event: " + (LOG_FINEST ? event.toString()
+            : event.shortToString()) + " for " + event.getTXState().getTransactionId().toString()
+            + ", sending it back to region for snapshot isolation.");
+      }
       r.getSharedDataView().destroyExistingEntry(event, cacheWrite, expectedOldValue);
       return true;
     }
@@ -4495,11 +4497,12 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
         int flags) {
       final LocalRegion r = event.getLocalRegion();
       final LogWriterI18n logger = r.getLogWriterI18n();
-      logger.info(LocalizedStrings.DEBUG, "destroyExistingEntry Region " + r.getFullPath()
-          + ", event: " + (LOG_FINEST ? event.toString()
-          : event.shortToString()) + " for " + event.getTXState().getTransactionId().toString()
-          +", sending it back to region for snapshot isolation.");
-
+      if (LOG_FINE) {
+        logger.info(LocalizedStrings.DEBUG, "destroyExistingEntry Region " + r.getFullPath()
+            + ", event: " + (LOG_FINEST ? event.toString()
+            : event.shortToString()) + " for " + event.getTXState().getTransactionId().toString()
+            + ", sending it back to region for snapshot isolation.");
+      }
       r.getSharedDataView().destroyExistingEntry(event, cacheWrite, expectedOldValue);
       return true;
     }
