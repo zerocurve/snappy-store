@@ -56,12 +56,7 @@ import com.gemstone.gemfire.internal.cache.lru.LRUEntry;
 import com.gemstone.gemfire.internal.cache.tier.sockets.CacheClientNotifier;
 import com.gemstone.gemfire.internal.cache.tier.sockets.ClientProxyMembershipID;
 import com.gemstone.gemfire.internal.cache.tier.sockets.HAEventWrapper;
-import com.gemstone.gemfire.internal.cache.versions.ConcurrentCacheModificationException;
-import com.gemstone.gemfire.internal.cache.versions.RegionVersionVector;
-import com.gemstone.gemfire.internal.cache.versions.VersionHolder;
-import com.gemstone.gemfire.internal.cache.versions.VersionSource;
-import com.gemstone.gemfire.internal.cache.versions.VersionStamp;
-import com.gemstone.gemfire.internal.cache.versions.VersionTag;
+import com.gemstone.gemfire.internal.cache.versions.*;
 import com.gemstone.gemfire.internal.cache.wan.GatewaySenderEventImpl;
 import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap;
 import com.gemstone.gemfire.internal.concurrent.CustomEntryConcurrentHashMap.HashEntry;
@@ -3989,8 +3984,15 @@ RETRY_LOOP:
                           // we need to do the same for secondary as well.
                           /*oldRe = NonLocalRegionEntry.newEntry(re.getKey(), Token.TOMBSTONE,
                               owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);*/
+                          VersionTag versionTag = null;
+                          if(re.getVersionStamp().asVersionTag() instanceof DiskVersionTag) {
+                            versionTag = new DiskVersionTag();
+                          } else {
+                            versionTag = new VMVersionTag();
+                          }
+                          versionTag.setMemberID(re.getVersionStamp().asVersionTag().getMemberID());
                           oldRe = NonLocalRegionEntry.newEntry(re.getKeyCopy(), Token.TOMBSTONE,
-                              owner, re.getVersionStamp() != null ? re.getVersionStamp().asVersionTag() : null);
+                              owner, versionTag);
                           // if value already present then we should add a list of RE.
                           // TODO: SuranjanFor tx case we will have to maintain common ds.
                           //oldEntryMap.put(event.getKey(), oldRe);

@@ -1,13 +1,15 @@
 package com.pivotal.gemfirexd.transactions;
 
+import java.lang.ref.WeakReference;
 import java.sql.Connection;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.gemstone.gemfire.cache.AttributesFactory;
 import com.gemstone.gemfire.cache.IsolationLevel;
@@ -20,11 +22,8 @@ import com.gemstone.gemfire.internal.cache.RegionEntry;
 import com.gemstone.gemfire.internal.cache.TXManagerImpl;
 import com.gemstone.gemfire.internal.cache.TXState;
 import com.gemstone.gemfire.internal.cache.TXStateInterface;
-import com.gemstone.gemfire.internal.cache.TXStateProxy;
-import com.gemstone.gemfire.internal.concurrent.AL;
 import com.pivotal.gemfirexd.DistributedSQLTestBase;
 import com.pivotal.gemfirexd.TestUtil;
-import com.pivotal.gemfirexd.internal.engine.distributed.message.RegionExecutorMessage;
 import io.snappydata.test.dunit.SerializableRunnable;
 import io.snappydata.test.dunit.VM;
 
@@ -935,10 +934,154 @@ public class SnapShotTxDUnit extends DistributedSQLTestBase {
     });
   }
 
+  public void testRegionEntryGarbageCollection() throws Exception {
+    startVMs(0, 2);
+    Properties props = new Properties();
+    final Connection conn = TestUtil.getConnection(props);
+    Statement st = conn.createStatement();
+
+
+    VM server1 = this.serverVMs.get(0);
+    VM server2 = this.serverVMs.get(1);
+    server1.invoke(SnapShotTxDUnit.class, "createPR", new Object[]{regionName, 1, 1});
+    server2.invoke(SnapShotTxDUnit.class, "createPR", new Object[]{regionName, 1, 1});
+
+    server1.invoke(new SerializableRunnable() {
+      @Override
+      public void run() {
+        final GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
+        //take an snapshot again//gemfire level
+        final Region r = cache.getRegion(regionName);
+        r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+        Map map = new HashMap();
+        Integer i =new Integer(1);
+        map.put(i, new Integer(1));
+        map.put(2, 2);
+        r.putAll(map);
+        map.clear();
+        r.put(i,new Integer(3));
+
+
+        r.put(i, new Integer(4));
+        r.put(i,new Integer(5));
+        Map<Object, Set<WeakReference<RegionEntry>>> oldEntries = cache
+            .getOldEntriesForRegion("_B__T1_0");
+        assertNotNull(oldEntries.get(1).iterator().next().get());
+        // even before commit it should be visible
+        i=null;
+        System.gc();
+        oldEntries = cache.getOldEntriesForRegion("_B__T1_0");
+        //Should not be null as the transaction is currently active
+        assertNotNull(oldEntries.get(1).iterator().next().get());
+        r.getCache().getCacheTransactionManager().commit();
+        System.gc();
+        try {
+          Thread.sleep(1000);
+          System.gc();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        oldEntries = cache.getOldEntriesForRegion("_B__T1_0");
+        System.out.println("Oldentries"+oldEntries);
+        //Should be null as no transaction is active and we have executed System.gc
+        assertNull(oldEntries.get(1).iterator().next().get());
+        assertEquals(cache.getCacheTransactionManager().getHostedTransactionsInProgress().size(), 0);
+        assertNull(cache.getCacheTransactionManager().getCurrentTXState());
+
+      }
+    });
+  }
+
+  public void testGettingProperVersion() throws Exception {
+    startVMs(0, 2);
+    Properties props = new Properties();
+    final Connection conn = TestUtil.getConnection(props);
+    conn.createStatement();
+
+
+    VM server1 = this.serverVMs.get(0);
+    VM server2 = this.serverVMs.get(1);
+    server1.invoke(SnapShotTxDUnit.class, "createPR", new Object[]{regionName, 1, 1});
+    server2.invoke(SnapShotTxDUnit.class, "createPR", new Object[]{regionName, 1, 1});
+
+    server1.invoke(new SerializableRunnable() {
+      @Override
+      public void run() {
+        final GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
+        //take an snapshot again//gemfire level
+        final Region r = cache.getRegion(regionName);
+        //itr will work on a snapshot.
+        // read the entries
+        r.put(1, 1);// get don't need to take from snapshot
+        r.put(2, 2);// get don't need to take from snapshot
+        r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+
+        TXStateInterface txstate = TXManagerImpl.getCurrentTXState();
+        Iterator txitr = txstate.getLocalEntriesIterator(null, false, false, true, (LocalRegion)r);
+        Iterator itr = ((LocalRegion)r).getSharedDataView().getLocalEntriesIterator(null, false, false, true, (LocalRegion)r);
+        // after this start another insert in a separate thread and those put shouldn't be visible
+        Runnable run = new Runnable() {
+          @Override
+          public void run() {
+            //itr will work on a snapshot.
+            r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+            r.put(1, 3);
+            r.put(1, 4);
+            //r.destroy(1);
+            r.getCache().getCacheTransactionManager().commit();
+          }
+        };
+        Thread t = new Thread(run);
+        t.start();
+        try {
+          t.join();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+
+        int num = 0;
+
+        while (txitr.hasNext()) {
+          RegionEntry re = (RegionEntry)txitr.next();
+          if (!re.isTombstone()) {
+            num++;
+            // 1,1 and 2,2
+            assertEquals(re.getKey(), re.getValue(null));
+
+          }
+        }
+        assertEquals(2, num);
+
+        r.getCache().getCacheTransactionManager().commit();
+
+         num = 0;
+        r.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
+        txstate = TXManagerImpl.getCurrentTXState();
+        txitr = txstate.getLocalEntriesIterator(null, false, false, true, (LocalRegion)r);
+        while (txitr.hasNext()) {
+          RegionEntry re = (RegionEntry)txitr.next();
+          if (!re.isTombstone()) {
+            num++;
+            // 1,1 and 2,2
+            if((Integer)re.getKey()==2) {
+              assertEquals(re.getKey(), re.getValue(null));
+            }else if((Integer)re.getKey()==1) {
+              assertEquals(re.getKey(), 1);
+              assertEquals(re.getValue(null), 4);
+            }
+
+          }
+        }
+        r.getCache().getCacheTransactionManager().commit();
+
+      }
+    });
+
+  }
+
   @Override
   public String getLogLevel() {
     return "fine";
   }
-
 }
 
