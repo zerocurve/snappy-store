@@ -32,6 +32,7 @@ import java.io.Reader;
 import java.io.StringBufferInputStream;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.URL;
@@ -183,7 +184,9 @@ import com.gemstone.gemfire.internal.cache.tier.sockets.CacheClientNotifier;
 import com.gemstone.gemfire.internal.cache.tier.sockets.CacheClientProxy;
 import com.gemstone.gemfire.internal.cache.tier.sockets.ClientHealthMonitor;
 import com.gemstone.gemfire.internal.cache.tier.sockets.ClientProxyMembershipID;
+import com.gemstone.gemfire.internal.cache.versions.RegionVersionHolder;
 import com.gemstone.gemfire.internal.cache.versions.RegionVersionVector;
+import com.gemstone.gemfire.internal.cache.versions.VersionSource;
 import com.gemstone.gemfire.internal.cache.versions.VersionTag;
 import com.gemstone.gemfire.internal.cache.wan.AbstractGatewaySender;
 import com.gemstone.gemfire.internal.cache.wan.GatewayReceiverFactoryImpl;
@@ -563,54 +566,70 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   private GemFireMemcachedServer memcachedServer;
 
   private String vmIdRegionPath;
-
+/*
   protected volatile ConcurrentHashMap<String, CustomEntryConcurrentHashMap<Object,
-      NavigableSet<Object>/*RegionEntry*/>> oldEntryMap;
-  private Comparator regionEntryVersionComparator = new Comparator<RegionEntry>() {
-    @Override
-    public int compare(RegionEntry o1, RegionEntry o2) {
-      return ((Long)o1.getVersionStamp().getRegionVersion()).compareTo(o2.getVersionStamp()
-          .getRegionVersion());
-    }
-  };
+      NavigableSet<Object>*//*RegionEntry*//*>> oldEntryMap;*/
+ protected volatile HashMap<String, WeakHashMap<Object, Set<WeakReference<RegionEntry>>
+    /*RegionEntry*/>>  oldEntryMap;
 
   public void addOldEntry(RegionEntry oldRe, String regionName) {
-
     if (oldEntryMap.containsKey(regionName)) {
 
       if (!this.oldEntryMap.get(regionName).containsKey(oldRe.getKeyCopy())) {
-        NavigableSet listOfOldEntries = new TreeSet<RegionEntry>(regionEntryVersionComparator);
-        listOfOldEntries.add(oldRe);
+        Set listOfOldEntries = new HashSet<WeakReference<RegionEntry>>();
+        listOfOldEntries.add(new WeakReference<RegionEntry>(oldRe));
         //this.oldEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
+
         this.oldEntryMap.get(regionName).put(oldRe.getKeyCopy(), listOfOldEntries);
       } else {
-        this.oldEntryMap.get(regionName).get(oldRe.getKeyCopy()).add(oldRe);
+        this.oldEntryMap.get(regionName).get(oldRe.getKeyCopy()).add(new WeakReference<RegionEntry>
+            (oldRe));
       }
     } else {
-      NavigableSet listOfOldEntries = new TreeSet<RegionEntry>(regionEntryVersionComparator);
-      CustomEntryConcurrentHashMap regionEntryMap = new CustomEntryConcurrentHashMap<Object,
-          NavigableSet<Object>>();
-      listOfOldEntries.add(oldRe);
+      Set listOfOldEntries = new HashSet<WeakReference<RegionEntry>>();
+      WeakHashMap regionEntryMap = new WeakHashMap<Object, Set<WeakReference<RegionEntry>>>();
+      listOfOldEntries.add(new WeakReference<RegionEntry>(oldRe));
       regionEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
       this.oldEntryMap.put(regionName, regionEntryMap);
     }
-  }
-
-  //TODO: For now this method will return only first element in the set
-  final Object readOldEntry(String regionName, final Object entryKey,
-      final boolean checkValid) {
-    if (oldEntryMap.containsKey(regionName) && this.oldEntryMap.get(regionName).containsKey(entryKey)) {
-      return oldEntryMap.get(regionName).get(entryKey).last();
-    } else {
-      return null;
+    for(TXStateProxy txProxy:getTxManager().getHostedTransactionsInProgress()) {
+      txProxy.getLocalTXState().addRegionEntryReference(oldRe);
     }
   }
 
   //TODO: This method is currently not in use but is need in future when concurrent write is
   // supported
-  final Object readOldEntry(String regionName , final Object entryKey,
-      final RegionEntry version, final boolean checkValid) {
-    return oldEntryMap.get(regionName).get(entryKey).lower(version);
+  final Object readOldEntry(Region region , final Object entryKey,
+      final Map<String, Map<VersionSource,RegionVersionHolder>> snapshot, final boolean
+      checkValid, RegionEntry re) {
+    String regionName = region.getName();
+    if(re.getVersionStamp().getEntryVersion()==1) {
+
+      RegionEntry oldRegionEntry = oldEntryMap.get(regionName).get(entryKey).iterator().next().get();
+      assert oldRegionEntry.isTombstone();
+      return oldRegionEntry;
+    } else {
+
+      TXState txstate = TXManagerImpl.getCurrentTXState().getLocalTXState();
+      List<RegionEntry> oldEntries = new ArrayList<>();
+      for (WeakReference<RegionEntry> value : oldEntryMap.get(regionName).get(entryKey)) {
+        if (txstate.checkEntryVersion(region, value.get())) {
+          oldEntries.add(value.get());
+        }
+      }
+      //TODO: returned entry should have entry version one less than the passed region entry
+      // in case of non tx writes.
+      RegionEntry max = null;
+      for (RegionEntry entry : oldEntries) {
+        if (null == max) {
+          max = entry;
+        } else if (max.getVersionStamp().getEntryVersion() <= entry.getVersionStamp()
+            .getEntryVersion()) {
+          max = entry;
+        }
+      }
+      return max;
+    }
   }
 
   /**
@@ -771,7 +790,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     this.cacheConfig = cacheConfig; // do early for bug 43213
 
     //this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
-    this.oldEntryMap = new ConcurrentHashMap<>();
+    this.oldEntryMap = new HashMap<>();
     // initialize advisor for normal DMs immediately
     InternalDistributedSystem ids = (InternalDistributedSystem)system;
     StaticSystemCallbacks sysCallbacks = getInternalProductCallbacks();
@@ -6098,6 +6117,10 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       }
     }
     return false;
+  }
+
+  public Map getOldEntriesForRegion(String regionName) {
+    return oldEntryMap.get(regionName);
   }
 
 }

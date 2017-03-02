@@ -17,6 +17,7 @@
 
 package com.gemstone.gemfire.internal.cache;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -107,6 +108,7 @@ public final class TXState implements TXStateInterface {
   // in this VM.
   private final ConcurrentTHashSet<TXRegionState> regions;
 
+  private List<RegionEntry> regionEntryRef = new ArrayList<RegionEntry>();
   static final TXRegionState[] ZERO_REGIONS = new TXRegionState[0];
 
   /** the set of regions that will be committed or rolled back */
@@ -3769,7 +3771,7 @@ public final class TXState implements TXStateInterface {
             // the re has not been modified by this tx
             // check the re version with the snapshot version and then search in oldEntry
             if (dataRegion.getVersionVector() != null && !checkEntryVersion(dataRegion, re)) {
-              return getOldVersionedEntry(dataRegion, key);
+              return getOldVersionedEntry(dataRegion, key, re);
             }
           }
         } finally {
@@ -3784,7 +3786,7 @@ public final class TXState implements TXStateInterface {
       }
       if (dataRegion.getVersionVector() != null) {
         if (!checkEntryVersion(dataRegion, re)) {
-          return getOldVersionedEntry(dataRegion, key);
+          return getOldVersionedEntry(dataRegion, key, re);
         }
       }
     }
@@ -3793,9 +3795,9 @@ public final class TXState implements TXStateInterface {
 
   // Writer should add old entry with tombstone with region version in the common map
   // wait till writer has written to common old entry map.
-  private Object getOldVersionedEntry(LocalRegion dataRegion, Object key){
-    RegionEntry oldEntry = (RegionEntry)getCache().readOldEntry(dataRegion.getName(), key,
-        true);
+  private Object getOldVersionedEntry(LocalRegion dataRegion, Object key, RegionEntry re){
+    RegionEntry oldEntry = (RegionEntry)getCache().readOldEntry(dataRegion, key, snapshot,
+        true, re);
     if (oldEntry != null) {
       return oldEntry;
     } else {
@@ -3813,14 +3815,14 @@ public final class TXState implements TXStateInterface {
 
       // For Transaction NONE we can get locally. For tx isolation level RC/RR
       // we will have to get from a common DS.
-      while (getCache().readOldEntry(dataRegion.getName(), key, true) == null) {
+      while (getCache().readOldEntry(dataRegion, key, snapshot, true, re) == null) {
         try {
           Thread.sleep(10);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
-      return getCache().readOldEntry(dataRegion.getName(), key, true);
+      return getCache().readOldEntry(dataRegion, key, snapshot, true, re);
     }
   }
 
@@ -3840,11 +3842,16 @@ public final class TXState implements TXStateInterface {
       }
     }
 
-    RegionVersionHolder holder = this.snapshot.get(region.getFullPath()).get(id);
-    if (holder == null) {
+
+    if (this.snapshot.get(region.getFullPath()) != null) {
+      RegionVersionHolder holder = this.snapshot.get(region.getFullPath()).get(id);
+      if (holder == null) {
         return false;
+      } else {
+        return holder.contains(version);
+      }
     } else {
-      return holder.contains(version);
+      return false;
     }
   }
 
@@ -3856,7 +3863,7 @@ public final class TXState implements TXStateInterface {
    * @param entry
    * @return
    */
-  public boolean checkEntryVersion(Region region, AbstractRegionEntry entry) {
+  public boolean checkEntryVersion(Region region, RegionEntry entry) {
     if (getCache().snaphshotEnabled() && ((LocalRegion)region).concurrencyChecksEnabled) {
       VersionStamp stamp = entry.getVersionStamp();
       VersionSource id = stamp.getMemberID();
@@ -3989,4 +3996,7 @@ public final class TXState implements TXStateInterface {
     }
   }
 
+  public void addRegionEntryReference(RegionEntry re) {
+    regionEntryRef.add(re);
+  }
 }
