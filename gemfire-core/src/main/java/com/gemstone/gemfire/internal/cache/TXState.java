@@ -3831,14 +3831,16 @@ public final class TXState implements TXStateInterface {
    *
    * @return true if this vector has seen the given version
    */
-  public boolean isVersionInSnapshot(Region region, VersionSource id, long version) {
+  private boolean isVersionInSnapshot(Region region, VersionSource id, long version) {
     // For snapshot we don't  need to check from the current version
     for(String regionName : snapshot.keySet()) {
       final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
-      logger.fine(" the snapshot is for region  " + regionName + " is : "
-          + snapshot.get(regionName) + " txstate " + this + " snapshot is " + Integer.toHexString(System.identityHashCode(snapshot)));
+      if (TXStateProxy.LOG_FINE) {
+        logger.info(LocalizedStrings.DEBUG, "The snapshot is for region  " + regionName + " is : "
+            + snapshot.get(regionName) + " txstate " + this + " snapshot is " +
+            Integer.toHexString(System.identityHashCode(snapshot)));
+      }
     }
-
 
     if (this.snapshot.get(region.getFullPath()) != null) {
       RegionVersionHolder holder = this.snapshot.get(region.getFullPath()).get(id);
@@ -3869,13 +3871,15 @@ public final class TXState implements TXStateInterface {
       if (id == null) {
         // locally generated.
         id = InternalDistributedSystem.getAnyInstance().getDistributedMember();
+
       }
       // if rvv is not present then
       if (snapshot != null) {
         if (TXStateProxy.LOG_FINE) {
           final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
           logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
-              + region.getFullPath() + " RegionEntry(" + entry + stamp.getRegionVersion());
+              + region.getFullPath() + " RegionEntry(" + entry  + ") with version" + stamp
+              .getRegionVersion());
         }
         if (isVersionInSnapshot(((LocalRegion)region), id, stamp.getRegionVersion())) {
           return true;
@@ -3883,8 +3887,8 @@ public final class TXState implements TXStateInterface {
       }
       if (TXStateProxy.LOG_FINE) {
         final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
-        logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region returning false."
-            );
+        logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region " + region.getFullPath() +
+                " returning false.");
       }
       return false;
     }

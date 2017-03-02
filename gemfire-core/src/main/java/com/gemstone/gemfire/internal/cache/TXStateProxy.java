@@ -3305,6 +3305,14 @@ public class TXStateProxy extends NonReentrantReadWriteLock implements
     }
   }
 
+  final public boolean isClosed() {
+    final State state = this.state.get();
+    if (state == State.CLOSED) {
+      return true;
+    }
+    return false;
+  }
+
   final void checkTXState() throws TransactionException {
     final LogWriterI18n logger = getTxMgr().getLogger();
 

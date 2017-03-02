@@ -755,7 +755,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
       if (tx != null) {
         tx.recordVersionForSnapshot(member, version, event.getRegion());
         if (logger.fineEnabled()) {
-          logger.fine(" Recording version: " + version + " in the snapshot tx " +
+          logger.fine("Recording version: " + version + " in the snapshot tx " +
               " region " + event.getRegion() + " for tx " + tx);
         }
         return;
