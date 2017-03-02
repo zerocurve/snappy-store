@@ -592,8 +592,10 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       regionEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
       this.oldEntryMap.put(regionName, regionEntryMap);
     }
-    for(TXStateProxy txProxy:getTxManager().getHostedTransactionsInProgress()) {
-      txProxy.getLocalTXState().addRegionEntryReference(oldRe);
+    for (TXStateProxy txProxy : getTxManager().getHostedTransactionsInProgress()) {
+      if (txProxy.getLocalTXState() != null) {
+        txProxy.getLocalTXState().addRegionEntryReference(oldRe);
+      }
     }
   }
 
