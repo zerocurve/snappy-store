@@ -574,7 +574,6 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 
   public void addOldEntry(RegionEntry oldRe, String regionName) {
     if (oldEntryMap.containsKey(regionName)) {
-
       if (!this.oldEntryMap.get(regionName).containsKey(oldRe.getKeyCopy())) {
         Set listOfOldEntries = new HashSet<WeakReference<RegionEntry>>();
         listOfOldEntries.add(new WeakReference<RegionEntry>(oldRe));
@@ -592,24 +591,25 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       regionEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
       this.oldEntryMap.put(regionName, regionEntryMap);
     }
-    for(TXStateProxy txProxy:getTxManager().getHostedTransactionsInProgress()) {
+    for (TXStateProxy txProxy : getTxManager().getHostedTransactionsInProgress()) {
       txProxy.getLocalTXState().addRegionEntryReference(oldRe);
     }
   }
 
   //TODO: This method is currently not in use but is need in future when concurrent write is
   // supported
-  final Object readOldEntry(Region region , final Object entryKey,
-      final Map<String, Map<VersionSource,RegionVersionHolder>> snapshot, final boolean
+  final Object readOldEntry(Region region, final Object entryKey,
+      final Map<String, Map<VersionSource, RegionVersionHolder>> snapshot, final boolean
       checkValid, RegionEntry re) {
     String regionName = region.getName();
-    if(re.getVersionStamp().getEntryVersion()==1) {
-
-      RegionEntry oldRegionEntry = oldEntryMap.get(regionName).get(entryKey).iterator().next().get();
-      assert oldRegionEntry.isTombstone();
+    if (re.getVersionStamp().getEntryVersion() == 1) {
+      RegionEntry oldRegionEntry = NonLocalRegionEntry.newEntry(re.getKeyCopy(), Token.TOMBSTONE,
+          (LocalRegion)region, re.getVersionStamp().asVersionTag());
+      // In some cases, persistence, GII old Entry may not be present
+      //RegionEntry oldRegionEntry = oldEntryMap.get(regionName).get(entryKey).iterator().next().get();
+      //assert oldRegionEntry.isTombstone();
       return oldRegionEntry;
     } else {
-
       TXState txstate = TXManagerImpl.getCurrentTXState().getLocalTXState();
       List<RegionEntry> oldEntries = new ArrayList<>();
       for (WeakReference<RegionEntry> value : oldEntryMap.get(regionName).get(entryKey)) {
@@ -1266,13 +1266,17 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       for (LocalRegion region : getApplicationRegions()) {
         if (region.getPartitionAttributes() != null && ((PartitionedRegion)region).isDataStore()
             && ((PartitionedRegion)region).concurrencyChecksEnabled) {
-
+          region.waitForData();
           for (BucketRegion br : ((PartitionedRegion)region).getDataStore().getAllLocalBucketRegions()) {
             // if null then create the rvv for that bucket.!
+            // For Initialization case, so that we have all the data before snapshot.
+            br.waitForData();
             snapshot.put(br.getFullPath(), br.getVersionVector().getSnapShotOfMemberVersion());
           }
         } else if (region.getVersionVector() != null) {
           // if null then create the rvv for that region.!
+          // For Initialization case, so that we have all the data before snapshot.
+          region.waitForData();
           snapshot.put(region.getFullPath(), region.getVersionVector().getSnapShotOfMemberVersion());
         }
       }

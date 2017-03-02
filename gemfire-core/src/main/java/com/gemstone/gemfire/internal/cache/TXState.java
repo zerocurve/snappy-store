@@ -3796,7 +3796,7 @@ public final class TXState implements TXStateInterface {
   // Writer should add old entry with tombstone with region version in the common map
   // wait till writer has written to common old entry map.
   private Object getOldVersionedEntry(LocalRegion dataRegion, Object key, RegionEntry re){
-    RegionEntry oldEntry = (RegionEntry)getCache().readOldEntry(dataRegion, key, snapshot,
+    Object oldEntry = getCache().readOldEntry(dataRegion, key, snapshot,
         true, re);
     if (oldEntry != null) {
       return oldEntry;
@@ -3815,14 +3815,15 @@ public final class TXState implements TXStateInterface {
 
       // For Transaction NONE we can get locally. For tx isolation level RC/RR
       // we will have to get from a common DS.
-      while (getCache().readOldEntry(dataRegion, key, snapshot, true, re) == null) {
+      while ((oldEntry = getCache().readOldEntry(dataRegion, key, snapshot, true, re)) == null) {
         try {
+          //TODO: Should we wait indefinitely?
           Thread.sleep(10);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
-      return getCache().readOldEntry(dataRegion, key, snapshot, true, re);
+      return oldEntry;
     }
   }
 
