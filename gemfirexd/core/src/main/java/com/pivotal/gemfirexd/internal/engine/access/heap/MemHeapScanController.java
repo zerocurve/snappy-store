@@ -544,7 +544,6 @@ public class MemHeapScanController implements MemScanController, RowCountable,
       this.templateCompactExecRow = null;
     }
 
-
     if (snashotTxStarted) {
       // clear the txState so that other thread local is cleared.
       TXManagerImpl.getOrCreateTXContext().clearTXState();
@@ -1074,6 +1073,7 @@ public class MemHeapScanController implements MemScanController, RowCountable,
     this.lcc = null;
     this.txId = null;
     this.txState = null;
+    //TODO: Suranjan if the tx has been started for snapshot then clean it from hostedTxState too.
     this.readLockMode = null;
     this.localTXState = null;
     this.lockContext = null;

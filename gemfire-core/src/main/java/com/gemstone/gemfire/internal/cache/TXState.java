@@ -3826,15 +3826,18 @@ public final class TXState implements TXStateInterface {
 
   /**
    * Test to see if this vector has seen the given version.
-   *
+   * It should also include any changes done by this tx.
    * @return true if this vector has seen the given version
    */
   public boolean isVersionInSnapshot(Region region, VersionSource id, long version) {
     // For snapshot we don't  need to check from the current version
     for(String regionName : snapshot.keySet()) {
       final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
-      logger.fine(" the snapshot is for region  " + regionName + " is : "
-          + snapshot.get(regionName) + " txstate " + this + " snapshot is " + Integer.toHexString(System.identityHashCode(snapshot)));
+      if(logger.fineEnabled()) {
+        logger.fine(" the snapshot is for region  " + regionName + " is : "
+            + snapshot.get(regionName) + " txstate " + this + " snapshot is " +
+            Integer.toHexString(System.identityHashCode(snapshot)));
+      }
     }
 
     RegionVersionHolder holder = this.snapshot.get(region.getFullPath()).get(id);
@@ -3855,13 +3858,13 @@ public final class TXState implements TXStateInterface {
    */
   public boolean checkEntryVersion(Region region, AbstractRegionEntry entry) {
     if (getCache().snaphshotEnabled() && ((LocalRegion)region).concurrencyChecksEnabled) {
-      VersionStamp stamp = ((RegionEntry)entry).getVersionStamp();
-
+      VersionStamp stamp = entry.getVersionStamp();
       VersionSource id = stamp.getMemberID();
       // could be diskID or memeberID
       if (id == null) {
         // locally generated.
         id = InternalDistributedSystem.getAnyInstance().getDistributedMember();
+
       }
       // if rvv is not present then
       if (snapshot != null) {
@@ -3870,14 +3873,13 @@ public final class TXState implements TXStateInterface {
           logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
               + region.getFullPath() + " RegionEntry(" + entry + stamp.getRegionVersion());
         }
-        if (isVersionInSnapshot(((LocalRegion)region), id, stamp.getRegionVersion())) {
+        if (isVersionInSnapshot(region, id, stamp.getRegionVersion())) {
           return true;
         }
       }
       if (TXStateProxy.LOG_FINE) {
         final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
-        logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region returning false."
-            );
+        logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region returning false.");
       }
       return false;
     }
