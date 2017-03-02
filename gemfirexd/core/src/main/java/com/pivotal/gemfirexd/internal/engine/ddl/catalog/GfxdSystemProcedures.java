@@ -64,6 +64,7 @@ import com.pivotal.gemfirexd.internal.engine.ddl.catalog.messages.GfxdSystemProc
 import com.pivotal.gemfirexd.internal.engine.ddl.resolver.GfxdPartitionByExpressionResolver;
 import com.pivotal.gemfirexd.internal.engine.ddl.wan.messages.AbstractGfxdReplayableMessage;
 import com.pivotal.gemfirexd.internal.engine.distributed.AckResultCollector;
+import com.pivotal.gemfirexd.internal.engine.distributed.GfxdDistributionAdvisor;
 import com.pivotal.gemfirexd.internal.engine.distributed.GfxdMessage;
 import com.pivotal.gemfirexd.internal.engine.distributed.QueryCancelFunction;
 import com.pivotal.gemfirexd.internal.engine.distributed.QueryCancelFunction.QueryCancelFunctionArgs;
@@ -1354,7 +1355,8 @@ public class GfxdSystemProcedures extends SystemProcedures {
       int[] bucketCount,
       String[] partColumns,
       String[] indexColumns,
-      Clob[] bucketToServerMapping)
+      Clob[] bucketToServerMapping,
+      int[] relationDestroyVersion)
       throws SQLException {
     String schema;
     String table;
@@ -1425,6 +1427,11 @@ public class GfxdSystemProcedures extends SystemProcedures {
         }
       }
     }
+
+    final GfxdDistributionAdvisor.GfxdProfile profile = GemFireXDUtils.
+        getGfxdProfile(Misc.getMyId());
+    relationDestroyVersion[0] = profile.getRelationDestroyVersion();
+
   }
 
   private static void getPRMetaData(final PartitionedRegion region,
@@ -1480,7 +1487,8 @@ public class GfxdSystemProcedures extends SystemProcedures {
    * @param region
    * @throws StandardException
    */
-  public static void getIndexColumns(String[] indexColumns, LocalRegion region) throws StandardException {
+  public static void getIndexColumns(String[] indexColumns, LocalRegion region)
+      throws StandardException {
     GemFireContainer container = (GemFireContainer)region.getUserAttribute();
     TableDescriptor td = container.getTableDescriptor();
     String cols = null;
@@ -1527,13 +1535,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
         mode.getBytes(1, (int)mode.length()), options.getBytes(1, (int)options.length()),
         isBuiltIn, false, null, null);
 
-    LeadNodeSmartConnectorOpMsg msg = new LeadNodeSmartConnectorOpMsg(ctx,
-        AckResultCollector.INSTANCE);
-    try {
-      msg.executeFunction();
-    } catch(StandardException se) {
-      throw PublicAPI.wrapStandardException(se);
-    }
+    sendConnectorOpToLead(ctx);
   }
 
   public static void DROP_SNAPPY_TABLE(String tableIdentifier,
@@ -1547,13 +1549,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
         tableIdentifier, null, null, null, null, null, true, ifExists,
         null, null);
 
-    LeadNodeSmartConnectorOpMsg msg = new LeadNodeSmartConnectorOpMsg(ctx,
-        AckResultCollector.INSTANCE);
-    try {
-      msg.executeFunction();
-    } catch(StandardException se) {
-      throw PublicAPI.wrapStandardException(se);
-    }
+    sendConnectorOpToLead(ctx);
   }
 
   public static void CREATE_SNAPPY_INDEX(
@@ -1572,13 +1568,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
         options.getBytes(1, (int)options.length()), true, false,
         indexIdentifier, indexColumns.getBytes(1, (int)indexColumns.length()));
 
-    LeadNodeSmartConnectorOpMsg msg = new LeadNodeSmartConnectorOpMsg(ctx,
-        AckResultCollector.INSTANCE);
-    try {
-      msg.executeFunction();
-    } catch(StandardException se) {
-      throw PublicAPI.wrapStandardException(se);
-    }
+    sendConnectorOpToLead(ctx);
 
   }
 
@@ -1594,6 +1584,11 @@ public class GfxdSystemProcedures extends SystemProcedures {
         null, null, null, null, null, null, true, ifExists,
         indexIdentifier, null);
 
+    sendConnectorOpToLead(ctx);
+  }
+
+  private static void sendConnectorOpToLead(LeadNodeSmartConnectorOpContext ctx)
+      throws SQLException {
     LeadNodeSmartConnectorOpMsg msg = new LeadNodeSmartConnectorOpMsg(ctx,
         AckResultCollector.INSTANCE);
     try {
@@ -1602,6 +1597,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
       throw PublicAPI.wrapStandardException(se);
     }
   }
+
 
   /**
    * Create all buckets in the given table.
@@ -2263,10 +2259,21 @@ public class GfxdSystemProcedures extends SystemProcedures {
 	 */
 
 	public static void SET_BUCKETS_FOR_LOCAL_EXECUTION(String tableName,
-			String buckets) throws SQLException, StandardException {
+			String buckets, int relationDestroyVersion)
+      throws SQLException, StandardException {
 		if (tableName == null) {
 			throw Util.generateCsSQLException(SQLState.ENTITY_NAME_MISSING);
 		}
+
+    final GfxdDistributionAdvisor.GfxdProfile profile = GemFireXDUtils.
+        getGfxdProfile(Misc.getMyId());
+    final int actualVersion = profile.getRelationDestroyVersion();
+
+    if ((relationDestroyVersion != -1) &&
+        (actualVersion != relationDestroyVersion)) {
+      throw StandardException.newException(SQLState.SNAPPY_RELATION_DESTROY_VERSION_MISMATCH);
+    }
+
 		Region region = Misc.getRegionForTable(tableName, true);
 		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         Set<Integer> bucketSet = new HashSet();

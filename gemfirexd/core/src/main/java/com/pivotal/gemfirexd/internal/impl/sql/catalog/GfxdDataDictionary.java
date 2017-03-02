@@ -1579,10 +1579,12 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
     
     {
         // void SET_BUCKETS_FOR_LOCAL_EXECUTION(TableName, buckets)
-        String[] argNames = new String[] { "TABLE_NAME", "BUCKETS"};
+        String[] argNames = new String[] { "TABLE_NAME", "BUCKETS",
+        "RELATION_DESTROY_VERSIONS"};
         TypeDescriptor[] argTypes = new TypeDescriptor[] {
             DataTypeDescriptor.getCatalogType(Types.VARCHAR),
-            DataTypeDescriptor.getCatalogType(Types.VARCHAR)
+            DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+            DataTypeDescriptor.getCatalogType(Types.INTEGER)
             };
         super.createSystemProcedureOrFunction("SET_BUCKETS_FOR_LOCAL_EXECUTION", sysUUID, argNames,
             argTypes, 0, 0, RoutineAliasInfo.NO_SQL, null, newlyCreatedRoutines,
@@ -1630,16 +1632,18 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
       // GET_TABLE_METADATA
       String[] arg_names = new String[] { "TABLE_NAME",
           "TABLE_OBJECT", "BUCKET_COUNT", "PARTITIONING_COLUMNS",
-          "INDEX_COLUMNS", "BUCKET_TO_SERVER_MAPPING"};
+          "INDEX_COLUMNS", "BUCKET_TO_SERVER_MAPPING",
+          "RELATION_DESTROY_VERSION" };
       TypeDescriptor[] arg_types = new TypeDescriptor[] { DataTypeDescriptor
           .getCatalogType(Types.VARCHAR),
           DataTypeDescriptor.getCatalogType(Types.BLOB),
           DataTypeDescriptor.getCatalogType(Types.INTEGER),
           DataTypeDescriptor.getCatalogType(Types.VARCHAR),
           DataTypeDescriptor.getCatalogType(Types.VARCHAR),
-          DataTypeDescriptor.getCatalogType(Types.CLOB)};
+          DataTypeDescriptor.getCatalogType(Types.CLOB),
+          DataTypeDescriptor.getCatalogType(Types.INTEGER)};
       super.createSystemProcedureOrFunction("GET_TABLE_METADATA",
-          sysUUID, arg_names, arg_types, 5, 0, RoutineAliasInfo.READS_SQL_DATA, null,
+          sysUUID, arg_names, arg_types, 6, 0, RoutineAliasInfo.READS_SQL_DATA, null,
           newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
     }
 

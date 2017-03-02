@@ -713,7 +713,6 @@ Guide.
                 <text>HDFS file rollover is supported only for write-only HDFS tables. '{0}' is not a write-only HDFS table.</text>
                 <arg>fqtn</arg>
            </msg>
-           
 <!--  GemStone changes END -->
         </family>
 
@@ -4542,6 +4541,10 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
             <msg>
                 <name>XCL56.S</name>
                 <text>The statement has been cancelled due to a user request.</text>
+            </msg>
+            <msg>
+                <name>XCL57</name>
+                <text>Table schema changed(due to DROP/CREATE/ALTER operation). Please retry the query</text>
             </msg>
 <!--  GemStone changes END -->
 
