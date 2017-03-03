@@ -569,7 +569,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 /*
   protected volatile ConcurrentHashMap<String, CustomEntryConcurrentHashMap<Object,
       NavigableSet<Object>*//*RegionEntry*//*>> oldEntryMap;*/
- protected volatile HashMap<String, WeakHashMap<Object, Set<WeakReference<RegionEntry>>
+ protected volatile HashMap<String, ConcurrentHashMap<Object, Set<WeakReference<RegionEntry>>
     /*RegionEntry*/>>  oldEntryMap;
 
   public void addOldEntry(RegionEntry oldRe, String regionName) {
@@ -579,7 +579,6 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
         Set listOfOldEntries = new HashSet<WeakReference<RegionEntry>>();
         listOfOldEntries.add(new WeakReference<RegionEntry>(oldRe));
         //this.oldEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
-
         this.oldEntryMap.get(regionName).put(oldRe.getKeyCopy(), listOfOldEntries);
       } else {
         this.oldEntryMap.get(regionName).get(oldRe.getKeyCopy()).add(new WeakReference<RegionEntry>
@@ -587,7 +586,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       }
     } else {
       Set listOfOldEntries = new HashSet<WeakReference<RegionEntry>>();
-      WeakHashMap regionEntryMap = new WeakHashMap<Object, Set<WeakReference<RegionEntry>>>();
+      ConcurrentHashMap regionEntryMap = new ConcurrentHashMap<Object, Set<WeakReference<RegionEntry>>>();
       listOfOldEntries.add(new WeakReference<RegionEntry>(oldRe));
       regionEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
       this.oldEntryMap.put(regionName, regionEntryMap);
@@ -606,10 +605,11 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       checkValid, RegionEntry re) {
     String regionName = region.getName();
     if(re.getVersionStamp().getEntryVersion()==1) {
-
-      RegionEntry oldRegionEntry = oldEntryMap.get(regionName).get(entryKey).iterator().next().get();
+      return NonLocalRegionEntry.newEntry(re.getKeyCopy(), Token.TOMBSTONE, (LocalRegion)region, re
+          .getVersionStamp().asVersionTag());
+      /*RegionEntry oldRegionEntry = oldEntryMap.get(regionName).get(entryKey).iterator().next().get();
       assert oldRegionEntry.isTombstone();
-      return oldRegionEntry;
+      return oldRegionEntry;*/
     } else {
 
       TXState txstate = TXManagerImpl.getCurrentTXState().getLocalTXState();
