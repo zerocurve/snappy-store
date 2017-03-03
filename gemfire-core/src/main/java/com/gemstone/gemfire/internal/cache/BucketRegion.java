@@ -779,7 +779,6 @@ public class BucketRegion extends DistributedRegion implements Bucket {
         getCache().notifyRvvTestHook();
         getCache().waitOnRvvSnapshotTestHook();
       }
-      // provide a callback  to separate these two operations to test the snapshot
       destroyAllEntries(keysToDestroy);
       // create new batchUUID
       generateAndSetBatchIDIfNULL(true);

@@ -3796,7 +3796,7 @@ public final class TXState implements TXStateInterface {
   // Writer should add old entry with tombstone with region version in the common map
   // wait till writer has written to common old entry map.
   private Object getOldVersionedEntry(LocalRegion dataRegion, Object key, RegionEntry re){
-    RegionEntry oldEntry = (RegionEntry)getCache().readOldEntry(dataRegion, key, snapshot,
+    Object oldEntry = getCache().readOldEntry(dataRegion, key, snapshot,
         true, re);
     if (oldEntry != null) {
       return oldEntry;
@@ -3815,26 +3815,28 @@ public final class TXState implements TXStateInterface {
 
       // For Transaction NONE we can get locally. For tx isolation level RC/RR
       // we will have to get from a common DS.
-      while (getCache().readOldEntry(dataRegion, key, snapshot, true, re) == null) {
+      while ((oldEntry = getCache().readOldEntry(dataRegion, key, snapshot, true, re)) == null) {
         try {
+          //TODO: Should we wait indefinitely?
           Thread.sleep(10);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
-      return getCache().readOldEntry(dataRegion, key, snapshot, true, re);
+      return oldEntry;
     }
   }
 
   /**
    * Test to see if this vector has seen the given version.
-   *
+   * It should also include any changes done by this tx.
    * @return true if this vector has seen the given version
    */
   private boolean isVersionInSnapshot(Region region, VersionSource id, long version) {
     // For snapshot we don't  need to check from the current version
     for(String regionName : snapshot.keySet()) {
       final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
+
       if (TXStateProxy.LOG_FINE) {
         logger.info(LocalizedStrings.DEBUG, "The snapshot is for region  " + regionName + " is : "
             + snapshot.get(regionName) + " txstate " + this + " snapshot is " +
@@ -3864,8 +3866,7 @@ public final class TXState implements TXStateInterface {
    */
   public boolean checkEntryVersion(Region region, RegionEntry entry) {
     if (getCache().snaphshotEnabled() && ((LocalRegion)region).concurrencyChecksEnabled) {
-      VersionStamp stamp = ((RegionEntry)entry).getVersionStamp();
-
+      VersionStamp stamp = entry.getVersionStamp();
       VersionSource id = stamp.getMemberID();
       // could be diskID or memeberID
       if (id == null) {
@@ -3881,7 +3882,7 @@ public final class TXState implements TXStateInterface {
               + region.getFullPath() + " RegionEntry(" + entry  + ") with version" + stamp
               .getRegionVersion());
         }
-        if (isVersionInSnapshot(((LocalRegion)region), id, stamp.getRegionVersion())) {
+        if (isVersionInSnapshot(region, id, stamp.getRegionVersion())) {
           return true;
         }
       }
