@@ -2900,11 +2900,12 @@ public final class GemFireTransaction extends RawTransaction implements
       final TXId txId) throws StandardException {
     if (this.txManager != null) {
       final TXStateInterface tx = this.txState;
-      if (tx != null && tx != TXStateProxy.TX_NOT_SET) {
+      final TXStateInterface gemfireTx = TXManagerImpl.snapshotTxState.get();
+
+      if (tx != null && tx != TXStateProxy.TX_NOT_SET && gemfireTx != tx) {
         this.txManager.commit(tx, this.connectionID, TXManagerImpl.FULL_COMMIT,
             null, false);
       }
-      final TXStateInterface gemfireTx = TXManagerImpl.snapshotTxState.get();
       // now start tx for every operation.
       if (isolationLevel != IsolationLevel.NONE /*|| isSnapshotEnabled()*/) {
 
@@ -3405,8 +3406,7 @@ public final class GemFireTransaction extends RawTransaction implements
 
   private final TXStateInterface getActiveTXState(final TXStateInterface myTX) {
     final IsolationLevel isolationLevel = this.isolationLevel;
-    final TXStateInterface gfTx = TXManagerImpl.snapshotTxState
-                .get();
+    final TXStateInterface gfTx = TXManagerImpl.snapshotTxState.get();
     if (isolationLevel != IsolationLevel.NONE) {
       if (myTX != null && myTX != TXStateProxy.TX_NOT_SET) {
         return myTX;
