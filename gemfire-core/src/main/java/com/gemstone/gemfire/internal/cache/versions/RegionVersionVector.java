@@ -232,16 +232,6 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     return ((CopyOnWriteHashMap)memberToVersionSnapshot).getInnerMap();
   }
 
-  /**
-   * Retrieve a vector that can be used as a SnapShot information.
-   * Basically we need low cost copy of memberToVersion and localVersion.
-   * Also calling method should synchronize on cache level lock
-   * if it wants consistent view of snapshot across cache
-   */
-  public Map<T, RegionVersionHolder<T>> getCopyOfSnapShotOfMemberVersion() {
-
-    return ((CopyOnWriteHashMap)memberToVersionSnapshot);
-  }
   protected abstract RegionVersionVector<T> createCopy(T ownerId,
       ConcurrentHashMap<T, RegionVersionHolder<T>> vector, long version,
       ConcurrentHashMap<T, Long> gcVersions, long gcVersion, boolean singleMember,
@@ -482,7 +472,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
    * Return the next version number for given remote VersionSource (assumes that
    * given member is a remote one).
    */
-  public final long getNextRemoteVersion(T mbr) {
+  public final long getNextRemoteVersion(T mbr, EntryEventImpl event) {
     if (this.locked) {
       // this should never be the case. If version generation is locked and we
       // get here then the path to this point is not protected by getting the
@@ -515,6 +505,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
 
     final long version = holder.getNextAndRecordVersion(logger);
     // Update the version holder
+    recordVersionForSnapshot(mbr, version, event);
     if (DEBUG && logger != null) {
       logger.info(LocalizedStrings.DEBUG, "recorded next rv" + version
           + " for " + mbr);
@@ -663,6 +654,8 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
           }
         }
       }
+
+      reInitializeSnapshotRvv();
     }
   }
   
@@ -1731,11 +1724,53 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
   }
 
   public void reInitializeSnapshotRvv() {
+    LogWriterI18n logger = getLoggerI18n();
+    if (DEBUG && logger != null) {
+      logger.info(LocalizedStrings.DEBUG, "reInitializing the snapshot rvv, current: " +
+          this.memberToVersionSnapshot + " with : " + memberToGCVersion);
+    }
+
     this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>(memberToVersion);
+
+    // update the snapshot with local version too
+    RegionVersionHolder holder = localExceptions.clone();
+    holder.id = myId;
+    holder.version = localVersion.get();
+    this.memberToVersionSnapshot.put(myId, holder);
+
   }
 
 
   //Test methods
+  public RegionVersionVector<T> getReinitializedSnapshotRVV() {
+    LogWriterI18n logger = getLoggerI18n();
+    ConcurrentHashMap<T, RegionVersionHolder<T>> copySnapshot =
+        new ConcurrentHashMap<T, RegionVersionHolder<T>>(memberToVersion);
+
+    if (DEBUG && logger != null) {
+      logger.info(LocalizedStrings.DEBUG, "reInitializing the snapshot rvv, current: " +
+          copySnapshot + " with : " + memberToGCVersion);
+    }
+
+    // update the snapshot with local version too
+    RegionVersionHolder holder = localExceptions.clone();
+    holder.id = myId;
+    holder.version = localVersion.get();
+    copySnapshot.put(myId, holder);
+
+    return createCopy(this.myId, copySnapshot, this.localVersion.get(),
+        getMemberToGCVersionTest(), this.localGCVersion.get(), false,
+        holder);
+  }
+
+  public ConcurrentHashMap<T, Long> getMemberToGCVersionTest() {
+    ConcurrentHashMap<T, Long> results = new ConcurrentHashMap<T, Long>(memberToGCVersion);
+    if(localGCVersion.get() > 0) {
+      results.put(getOwnerId(), localGCVersion.get());
+    }
+    return results;
+  }
+
   public void recordVersion(T member, long version) {
     recordVersion(member, version, null);
   }
@@ -1750,5 +1785,15 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
 
   public void recordVersions(RegionVersionVector<T> rvv) {
     recordVersions(rvv, null);
+  }
+
+  /**
+   * Retrieve a vector that can be used as a SnapShot information.
+   * Basically we need low cost copy of memberToVersion and localVersion.
+   * Also calling method should synchronize on cache level lock
+   * if it wants consistent view of snapshot across cache
+   */
+  public ConcurrentHashMap<T, RegionVersionHolder<T>> getCopyOfSnapShotOfMemberVersion() {
+    return new ConcurrentHashMap<>(memberToVersionSnapshot);
   }
 }

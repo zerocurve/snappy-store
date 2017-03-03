@@ -2076,7 +2076,7 @@ public abstract class AbstractRegionEntry extends ExclusiveSharedSynchronizer
       if (region.getVersionVector() != null) {
         if (isRemoteVersionSource) {
           tag.setRegionVersion(region.getVersionVector().getNextRemoteVersion(
-              mbr));
+              mbr, event));
         }
         else {
           tag.setRegionVersion(region.getVersionVector().getNextVersion(event));
