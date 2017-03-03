@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.BitSet;
 import java.util.Map;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import junit.framework.TestCase;
 
@@ -70,7 +71,34 @@ public class RegionVersionVectorJUnitTest extends TestCase {
     
     assertTrue(rvv.sameAs(rvv2));
   }
-  
+
+  public void testRVVSnapshot() throws IOException, ClassNotFoundException {
+    DiskStoreID ownerId = new DiskStoreID(0, 0);
+    DiskStoreID id1 = new DiskStoreID(0, 1);
+    DiskStoreID id2 = new DiskStoreID(1, 0);
+
+    DiskRegionVersionVector rvv = new DiskRegionVersionVector(ownerId);
+
+    rvv.recordVersion(id1, 2);
+    rvv.recordVersion(id1, 1);
+    rvv.recordVersion(id1, 7);
+    rvv.recordVersion(id1, 9);
+    rvv.recordVersion(id1, 20);
+    rvv.recordVersion(id1, 11);
+    rvv.recordVersion(id1, 12);
+    rvv.recordGCVersion(id2, 5);
+    rvv.recordGCVersion(id1, 3);
+
+    ConcurrentHashMap<DiskStoreID, RegionVersionHolder<DiskStoreID>> vector = rvv.getCopyOfSnapShotOfMemberVersion();
+    ConcurrentHashMap<DiskStoreID, Long> gcVersions = rvv.getMemberToGCVersionTest();
+    DiskRegionVersionVector snapShotRvv = new DiskRegionVersionVector(ownerId, vector, rvv.getCurrentVersion(),
+        gcVersions, rvv.getGCVersion(null), false, rvv.getLocalExceptions());
+
+    assertTrue(rvv.sameAs(snapShotRvv));
+  }
+
+
+
   /**
    * Test that we can copy the member to version map correctly.
    */
