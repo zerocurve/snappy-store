@@ -602,7 +602,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   // supported
   final Object readOldEntry(Region region, final Object entryKey,
       final Map<String, Map<VersionSource, RegionVersionHolder>> snapshot, final boolean
-      checkValid, RegionEntry re) {
+      checkValid, RegionEntry re, TXState txState) {
     String regionName = region.getName();
     if (re.getVersionStamp().getEntryVersion() == 1) {
       RegionEntry oldRegionEntry = NonLocalRegionEntry.newEntry(re.getKeyCopy(), Token.TOMBSTONE,
@@ -612,10 +612,9 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       //assert oldRegionEntry.isTombstone();
       return oldRegionEntry;
     } else {
-      TXState txstate = TXManagerImpl.getCurrentTXState().getLocalTXState();
       List<RegionEntry> oldEntries = new ArrayList<>();
       for (WeakReference<RegionEntry> value : oldEntryMap.get(regionName).get(entryKey)) {
-        if (txstate.checkEntryVersion(region, value.get())) {
+        if (txState.checkEntryVersion(region, value.get())) {
           oldEntries.add(value.get());
         }
       }

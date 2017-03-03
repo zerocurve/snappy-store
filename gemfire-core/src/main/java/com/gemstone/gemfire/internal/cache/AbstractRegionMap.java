@@ -3941,30 +3941,16 @@ RETRY_LOOP:
                   try {
                     try {
                       RegionEntry oldRe = null;
+                      if (shouldCopyOldEntry(owner,event)) {
+                        // we need to do the same for secondary as well.
+                        // need to set the version information.
+                        oldRe = NonLocalRegionEntry.newEntry(re, event.getRegion(), true);
+                      }
                       if ((cacheWrite && event.getOperation().isUpdate()) // if there is a cacheWriter, type of event has already been set
                           || !re.isRemoved()
                           || replaceOnClient) {
-                        // update
-                        if (shouldCopyOldEntry(owner,event)) {
-                          // we need to do the same for secondary as well.
-                          // need to set the version information.
-                          oldRe = NonLocalRegionEntry.newEntry(re, event.getRegion(), true);
-                        }
                         updateEntry(event, requireOldValue, oldValueForDelta, re);
                       } else {
-                        if (shouldCopyOldEntry(owner,event)) {
-                          // we need to do the same for secondary as well.
-                          VersionTag versionTag = null;
-                          if(re.getVersionStamp().asVersionTag() instanceof DiskVersionTag) {
-                            versionTag = new DiskVersionTag();
-                          } else {
-                            versionTag = new VMVersionTag();
-                          }
-                          versionTag.setMemberID(re.getVersionStamp().asVersionTag().getMemberID());
-                          oldRe = NonLocalRegionEntry.newEntry(re.getKeyCopy(), Token.TOMBSTONE,
-                              owner, versionTag);
-
-                        }
                         // create
                         createEntry(event, owner, re);
                       }

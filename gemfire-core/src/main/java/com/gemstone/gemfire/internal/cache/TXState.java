@@ -3797,7 +3797,7 @@ public final class TXState implements TXStateInterface {
   // wait till writer has written to common old entry map.
   private Object getOldVersionedEntry(LocalRegion dataRegion, Object key, RegionEntry re){
     Object oldEntry = getCache().readOldEntry(dataRegion, key, snapshot,
-        true, re);
+        true, re, this);
     if (oldEntry != null) {
       return oldEntry;
     } else {
@@ -3815,7 +3815,8 @@ public final class TXState implements TXStateInterface {
 
       // For Transaction NONE we can get locally. For tx isolation level RC/RR
       // we will have to get from a common DS.
-      while ((oldEntry = getCache().readOldEntry(dataRegion, key, snapshot, true, re)) == null) {
+      while ((oldEntry = getCache().readOldEntry(dataRegion, key, snapshot, true, re, this)) ==
+          null) {
         try {
           //TODO: Should we wait indefinitely?
           Thread.sleep(10);
