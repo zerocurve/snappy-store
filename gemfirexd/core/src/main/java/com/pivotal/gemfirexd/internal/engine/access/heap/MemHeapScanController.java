@@ -375,7 +375,7 @@ public class MemHeapScanController implements MemScanController, RowCountable,
 
     this.txState = this.gfContainer.getActiveTXState(this.tran);
 
-    final boolean restoreBatching;
+    boolean restoreBatching;
     if (this.txState != null) {
       // TODO: Suranjan take snapshot, each time we open a scan controller.
       this.txId = this.txState.getTransactionId();
@@ -406,8 +406,14 @@ public class MemHeapScanController implements MemScanController, RowCountable,
       }
     }
     else {
+      // Start snapshot tx only for read operations.
       if (region.getConcurrencyChecksEnabled() &&
-          (region.getCache().getCacheTransactionManager().getTXState() == null)) {
+          (region.getCache().getCacheTransactionManager().getTXState() == null) && (this.forUpdate == 0)) {
+        if (GemFireXDUtils.TraceQuery) {
+          SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_QUERYDISTRIB,
+              "MemHeapScanController scanning table: " + this.regionName
+                  + ", openMode=" + openMode + " starting the gemfire snapshot tx.");
+        }
         // We can begin each time as we have to clear below as we don't know when commit will take place.
         region.getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);
         this.txState = region.getCache().getCacheTransactionManager().getTXState();
@@ -551,6 +557,13 @@ public class MemHeapScanController implements MemScanController, RowCountable,
       if (!(this.getGemFireContainer().isRowBuffer() && lcc.isSkipConstraintChecks())) {
         TXManagerImpl.snapshotTxState.set(null);
       }
+      this.txState = null;
+      this.localTXState = null;
+      this.txId = null;
+      this.lockPolicy = null;
+      this.readLockMode = null;
+      this.lockContext = null;
+      restoreBatching = true;
       snashotTxStarted = false;
     }
   }

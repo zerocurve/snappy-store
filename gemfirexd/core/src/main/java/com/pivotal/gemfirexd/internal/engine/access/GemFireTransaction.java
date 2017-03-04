@@ -2890,6 +2890,13 @@ public final class GemFireTransaction extends RawTransaction implements
   @Override
   public void beginTransaction(final IsolationLevel isolationLevel)
       throws StandardException {
+    if (GemFireXDUtils.TraceTran || GemFireXDUtils.TraceQuery
+        || GemFireXDUtils.TraceNCJ) {
+      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_TRAN,
+          "GemFireTransaction: beginTransaction: "
+              + " requested isolation "
+              + isolationLevel);
+    }
     beginTransaction(isolationLevel, null);
   }
 
