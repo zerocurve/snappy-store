@@ -32,7 +32,7 @@ import com.pivotal.gemfirexd.internal.iapi.services.sanity.SanityManager;
  */
 public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
 
-  public enum OpType {CREATE_TABLE, DROP_TABLE, CREATE_INDEX, DROP_INDEX}
+  public enum OpType { CREATE_TABLE, DROP_TABLE, CREATE_INDEX, DROP_INDEX, CREATE_UDF, DROP_UDF }
 
   private OpType type;
 
@@ -49,6 +49,13 @@ public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
   private String indexIdentifier; //set only by index operations
   private byte[] indexColumns; //set only by index operations
 
+  private String db; // for udf
+  private String functionName; // for udf
+  private String className; // for udf
+  private byte[] funcResources; // for udf
+
+
+
   public LeadNodeSmartConnectorOpContext() {
 
   }
@@ -63,7 +70,7 @@ public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
       Boolean isBuiltIn,
       Boolean ifExists,
       String indexIdentifier,
-      byte[] indexColumns) {
+      byte[] indexColumns, String db, String functionName, String className, byte[] funcResources) {
     this.type = type;
     this.tableIdentifier = tableIdentifier;
     this.provider = provider;
@@ -75,6 +82,10 @@ public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
     this.ifExists = ifExists;
     this.indexIdentifier = indexIdentifier;
     this.indexColumns = indexColumns;
+    this.db = db;
+    this.functionName = functionName;
+    this.className = className;
+    this.funcResources = funcResources;
   }
 
   @Override
@@ -100,6 +111,10 @@ public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
     DataSerializer.writeByteArray(options, out);
     DataSerializer.writeBoolean(isBuiltIn, out);
     DataSerializer.writeBoolean(ifExists, out);
+    DataSerializer.writeString(db, out);
+    DataSerializer.writeString(functionName, out);
+    DataSerializer.writeString(className, out);
+    DataSerializer.writeByteArray(funcResources, out);
   }
 
   @Override
@@ -115,6 +130,10 @@ public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
     this.options = DataSerializer.readByteArray(in);
     this.isBuiltIn = DataSerializer.readBoolean(in);
     this.ifExists = DataSerializer.readBoolean(in);
+    this.db = DataSerializer.readString(in);
+    this.functionName = DataSerializer.readString(in);
+    this.className = DataSerializer.readString(in);
+    this.funcResources = DataSerializer.readByteArray(in);
   }
 
   @Override
@@ -163,6 +182,14 @@ public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
   }
 
   public byte[] getIndexColumns() { return indexColumns; }
+
+  public String getDb() { return db;}
+
+  public String getFunctionName() { return functionName; }
+
+  public String getClassName() { return className; }
+
+  public byte[] getFuncResources() { return funcResources; }
 
 
 }

@@ -1702,6 +1702,30 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
     }
 
     {
+      // CREATE_SNAPPY_UDF
+      String[] arg_names = new String[] { "DB", "FUNCTION_NAME", "CLASS_NAME", "FUNCTION_RESOURCES"};
+      TypeDescriptor[] arg_types = new TypeDescriptor[] {
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.BLOB)};
+      super.createSystemProcedureOrFunction("CREATE_SNAPPY_UDF",
+          sysUUID, arg_names, arg_types, 0, 0, RoutineAliasInfo.READS_SQL_DATA, null,
+          newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
+    }
+
+    {
+      // DROP_SNAPPY_UDF
+      String[] arg_names = new String[] { "DB", "FUNCTION_NAME"};
+      TypeDescriptor[] arg_types = new TypeDescriptor[] {
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR),
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR)};
+      super.createSystemProcedureOrFunction("DROP_SNAPPY_UDF",
+          sysUUID, arg_names, arg_types, 0, 0, RoutineAliasInfo.READS_SQL_DATA, null,
+          newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
+    }
+
+    {
       // GET_BUCKET_TO_SERVER_MAPPING
       String[] arg_names = new String[] { "FQTN", "BKT_TO_SERVER_MAPPING" };
       TypeDescriptor[] arg_types = new TypeDescriptor[] { DataTypeDescriptor

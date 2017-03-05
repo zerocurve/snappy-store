@@ -1533,7 +1533,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
         LeadNodeSmartConnectorOpContext.OpType.CREATE_TABLE,
         tableIdentifier, provider, userSpecifiedSchema, schemaDDL,
         mode.getBytes(1, (int)mode.length()), options.getBytes(1, (int)options.length()),
-        isBuiltIn, false, null, null);
+        isBuiltIn, false, null, null, null, null, null, null);
 
     sendConnectorOpToLead(ctx);
   }
@@ -1547,7 +1547,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
     LeadNodeSmartConnectorOpContext ctx = new LeadNodeSmartConnectorOpContext(
         LeadNodeSmartConnectorOpContext.OpType.DROP_TABLE,
         tableIdentifier, null, null, null, null, null, true, ifExists,
-        null, null);
+        null, null, null, null, null, null);
 
     sendConnectorOpToLead(ctx);
   }
@@ -1566,7 +1566,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
         LeadNodeSmartConnectorOpContext.OpType.CREATE_INDEX,
         tableIdentifier, null, null, null, null,
         options.getBytes(1, (int)options.length()), true, false,
-        indexIdentifier, indexColumns.getBytes(1, (int)indexColumns.length()));
+        indexIdentifier, indexColumns.getBytes(1, (int)indexColumns.length()), null, null, null, null);
 
     sendConnectorOpToLead(ctx);
 
@@ -1582,7 +1582,35 @@ public class GfxdSystemProcedures extends SystemProcedures {
     LeadNodeSmartConnectorOpContext ctx = new LeadNodeSmartConnectorOpContext(
         LeadNodeSmartConnectorOpContext.OpType.DROP_INDEX,
         null, null, null, null, null, null, true, ifExists,
-        indexIdentifier, null);
+        indexIdentifier, null, null, null, null, null);
+
+    sendConnectorOpToLead(ctx);
+  }
+
+  public static void CREATE_SNAPPY_UDF(String db, String functionName,
+      String className, Blob funcResources) throws SQLException {
+    if (GemFireXDUtils.TraceSysProcedures) {
+      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
+          "executing CREATE_SNAPPY_UDF ");
+    }
+    LeadNodeSmartConnectorOpContext ctx = new LeadNodeSmartConnectorOpContext(
+        LeadNodeSmartConnectorOpContext.OpType.CREATE_UDF,
+        null, null, null, null, null, null, true, false, null, null,
+        db, functionName, className, funcResources.getBytes(1, (int)funcResources.length()));
+
+    sendConnectorOpToLead(ctx);
+  }
+
+  public static void DROP_SNAPPY_UDF(String db, String functionName) throws SQLException {
+    if (GemFireXDUtils.TraceSysProcedures) {
+      SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
+          "executing DROP_SNAPPY_UDF ");
+    }
+
+    LeadNodeSmartConnectorOpContext ctx = new LeadNodeSmartConnectorOpContext(
+        LeadNodeSmartConnectorOpContext.OpType.DROP_UDF,
+        null, null, null, null, null, null, true, false, null, null,
+        db, functionName, null, null);
 
     sendConnectorOpToLead(ctx);
   }
