@@ -689,17 +689,11 @@ public class GenericStatement
 					}
 					catch(StandardException ex) {
 						if (routeQuery) {
-<<<<<<< HEAD
-							return getPreparedStatementForSnappy(true, statementContext, lcc, false,
-									checkCancellation, false);
-||||||| merged common ancestors
-							return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
-=======
                                                        if (observer != null) {
                                                          observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
                                                        }
-							return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
->>>>>>> snappy/master
+							return getPreparedStatementForSnappy(true, statementContext, lcc, false,
+									checkCancellation, false);
 						}
 						throw ex;
 					}
@@ -764,17 +758,11 @@ public class GenericStatement
 					}
 					catch(StandardException ex) {
 						if (routeQuery) {
-<<<<<<< HEAD
-							return getPreparedStatementForSnappy(true, statementContext, lcc, false,
-									checkCancellation, false);
-||||||| merged common ancestors
-							return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
-=======
                                                        if (observer != null) {
                                                          observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
                                                        }
-							return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
->>>>>>> snappy/master
+							return getPreparedStatementForSnappy(true, statementContext, lcc, false,
+									checkCancellation, false);
 						}
 						throw ex;
 					}
@@ -929,17 +917,11 @@ public class GenericStatement
                 messgId.equals(SQLState.COLOCATION_CRITERIA_UNSATISFIED) ||
                 messgId.equals(SQLState.REPLICATED_PR_CORRELATED_UNSUPPORTED) ||
                 messgId.equals(SQLState.NOT_IMPLEMENTED))) {
-<<<<<<< HEAD
-            return getPreparedStatementForSnappy(true, statementContext, lcc, false,
-								checkCancellation, false);
-||||||| merged common ancestors
-            return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
-=======
             if (observer != null) {
               observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
             }
-            return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
->>>>>>> snappy/master
+            return getPreparedStatementForSnappy(true, statementContext, lcc, false,
+								checkCancellation, false);
           }
 // GemStone changes END
 					lcc.commitNestedTransaction();
