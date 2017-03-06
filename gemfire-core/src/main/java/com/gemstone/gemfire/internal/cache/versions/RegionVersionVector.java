@@ -665,6 +665,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
       if (!mbr.equals(this.myId)) {
         h = otherHolder.clone();
         h.makeReadyForRecording();
+        h.id = mbr;
         this.memberToVersion.put(mbr, h);
       } else {
         RegionVersionHolder<T> vh = otherHolder;
