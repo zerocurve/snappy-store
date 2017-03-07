@@ -569,24 +569,23 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 /*
   protected volatile ConcurrentHashMap<String, CustomEntryConcurrentHashMap<Object,
       NavigableSet<Object>*//*RegionEntry*//*>> oldEntryMap;*/
- protected volatile HashMap<String, ConcurrentHashMap<Object, Set<WeakReference<RegionEntry>>
+ protected volatile HashMap<String, ConcurrentHashMap<Object, Set<RegionEntry>
     /*RegionEntry*/>>  oldEntryMap;
 
   public void addOldEntry(RegionEntry oldRe, String regionName) {
     if (oldEntryMap.containsKey(regionName)) {
       if (!this.oldEntryMap.get(regionName).containsKey(oldRe.getKeyCopy())) {
-        Set listOfOldEntries = new HashSet<WeakReference<RegionEntry>>();
-        listOfOldEntries.add(new WeakReference<RegionEntry>(oldRe));
+        Set listOfOldEntries = new HashSet<RegionEntry>();
+        listOfOldEntries.add((oldRe));
         //this.oldEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
         this.oldEntryMap.get(regionName).put(oldRe.getKeyCopy(), listOfOldEntries);
       } else {
-        this.oldEntryMap.get(regionName).get(oldRe.getKeyCopy()).add(new WeakReference<RegionEntry>
-            (oldRe));
+        this.oldEntryMap.get(regionName).get(oldRe.getKeyCopy()).add((oldRe));
       }
     } else {
       Set listOfOldEntries = new HashSet<WeakReference<RegionEntry>>();
-      ConcurrentHashMap regionEntryMap = new ConcurrentHashMap<Object, Set<WeakReference<RegionEntry>>>();
-      listOfOldEntries.add(new WeakReference<RegionEntry>(oldRe));
+      ConcurrentHashMap regionEntryMap = new ConcurrentHashMap<Object, Set<RegionEntry>>();
+      listOfOldEntries.add((oldRe));
       regionEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
       this.oldEntryMap.put(regionName, regionEntryMap);
     }
@@ -613,9 +612,9 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       return oldRegionEntry;
     } else {
       List<RegionEntry> oldEntries = new ArrayList<>();
-      for (WeakReference<RegionEntry> value : oldEntryMap.get(regionName).get(entryKey)) {
-        if (txState.checkEntryVersion(region, value.get())) {
-          oldEntries.add(value.get());
+      for (RegionEntry value : oldEntryMap.get(regionName).get(entryKey)) {
+        if (txState.checkEntryVersion(region, value)) {
+          oldEntries.add(value);
         }
       }
       //TODO: returned entry should have entry version one less than the passed region entry
