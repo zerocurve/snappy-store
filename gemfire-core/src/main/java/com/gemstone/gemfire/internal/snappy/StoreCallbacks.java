@@ -18,6 +18,7 @@
 package com.gemstone.gemfire.internal.snappy;
 
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
@@ -46,4 +47,6 @@ public interface StoreCallbacks {
   void registerRelationDestroyForHiveStore();
 
   int getLastIndexOfRow(Object o);
+
+  boolean skipAuthForHiveMetaStore(Properties userInfo);
 }

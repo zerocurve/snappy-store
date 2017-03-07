@@ -19,6 +19,7 @@ package com.gemstone.gemfire.internal.snappy;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
@@ -78,6 +79,11 @@ public abstract class CallbackFactoryProvider {
     public int getLastIndexOfRow(Object o) {
       throw new UnsupportedOperationException("unexpected invocation for "
           + toString());
+    }
+
+    @Override
+    public boolean skipAuthForHiveMetaStore(Properties userInfo) {
+      return false;
     }
   };
 

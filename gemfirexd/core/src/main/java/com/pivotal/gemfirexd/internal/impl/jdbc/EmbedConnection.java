@@ -77,6 +77,8 @@ import com.gemstone.gemfire.internal.concurrent.ConcurrentTLongObjectHashMap;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.shared.FinalizeHolder;
 import com.gemstone.gemfire.internal.shared.FinalizeObject;
+import com.gemstone.gemfire.internal.snappy.CallbackFactoryProvider;
+import com.gemstone.gemfire.internal.snappy.StoreCallbacks;
 import com.gemstone.gemfire.internal.util.ArrayUtils;
 import com.gemstone.gnu.trove.THashMap;
 import com.gemstone.gnu.trove.TLongArrayList;
@@ -126,6 +128,8 @@ import com.pivotal.gemfirexd.internal.impl.jdbc.authentication.NoneAuthenticatio
 import com.pivotal.gemfirexd.internal.impl.sql.GenericStatement;
 import com.pivotal.gemfirexd.internal.impl.sql.conn.GenericLanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.jdbc.InternalDriver;
+import com.pivotal.gemfirexd.internal.snappy.ClusterCallbacks;
+
 /**
  * Local implementation of Connection for a JDBC driver in 
  * the same process as the database.
@@ -1245,6 +1249,12 @@ public abstract class EmbedConnection implements EngineConnection
 									  Properties userInfo)
 	  throws SQLException
 	{
+		if (CallbackFactoryProvider.getStoreCallbacks().skipAuthForHiveMetaStore(userInfo) && Misc
+				.getMemStore().isSnappyStore()) {
+			Misc.getI18NLogWriter().info(LocalizedStrings.DEBUG, "ABS proceeding without auth, dbname" +
+					" " +	dbname);
+			return;
+		}
 		if (SanityManager.DEBUG_ASSERT)
 			SanityManager.ASSERT(!isClosed(), "connection is closed");
 

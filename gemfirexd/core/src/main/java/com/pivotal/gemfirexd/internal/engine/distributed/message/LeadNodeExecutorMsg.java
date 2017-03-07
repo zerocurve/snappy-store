@@ -67,6 +67,11 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
   public LeadNodeExecutorMsg(String sql, String schema, LeadNodeExecutionContext ctx,
       GfxdResultCollector<Object> rc) {
     super(rc, null, false, true);
+    StackTraceElement[] st = Thread.currentThread().getStackTrace();
+//    System.out.println(Thread.currentThread().getName() + " ABS LeadNodeExecutorMsg");
+//    for (StackTraceElement ste : st) {
+//      System.out.println(ste);
+//    }
     this.schema = schema;
     this.sql = sql;
     this.ctx = ctx;

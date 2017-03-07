@@ -17,7 +17,11 @@
 
 package com.pivotal.gemfirexd.internal.engine.sql.execute;
 
+import com.gemstone.gemfire.i18n.StringIdImpl;
 import com.gemstone.gemfire.internal.cache.LocalRegion;
+import com.gemstone.gemfire.internal.cache.ha.ThreadIdentifier;
+import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
+import com.pivotal.gemfirexd.Attribute;
 import com.pivotal.gemfirexd.internal.catalog.ExternalCatalog;
 import com.pivotal.gemfirexd.internal.engine.GfxdConstants;
 import com.pivotal.gemfirexd.internal.engine.Misc;
@@ -43,6 +47,7 @@ import com.pivotal.gemfirexd.internal.snappy.LeadNodeExecutionContext;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Properties;
 import java.util.Vector;
 
 /**
@@ -53,6 +58,7 @@ public class SnappyActivation extends BaseActivation {
   volatile AbstractGemFireResultSet currentRS = null;
   private String sql;
   boolean returnRows;
+  private Properties connProps;
 
   public SnappyActivation(LanguageConnectionContext lcc, ExecPreparedStatement eps, boolean returnRows) {
     super(lcc);
@@ -65,6 +71,10 @@ public class SnappyActivation extends BaseActivation {
   @Override
   public void setupActivation(final ExecPreparedStatement ps,
       final boolean scrollable, final String stmt_text) throws StandardException {
+  }
+
+  public void setConnProps(Properties p) {
+    this.connProps = p;
   }
 
 
@@ -120,7 +130,8 @@ public class SnappyActivation extends BaseActivation {
     boolean enableStreaming = this.lcc.streamingEnabled();
     GfxdResultCollector<Object> rc = null;
     rc = getResultCollector(enableStreaming, rs);
-    executeOnLeadNode(rs, rc, sql, enableStreaming, this.getConnectionID(), this.lcc.getCurrentSchemaName());
+    executeOnLeadNode(rs, rc, sql, enableStreaming, this.getConnectionID(), this.lcc
+        .getCurrentSchemaName(), this.connProps);
   }
 
   protected GfxdResultCollector<Object> getResultCollector(
@@ -226,9 +237,29 @@ public class SnappyActivation extends BaseActivation {
   public static void executeOnLeadNode(SnappySelectResultSet rs, GfxdResultCollector<Object> rc, String sql,
       boolean enableStreaming, long connId, String schema)
       throws StandardException {
+    executeOnLeadNode(rs, rc, sql, enableStreaming, connId, schema, null);
+  }
+
+  public static void executeOnLeadNode(SnappySelectResultSet rs, GfxdResultCollector<Object> rc, String sql,
+    boolean enableStreaming, long connId, String schema, Properties p)
+    throws StandardException {
     // TODO: KN probably username, statement id and connId to be sent in
     // execution and of course tx id when transaction will be supported.
-    LeadNodeExecutionContext ctx = new LeadNodeExecutionContext(connId);
+    if (p != null) {
+      String u = p.getProperty(Attribute.USERNAME_ATTR);
+      String pas = p.getProperty(Attribute.PASSWORD_ATTR);
+      Misc.getI18NLogWriter().info(LocalizedStrings.DEBUG, "ABS " +
+          "snappyactivation" +
+          " username, " +
+          "password " + u + ", " + pas);
+    } else {
+      Misc.getI18NLogWriter().info(LocalizedStrings.DEBUG, "ABS snappyactivation passing null " +
+          "properties to lead");
+      for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
+        System.out.println("  " + ste);
+      }
+    }
+    LeadNodeExecutionContext ctx = new LeadNodeExecutionContext(connId, p);
     LeadNodeExecutorMsg msg = new LeadNodeExecutorMsg(sql, schema, ctx, rc);
     try {
       msg.executeFunction(enableStreaming, false, rs, true);
