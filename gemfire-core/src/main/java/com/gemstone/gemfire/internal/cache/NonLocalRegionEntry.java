@@ -75,6 +75,28 @@ public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
     }
   }
 
+  protected NonLocalRegionEntry(RegionEntry re, LocalRegion br,
+      boolean allowTombstones, boolean faultInValue) {
+    this.key = re.getKeyCopy();
+    // client get() operations need to see tombstone values
+    if (allowTombstones && re.isTombstone()) {
+      this.value = Token.TOMBSTONE;
+    } else {
+      if (faultInValue)
+        this.value = re.getValue(br); // OFFHEAP: copy into heap cd
+      else
+        this.value = re.getValueInVMOrDiskWithoutFaultIn(br);
+    }
+    Assert.assertTrue(this.value != Token.NOT_AVAILABLE,
+        "getEntry did not fault value in from disk");
+    this.lastModified = re.getLastModified();
+    this.isRemoved = re.isRemoved();
+    VersionStamp<?> stamp = re.getVersionStamp();
+    if (stamp != null) {
+      this.versionTag = stamp.asVersionTag();
+    }
+  }
+
   /* If below is enabled then use the factory methods below to work correctly
    * for GemFireXD
    *
@@ -135,6 +157,17 @@ public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
     }
     else {
       return sysCb.newNonLocalRegionEntry(re, region, allowTombstones);
+    }
+  }
+
+  public static NonLocalRegionEntry newEntryWithoutFaultIn(RegionEntry re,
+      LocalRegion region, boolean allowTombstones) {
+    final StaticSystemCallbacks sysCb = FactoryStatics.systemCallbacks;
+    if (sysCb == null) {
+      return new NonLocalRegionEntry(re, region, allowTombstones, false);
+    }
+    else {
+      return sysCb.newNonLocalRegionEntry(re, region, allowTombstones, false);
     }
   }
 

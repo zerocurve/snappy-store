@@ -5652,6 +5652,8 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     public NonLocalRegionEntry newNonLocalRegionEntry(RegionEntry re,
         LocalRegion region, boolean allowTombstones);
 
+    public NonLocalRegionEntry newNonLocalRegionEntry(RegionEntry re,
+        LocalRegion region, boolean allowTombstones, boolean faultInValue);
     /**
      * Create an instance of {@link NonLocalRegionEntryWithStats} for GemFireXD.
      */

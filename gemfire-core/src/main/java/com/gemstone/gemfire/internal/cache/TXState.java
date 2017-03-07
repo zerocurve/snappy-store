@@ -67,6 +67,7 @@ import com.gemstone.gemfire.internal.cache.locks.LockingPolicy.ReadEntryUnderLoc
 import com.gemstone.gemfire.internal.cache.locks.NonReentrantLock;
 import com.gemstone.gemfire.internal.cache.tier.sockets.ClientProxyMembershipID;
 import com.gemstone.gemfire.internal.cache.tier.sockets.VersionedObjectList;
+import com.gemstone.gemfire.internal.cache.versions.DiskRegionVersionVector;
 import com.gemstone.gemfire.internal.cache.versions.RegionVersionHolder;
 import com.gemstone.gemfire.internal.cache.versions.RegionVersionVector;
 import com.gemstone.gemfire.internal.cache.versions.VersionSource;
@@ -3835,16 +3836,17 @@ public final class TXState implements TXStateInterface {
    */
   private boolean isVersionInSnapshot(Region region, VersionSource id, long version) {
     // For snapshot we don't  need to check from the current version
-    for(String regionName : snapshot.keySet()) {
-      final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
+    if (TXStateProxy.LOG_FINEST) {
+      for (String regionName : snapshot.keySet()) {
+        final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
 
-      if (TXStateProxy.LOG_FINE) {
-        logger.info(LocalizedStrings.DEBUG, "The snapshot is for region  " + regionName + " is : "
-            + snapshot.get(regionName) + " txstate " + this + " snapshot is " +
-            Integer.toHexString(System.identityHashCode(snapshot)));
+        if (TXStateProxy.LOG_FINE) {
+          logger.info(LocalizedStrings.DEBUG, "The snapshot is for region  " + regionName + " is : "
+              + snapshot.get(regionName) + " txstate " + this + " snapshot is " +
+              Integer.toHexString(System.identityHashCode(snapshot)));
+        }
       }
     }
-
     if (this.snapshot.get(region.getFullPath()) != null) {
       RegionVersionHolder holder = this.snapshot.get(region.getFullPath()).get(id);
       if (holder == null) {
@@ -3869,16 +3871,23 @@ public final class TXState implements TXStateInterface {
     if (getCache().snaphshotEnabled() && ((LocalRegion)region).concurrencyChecksEnabled) {
       VersionStamp stamp = entry.getVersionStamp();
       VersionSource id = stamp.getMemberID();
-      // could be diskID or memeberID
-      if (id == null) {
-        // locally generated.
-        id = InternalDistributedSystem.getAnyInstance().getDistributedMember();
+      final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
 
+      if (id == null) {
+        if (((LocalRegion)region).getVersionVector().isDiskVersionVector()) {
+          id = ((LocalRegion)region).getDiskStore().getDiskStoreID();
+        } else {
+          id = InternalDistributedSystem.getAnyInstance().getDistributedMember();
+        }
+        if (TXStateProxy.LOG_FINE) {
+          logger.info(LocalizedStrings.DEBUG, "checkEntryVersion: for region "
+              + region.getFullPath() + " RegionEntry(" + entry + ")" + " id not set in Entry, setting id to: " +
+              id);
+        }
       }
       // if rvv is not present then
       if (snapshot != null) {
         if (TXStateProxy.LOG_FINE) {
-          final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
           logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
               + region.getFullPath() + " RegionEntry(" + entry  + ") with version" + stamp
               .getRegionVersion());
@@ -3888,12 +3897,12 @@ public final class TXState implements TXStateInterface {
         }
       }
       if (TXStateProxy.LOG_FINE) {
-        final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
         logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region " + region.getFullPath() +
                 " returning false.");
       }
       return false;
     }
+    // For
     return true;
   }
 

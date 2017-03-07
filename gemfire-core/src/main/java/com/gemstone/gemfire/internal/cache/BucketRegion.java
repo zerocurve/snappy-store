@@ -763,7 +763,7 @@ public class BucketRegion extends DistributedRegion implements Bucket {
         getRegionSize() >= batchSize) {
       // need to flush the region
       if (getCache().getLoggerI18n().fineEnabled()) {
-        getCache().getLoggerI18n().fine("createAndInsertCachedBatch: " +
+        getCache().getLoggerI18n().info(LocalizedStrings.DEBUG, "createAndInsertCachedBatch: " +
             "Creating the cached batch for bucket " + this.getId()
             + ", and batchID " + this.batchUUID);
       }

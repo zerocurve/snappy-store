@@ -724,6 +724,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     recordVersion(member, tag.getRegionVersion(), event);
   }
 
+  public abstract boolean isDiskVersionVector();
   /**
    * Records a received region-version in snapshot or txState.
    * For a tx, we record the version in txState and at the time of commit
