@@ -224,7 +224,7 @@ public class GenericStatement
 			boolean commitNestedTransaction, StatementContext statementContext,
 			LanguageConnectionContext lcc, boolean isDDL, boolean checkCancellation) throws StandardException {
       GenericPreparedStatement gps = preparedStmt;
-      GeneratedClass ac = new SnappyActivationClass(lcc, !isDDL);
+      GeneratedClass ac = new SnappyActivationClass(lcc, !isDDL, isPreparedStatement());
       gps.setActivationClass(ac);
       gps.incrementVersionCounter();
       gps.makeValid();
