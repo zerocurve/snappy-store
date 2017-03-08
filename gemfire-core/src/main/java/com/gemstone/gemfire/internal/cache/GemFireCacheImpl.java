@@ -572,22 +572,22 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
  protected volatile HashMap<String, ConcurrentHashMap<Object, Set<RegionEntry>
     /*RegionEntry*/>>  oldEntryMap;
 
-  public void addOldEntry(RegionEntry oldRe, String regionName) {
-    if (oldEntryMap.containsKey(regionName)) {
-      if (!this.oldEntryMap.get(regionName).containsKey(oldRe.getKeyCopy())) {
+  public void addOldEntry(RegionEntry oldRe, String regionPath) {
+    if (oldEntryMap.containsKey(regionPath)) {
+      if (!this.oldEntryMap.get(regionPath).containsKey(oldRe.getKeyCopy())) {
         Set listOfOldEntries = new HashSet<RegionEntry>();
         listOfOldEntries.add((oldRe));
         //this.oldEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
-        this.oldEntryMap.get(regionName).put(oldRe.getKeyCopy(), listOfOldEntries);
+        this.oldEntryMap.get(regionPath).put(oldRe.getKeyCopy(), listOfOldEntries);
       } else {
-        this.oldEntryMap.get(regionName).get(oldRe.getKeyCopy()).add((oldRe));
+        this.oldEntryMap.get(regionPath).get(oldRe.getKeyCopy()).add((oldRe));
       }
     } else {
       Set listOfOldEntries = new HashSet<WeakReference<RegionEntry>>();
       ConcurrentHashMap regionEntryMap = new ConcurrentHashMap<Object, Set<RegionEntry>>();
       listOfOldEntries.add((oldRe));
       regionEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
-      this.oldEntryMap.put(regionName, regionEntryMap);
+      this.oldEntryMap.put(regionPath, regionEntryMap);
     }
 
     for (TXStateProxy txProxy : getTxManager().getHostedTransactionsInProgress()) {
@@ -602,23 +602,22 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   final Object readOldEntry(Region region, final Object entryKey,
       final Map<String, Map<VersionSource, RegionVersionHolder>> snapshot, final boolean
       checkValid, RegionEntry re, TXState txState) {
-    String regionName = region.getName();
+    String regionPath = region.getFullPath();
     if (re.getVersionStamp().getEntryVersion() == 1) {
       RegionEntry oldRegionEntry = NonLocalRegionEntry.newEntry(re.getKeyCopy(), Token.TOMBSTONE,
           (LocalRegion)region, re.getVersionStamp().asVersionTag());
       // In some cases, persistence, GII old Entry may not be present
-      //RegionEntry oldRegionEntry = oldEntryMap.get(regionName).get(entryKey).iterator().next().get();
+      //RegionEntry oldRegionEntry = oldEntryMap.get(regionPath).get(entryKey).iterator().next().get();
       //assert oldRegionEntry.isTombstone();
       return oldRegionEntry;
     } else {
       List<RegionEntry> oldEntries = new ArrayList<>();
-      for (RegionEntry value : oldEntryMap.get(regionName).get(entryKey)) {
+      for (RegionEntry value : oldEntryMap.get(regionPath).get(entryKey)) {
         if (txState.checkEntryVersion(region, value)) {
           oldEntries.add(value);
         }
       }
-      //TODO: returned entry should have entry version one less than the passed region entry
-      // in case of non tx writes.
+
       RegionEntry max = null;
       for (RegionEntry entry : oldEntries) {
         if (null == max) {

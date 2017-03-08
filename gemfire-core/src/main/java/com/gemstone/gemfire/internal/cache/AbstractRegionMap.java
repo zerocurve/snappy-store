@@ -2392,7 +2392,7 @@ RETRY_LOOP:
       } finally {
         //owner.releaseAcquiredWriteLocksOnIndexes(lockedIndexes);
         if (shouldCopyOldEntry(_getOwner(), null)) {
-          GemFireCacheImpl.getInstance().addOldEntry(oldRe,cbEvent.region.getName());
+          GemFireCacheImpl.getInstance().addOldEntry(oldRe,owner.getFullPath());
         }
       }
     } catch (DiskAccessException dae) {
@@ -3955,8 +3955,8 @@ RETRY_LOOP:
                         createEntry(event, owner, re);
                       }
                       // need to put old entry in oldEntryMap for MVCC
-                      if (shouldCopyOldEntry(owner,event)) {
-                        GemFireCacheImpl.getInstance().addOldEntry(oldRe, event.region.getName());
+                      if (shouldCopyOldEntry(owner, event)) {
+                        GemFireCacheImpl.getInstance().addOldEntry(oldRe, owner.getFullPath());
                       }
                       owner.recordEvent(event);
                       eventRecorded = true;
@@ -4338,7 +4338,7 @@ RETRY_LOOP:
     // we can add the old value to
     if (retVal) {
       if (shouldCopyOldEntry(_getOwner(), event)) {
-        GemFireCacheImpl.getInstance().addOldEntry(oldRe, event.region.getName());
+        GemFireCacheImpl.getInstance().addOldEntry(oldRe, _getOwner().getFullPath());
       }
       EntryLogger.logDestroy(event);
       _getOwner().updateSizeOnRemove(event.getKey(), oldSize);
@@ -4563,7 +4563,7 @@ RETRY_LOOP:
       }
       if (opCompleted) {
         if (shouldCopyOldEntry(owner, null)) {
-          GemFireCacheImpl.getInstance().addOldEntry(oldRe, cbEvent.region.getName());
+          GemFireCacheImpl.getInstance().addOldEntry(oldRe, owner.getFullPath());
         }
         if (re != null && owner.isUsedForPartitionedRegionBucket()) {
           BucketRegion br = (BucketRegion)owner;
