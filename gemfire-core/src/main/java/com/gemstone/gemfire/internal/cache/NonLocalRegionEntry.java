@@ -85,7 +85,7 @@ public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
       if (faultInValue)
         this.value = re.getValue(br); // OFFHEAP: copy into heap cd
       else
-        this.value = re.getValueInVMOrDiskWithoutFaultIn(br);
+        this.value = re.getValueOffHeapOrDiskWithoutFaultIn(br);
     }
     Assert.assertTrue(this.value != Token.NOT_AVAILABLE,
         "getEntry did not fault value in from disk");
