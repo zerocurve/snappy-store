@@ -39,21 +39,8 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -566,30 +553,29 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   private GemFireMemcachedServer memcachedServer;
 
   private String vmIdRegionPath;
-/*
-  protected volatile ConcurrentHashMap<String, CustomEntryConcurrentHashMap<Object,
-      NavigableSet<Object>*//*RegionEntry*//*>> oldEntryMap;*/
- protected volatile HashMap<String, ConcurrentHashMap<Object, Set<RegionEntry>
+
+  //TODO:Suranjan This has to be replcaed with better approach. guava cache or WeakHashMap.
+  protected volatile Map<String, Map<Object, BlockingQueue<RegionEntry>
     /*RegionEntry*/>>  oldEntryMap;
 
+  // For each entry this should be in sync
   public void addOldEntry(RegionEntry oldRe, String regionPath) {
     if (oldEntryMap.containsKey(regionPath)) {
-      if (!this.oldEntryMap.get(regionPath).containsKey(oldRe.getKeyCopy())) {
-        Set listOfOldEntries = new HashSet<RegionEntry>();
-        listOfOldEntries.add((oldRe));
-        //this.oldEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
-        this.oldEntryMap.get(regionPath).put(oldRe.getKeyCopy(), listOfOldEntries);
+      Map<Object, BlockingQueue<RegionEntry>> snapshot = this.oldEntryMap.get(regionPath);
+      if (!snapshot.containsKey(oldRe.getKeyCopy())) {
+        BlockingQueue<RegionEntry> oldEntries = new LinkedBlockingDeque<RegionEntry>();
+        oldEntries.add(oldRe);
+        snapshot.put(oldRe.getKeyCopy(), oldEntries);
       } else {
-        this.oldEntryMap.get(regionPath).get(oldRe.getKeyCopy()).add((oldRe));
+        snapshot.get(oldRe.getKeyCopy()).add(oldRe);
       }
     } else {
-      Set listOfOldEntries = new HashSet<WeakReference<RegionEntry>>();
-      ConcurrentHashMap regionEntryMap = new ConcurrentHashMap<Object, Set<RegionEntry>>();
-      listOfOldEntries.add((oldRe));
-      regionEntryMap.put(oldRe.getKeyCopy(), listOfOldEntries);
+      BlockingQueue<RegionEntry> oldEntries = new LinkedBlockingDeque<RegionEntry>();
+      Map regionEntryMap = new ConcurrentHashMap<Object, Set<RegionEntry>>();
+      oldEntries.add((oldRe));
+      regionEntryMap.put(oldRe.getKeyCopy(), oldEntries);
       this.oldEntryMap.put(regionPath, regionEntryMap);
     }
-
     for (TXStateProxy txProxy : getTxManager().getHostedTransactionsInProgress()) {
       if (txProxy.getLocalTXState() != null) {
         txProxy.getLocalTXState().addRegionEntryReference(oldRe);
@@ -597,8 +583,6 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     }
   }
 
-  //TODO: This method is currently not in use but is need in future when concurrent write is
-  // supported
   final Object readOldEntry(Region region, final Object entryKey,
       final Map<String, Map<VersionSource, RegionVersionHolder>> snapshot, final boolean
       checkValid, RegionEntry re, TXState txState) {
@@ -606,13 +590,14 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     if (re.getVersionStamp().getEntryVersion() == 1) {
       RegionEntry oldRegionEntry = NonLocalRegionEntry.newEntry(re.getKeyCopy(), Token.TOMBSTONE,
           (LocalRegion)region, re.getVersionStamp().asVersionTag());
-      // In some cases, persistence, GII old Entry may not be present
+      //TODO: In some cases, persistence, GII old Entry may not be present
       //RegionEntry oldRegionEntry = oldEntryMap.get(regionPath).get(entryKey).iterator().next().get();
       //assert oldRegionEntry.isTombstone();
       return oldRegionEntry;
     } else {
       List<RegionEntry> oldEntries = new ArrayList<>();
-      for (RegionEntry value : oldEntryMap.get(regionPath).get(entryKey)) {
+      BlockingQueue<RegionEntry> entries = oldEntryMap.get(regionPath).get(entryKey);
+      for (RegionEntry value : entries) {
         if (txState.checkEntryVersion(region, value)) {
           oldEntries.add(value);
         }
@@ -789,7 +774,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     this.cacheConfig = cacheConfig; // do early for bug 43213
 
     //this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
-    this.oldEntryMap = new HashMap<>();
+    this.oldEntryMap = new ConcurrentHashMap<String, Map<Object, BlockingQueue<RegionEntry>>>();
     // initialize advisor for normal DMs immediately
     InternalDistributedSystem ids = (InternalDistributedSystem)system;
     StaticSystemCallbacks sysCallbacks = getInternalProductCallbacks();

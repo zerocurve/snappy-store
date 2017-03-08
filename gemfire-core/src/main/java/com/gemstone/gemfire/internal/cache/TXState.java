@@ -3826,6 +3826,10 @@ public final class TXState implements TXStateInterface {
       // we will have to get from a common DS.
       while ((oldEntry = getCache().readOldEntry(dataRegion, key, snapshot, true, re, this)) ==
           null) {
+        if (TXStateProxy.LOG_FINE) {
+          LogWriterI18n logger = dataRegion.getLogWriterI18n();
+          logger.fine(" Waiting for older entry for this snapshot to arrive for key " + key);
+        }
         try {
           //TODO: Should we wait indefinitely?
           Thread.sleep(10);
