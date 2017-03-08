@@ -52,6 +52,7 @@ import com.gemstone.gemfire.internal.cache.LocalRegion;
 import com.gemstone.gemfire.internal.cache.TXManagerImpl;
 import com.gemstone.gemfire.internal.cache.TXState;
 import com.gemstone.gemfire.internal.cache.TXStateInterface;
+import com.gemstone.gemfire.internal.cache.TXStateProxy;
 import com.gemstone.gemfire.internal.cache.locks.LockingPolicy;
 import com.gemstone.gemfire.internal.cache.persistence.DiskStoreID;
 import com.gemstone.gemfire.internal.cache.versions.RVVException.ReceivedVersionsIterator;
@@ -724,6 +725,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     recordVersion(member, tag.getRegionVersion(), event);
   }
 
+  public abstract boolean isDiskVersionVector();
   /**
    * Records a received region-version in snapshot or txState.
    * For a tx, we record the version in txState and at the time of commit
@@ -740,19 +742,26 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     LogWriterI18n logger = getLoggerI18n();
     T mbr = member;
 
-    if (this.recordingDisabled || clientVector) {
-      return;
-    }
-
     if (event != null) {
+      // Here we need to record the version directly if the event is being applied from GIIed txState.
+      // This breaks the atomicity?
       TXStateInterface tx = event.getTXState();
-      if (tx != null) {
+      boolean committed = false;
+      if (tx instanceof TXState) {
+        committed = ((TXState)tx).isCommitted();
+      }
+
+      if (tx != null && !committed) {
         tx.recordVersionForSnapshot(member, version, event.getRegion());
         if (logger.fineEnabled()) {
-          logger.fine("Recording version: " + version + " in the snapshot tx " +
+          logger.fine("Recording version: " + version + " for member " + member + " in the snapshot tx " +
               " region " + event.getRegion() + " for tx " + tx);
         }
         return;
+      }
+      if (logger.fineEnabled()) {
+        logger.fine("Directly recording version: " + version + " for member " + member + " in the snapshot tx " +
+            " region " + event.getRegion() + " for tx " + tx +" as it is committed.");
       }
     }
 
@@ -771,6 +780,10 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
       memberToVersionSnapshot.put(holder.id, holder);
     }
 
+    if (logger.fineEnabled()) {
+      logger.fine("Recorded version: " + version + " for member " + member + " in the snapshot " +
+          " region " + event != null ? null : event.getRegion().getFullPath());
+    }
   }
 
   /**
@@ -1728,7 +1741,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     LogWriterI18n logger = getLoggerI18n();
     if (DEBUG && logger != null) {
       logger.info(LocalizedStrings.DEBUG, "reInitializing the snapshot rvv, current: " +
-          this.memberToVersionSnapshot + " with : " + memberToGCVersion);
+          this.memberToVersionSnapshot + " with : " + memberToVersion);
     }
 
     this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>(memberToVersion);

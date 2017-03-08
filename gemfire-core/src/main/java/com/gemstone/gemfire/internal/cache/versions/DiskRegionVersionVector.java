@@ -79,6 +79,11 @@ public class DiskRegionVersionVector extends RegionVersionVector<DiskStoreID> {
   }
 
   @Override
+  public boolean isDiskVersionVector() {
+    return true;
+  }
+
+  @Override
   protected void writeMember(DiskStoreID member, DataOutput out) throws IOException {
     out.writeLong(member.getMostSignificantBits());
     out.writeLong(member.getLeastSignificantBits());

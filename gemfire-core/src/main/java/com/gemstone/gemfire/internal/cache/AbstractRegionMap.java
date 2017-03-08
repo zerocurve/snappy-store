@@ -2245,7 +2245,7 @@ RETRY_LOOP:
           cbEvent = null;
         }
 
-        oldRe = NonLocalRegionEntry.newEntry(re, owner, true);
+        oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, owner, true);
         txRemoveOldIndexEntry(Operation.DESTROY, re);
         boolean clearOccured = false;
         try {
@@ -2304,7 +2304,7 @@ RETRY_LOOP:
           cbEvent = null;
         }
 
-        oldRe = NonLocalRegionEntry.newEntry(re, owner, true);
+        oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, owner, true);
         try {
           EntryEventImpl txEvent = null;
           if (!isRegionReady) {
@@ -2392,7 +2392,7 @@ RETRY_LOOP:
       } finally {
         //owner.releaseAcquiredWriteLocksOnIndexes(lockedIndexes);
         if (shouldCopyOldEntry(_getOwner(), null)) {
-          GemFireCacheImpl.getInstance().addOldEntry(oldRe,cbEvent.region.getName());
+          GemFireCacheImpl.getInstance().addOldEntry(oldRe,owner.getFullPath());
         }
       }
     } catch (DiskAccessException dae) {
@@ -3944,7 +3944,7 @@ RETRY_LOOP:
                       if (shouldCopyOldEntry(owner,event)) {
                         // we need to do the same for secondary as well.
                         // need to set the version information.
-                        oldRe = NonLocalRegionEntry.newEntry(re, event.getRegion(), true);
+                        oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, event.getRegion(), true);
                       }
                       if ((cacheWrite && event.getOperation().isUpdate()) // if there is a cacheWriter, type of event has already been set
                           || !re.isRemoved()
@@ -3955,8 +3955,8 @@ RETRY_LOOP:
                         createEntry(event, owner, re);
                       }
                       // need to put old entry in oldEntryMap for MVCC
-                      if (shouldCopyOldEntry(owner,event)) {
-                        GemFireCacheImpl.getInstance().addOldEntry(oldRe, event.region.getName());
+                      if (shouldCopyOldEntry(owner, event)) {
+                        GemFireCacheImpl.getInstance().addOldEntry(oldRe, owner.getFullPath());
                       }
                       owner.recordEvent(event);
                       eventRecorded = true;
@@ -4325,10 +4325,10 @@ RETRY_LOOP:
       boolean createdForDestroy, boolean removeRecoveredEntry)
       throws CacheWriterException, TimeoutException, EntryNotFoundException,
       RegionClearedException {
-    RegionEntry oldRe = NonLocalRegionEntry.newEntry(re,event.getRegion() ,true);
+    RegionEntry oldRe = null;
     if (shouldCopyOldEntry(_getOwner(), event)) {
       // we need to do the same for secondary as well.
-      oldRe = NonLocalRegionEntry.newEntry(re, event.getRegion(), true);
+      oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, event.getRegion(), true);
     }
     processVersionTag(re, event);
     final int oldSize = _getOwner().calculateRegionEntryValueSize(re);
@@ -4338,7 +4338,7 @@ RETRY_LOOP:
     // we can add the old value to
     if (retVal) {
       if (shouldCopyOldEntry(_getOwner(), event)) {
-        GemFireCacheImpl.getInstance().addOldEntry(oldRe, event.region.getName());
+        GemFireCacheImpl.getInstance().addOldEntry(oldRe, _getOwner().getFullPath());
       }
       EntryLogger.logDestroy(event);
       _getOwner().updateSizeOnRemove(event.getKey(), oldSize);
@@ -4495,7 +4495,7 @@ RETRY_LOOP:
       try {
         // Put the copy to into common place instead of all the running tx.
         // as there is a race.
-        oldRe = NonLocalRegionEntry.newEntry(re, owner, true);
+        oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, owner, true);
 
         re.setValue(owner, re.prepareValueForCache(owner, newValue, !putOp.isCreate(), false));
         if (putOp.isCreate()) {
@@ -4563,7 +4563,7 @@ RETRY_LOOP:
       }
       if (opCompleted) {
         if (shouldCopyOldEntry(owner, null)) {
-          GemFireCacheImpl.getInstance().addOldEntry(oldRe, cbEvent.region.getName());
+          GemFireCacheImpl.getInstance().addOldEntry(oldRe, owner.getFullPath());
         }
         if (re != null && owner.isUsedForPartitionedRegionBucket()) {
           BucketRegion br = (BucketRegion)owner;
@@ -4711,6 +4711,13 @@ RETRY_LOOP:
     if (cbEvent != null && owner.getConcurrencyChecksEnabled()
         && (!owner.getScope().isLocal() || owner.getDataPolicy()
             .withPersistence())) {
+      PartitionedRegion pr = null;
+      if (owner.isUsedForPartitionedRegionBucket()) {
+        pr = (PartitionedRegion)cbEvent.getRegion();
+        if (cbEvent != null) {
+          cbEvent.setRegion(owner);
+        }
+      }
       try {
         /* now we copy only commitTime from remote
         if (txEntryState != null && txEntryState.getRemoteVersionTag() != null) {
@@ -4747,6 +4754,11 @@ RETRY_LOOP:
         }
       } catch (ConcurrentCacheModificationException ignore) {
         // ignore this execption, however invoke callbacks for this operation
+      }
+      finally {
+        if (pr != null) {
+          cbEvent.setRegion(pr);
+        }
       }
     }
   }

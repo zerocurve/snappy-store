@@ -1433,6 +1433,12 @@ public final class RegionEntryUtils {
     }
 
     @Override
+    public NonLocalRegionEntry newNonLocalRegionEntry(RegionEntry re, LocalRegion region,
+        boolean allowTombstones, boolean faultInValue) {
+      return new NonLocalRowLocationRegionEntry(re, region, allowTombstones, faultInValue);
+    }
+
+        @Override
     public final NonLocalRegionEntry newNonLocalRegionEntry(final Object key,
         final Object value, final LocalRegion region,
         final VersionTag<?> versionTag) {

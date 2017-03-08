@@ -69,6 +69,11 @@ public final class NonLocalRowLocationRegionEntry extends NonLocalRegionEntry
     super(re, br, allowTombstones);
   }
 
+  NonLocalRowLocationRegionEntry(RegionEntry re, LocalRegion br,
+      boolean allowTombstones, boolean faultInValue) {
+    super(re, br, allowTombstones, faultInValue);
+  }
+
   NonLocalRowLocationRegionEntry(Object key, Object value, LocalRegion br,
       VersionTag<?> versionTag) {
     super(key, value, br, versionTag);
