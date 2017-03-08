@@ -1260,6 +1260,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   //return snapshotRVV;
   public Map getSnapshotRVV() {
     try {
+      // Wait for all the regions to get initialized before taking snapshot.
       lockForSnapshotRvv.readLock().lock();
       Map<String, Map> snapshot = new HashMap();
       for (LocalRegion region : getApplicationRegions()) {

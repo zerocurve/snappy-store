@@ -19,12 +19,7 @@ import com.gemstone.gemfire.cache.IsolationLevel;
 import com.gemstone.gemfire.cache.PartitionAttributes;
 import com.gemstone.gemfire.cache.PartitionAttributesFactory;
 import com.gemstone.gemfire.cache.Region;
-import com.gemstone.gemfire.internal.cache.GemFireCacheImpl;
-import com.gemstone.gemfire.internal.cache.LocalRegion;
-import com.gemstone.gemfire.internal.cache.RegionEntry;
-import com.gemstone.gemfire.internal.cache.TXManagerImpl;
-import com.gemstone.gemfire.internal.cache.TXState;
-import com.gemstone.gemfire.internal.cache.TXStateInterface;
+import com.gemstone.gemfire.internal.cache.*;
 import com.pivotal.gemfirexd.DistributedSQLTestBase;
 import com.pivotal.gemfirexd.TestUtil;
 import io.snappydata.test.dunit.SerializableCallable;
@@ -77,9 +72,9 @@ public class SnapShotTxDUnit extends DistributedSQLTestBase {
     PartitionAttributes prAttr = paf.create();
     AttributesFactory attr = new AttributesFactory();
     attr.setPartitionAttributes(prAttr);
-/*    attr.setDataPolicy(DataPolicy.PERSISTENT_PARTITION);
+    attr.setDataPolicy(DataPolicy.PERSISTENT_PARTITION);
     attr.setDiskStoreName("disk");
-    attr.setDiskSynchronous(true);*/
+    attr.setDiskSynchronous(true);
     attr.setConcurrencyChecksEnabled(true);
 
     Region pr = cache.createRegion(partitionedRegionName, attr.create());
@@ -806,7 +801,8 @@ public class SnapShotTxDUnit extends DistributedSQLTestBase {
           if (!re.isTombstone()) {
             num++;
             // 1,1 and 2,2
-            assertEquals(re.getKey(), re.getValue(null));
+            BucketRegion bucket = ((PartitionedRegion)r).getDataStore().getLocalBucketByKey(re.getKey());
+            assertEquals(re.getKey(), re.getValue(bucket));
           }
         }
         assertEquals(2, num);
@@ -817,7 +813,8 @@ public class SnapShotTxDUnit extends DistributedSQLTestBase {
           if (!re.isTombstone()) {
             num++;
             assertEquals(1, re.getKey());
-            assertEquals(2, re.getValue(null));
+            BucketRegion bucket = ((PartitionedRegion)r).getDataStore().getLocalBucketByKey(re.getKey());
+            assertEquals(2, re.getValue(bucket));
           }
         }
         assertEquals(1, num);
@@ -843,7 +840,8 @@ public class SnapShotTxDUnit extends DistributedSQLTestBase {
           if (!re.isTombstone()) {
             num++;
             assertEquals(1, re.getKey());
-            assertEquals(2, re.getValue(null));
+            BucketRegion bucket = ((PartitionedRegion)r).getDataStore().getLocalBucketByKey(re.getKey());
+            assertEquals(2, re.getValue(bucket));
           }
         }
         assertEquals(1, num);
@@ -854,7 +852,8 @@ public class SnapShotTxDUnit extends DistributedSQLTestBase {
           if (!re.isTombstone()) {
             num++;
             assertEquals(1, re.getKey());
-            assertEquals(2, re.getValue(null));
+            BucketRegion bucket = ((PartitionedRegion)r).getDataStore().getLocalBucketByKey(re.getKey());
+            assertEquals(2, re.getValue(bucket));
           }
         }
         assertEquals(1, num);
@@ -863,7 +862,7 @@ public class SnapShotTxDUnit extends DistributedSQLTestBase {
     });
   }
 
-  public void testRegionEntryGarbageCollection() throws Exception {
+  public void _testRegionEntryGarbageCollection() throws Exception {
     startVMs(0, 2);
     Properties props = new Properties();
     final Connection conn = TestUtil.getConnection(props);
@@ -974,7 +973,8 @@ public class SnapShotTxDUnit extends DistributedSQLTestBase {
           if (!re.isTombstone()) {
             num++;
             // 1,1 and 2,2
-            assertEquals(re.getKey(), re.getValue(null));
+            BucketRegion bucket = ((PartitionedRegion)r).getDataStore().getLocalBucketByKey(re.getKey());
+            assertEquals(re.getKey(), re.getValue(bucket));
 
           }
         }
@@ -992,10 +992,12 @@ public class SnapShotTxDUnit extends DistributedSQLTestBase {
             num++;
             // 1,1 and 2,2
             if((Integer)re.getKey()==2) {
-              assertEquals(re.getKey(), re.getValue(null));
+              BucketRegion bucket = ((PartitionedRegion)r).getDataStore().getLocalBucketByKey(re.getKey());
+              assertEquals(re.getKey(), re.getValue(bucket));
             }else if((Integer)re.getKey()==1) {
               assertEquals(re.getKey(), 1);
-              assertEquals(re.getValue(null), 4);
+              BucketRegion bucket = ((PartitionedRegion)r).getDataStore().getLocalBucketByKey(re.getKey());
+              assertEquals(re.getValue(bucket), 4);
             }
 
           }

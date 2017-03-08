@@ -4711,6 +4711,13 @@ RETRY_LOOP:
     if (cbEvent != null && owner.getConcurrencyChecksEnabled()
         && (!owner.getScope().isLocal() || owner.getDataPolicy()
             .withPersistence())) {
+      PartitionedRegion pr = null;
+      if (owner.isUsedForPartitionedRegionBucket()) {
+        pr = (PartitionedRegion)cbEvent.getRegion();
+        if (cbEvent != null) {
+          cbEvent.setRegion(owner);
+        }
+      }
       try {
         /* now we copy only commitTime from remote
         if (txEntryState != null && txEntryState.getRemoteVersionTag() != null) {
@@ -4747,6 +4754,11 @@ RETRY_LOOP:
         }
       } catch (ConcurrentCacheModificationException ignore) {
         // ignore this execption, however invoke callbacks for this operation
+      }
+      finally {
+        if (pr != null) {
+          cbEvent.setRegion(pr);
+        }
       }
     }
   }

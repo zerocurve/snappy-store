@@ -741,16 +741,12 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     LogWriterI18n logger = getLoggerI18n();
     T mbr = member;
 
-    if (this.recordingDisabled || clientVector) {
-      return;
-    }
-
     if (event != null) {
       TXStateInterface tx = event.getTXState();
-      if (tx != null) {
+      if (tx != null ) {
         tx.recordVersionForSnapshot(member, version, event.getRegion());
         if (logger.fineEnabled()) {
-          logger.fine("Recording version: " + version + " in the snapshot tx " +
+          logger.fine("Recording version: " + version + " for member " + member + " in the snapshot tx " +
               " region " + event.getRegion() + " for tx " + tx);
         }
         return;

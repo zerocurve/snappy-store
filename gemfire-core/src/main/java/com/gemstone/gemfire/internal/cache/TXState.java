@@ -143,7 +143,7 @@ public final class TXState implements TXStateInterface {
 
   volatile State state;
 
-  final Map<String, Map<VersionSource,RegionVersionHolder>> snapshot;
+  Map<String, Map<VersionSource,RegionVersionHolder>> snapshot;
 
   BlockingQueue<VersionInformation> queue;
 
@@ -411,15 +411,11 @@ public final class TXState implements TXStateInterface {
     this.isGFXD = this.proxy.isGFXD;
     this.state = State.OPEN;
 
-    if (getCache().snaphshotEnabled()) {
-      this.snapshot = getCache().getSnapshotRVV();
-      if (TXStateProxy.LOG_FINE) {
-        this.txManager.getLogger().info(LocalizedStrings.DEBUG,
-            " The snapshot taken in txStats is " + this.snapshot);
-      }
-      queue = new LinkedBlockingQueue<VersionInformation>();
+    // We don't know the semantics for RR, so ideally there shouldn't be snapshot for it.
+    // Need to disable it.
+    if (getCache().snaphshotEnabled() /*&& this.lockPolicy != LockingPolicy.FAIL_FAST_RR_TX*/) {
+      takeSnapshot();
     } else {
-      //TODO: Suranjan, FOR RC: We should set create snapshot and set it in every stmt.
       this.snapshot = null;
     }
 
@@ -427,6 +423,16 @@ public final class TXState implements TXStateInterface {
       this.txManager.getLogger().info(LocalizedStrings.DEBUG,
           toString() + ": created.");
     }
+  }
+
+  //TODO: Suranjan, FOR RC: We should set create snapshot and set it in every stmt.
+  public void takeSnapshot() {
+    this.snapshot = getCache().getSnapshotRVV();
+    if (TXStateProxy.LOG_FINE) {
+      this.txManager.getLogger().info(LocalizedStrings.DEBUG,
+          " The snapshot taken in txStats is " + this.snapshot);
+    }
+    queue = new LinkedBlockingQueue<VersionInformation>();
   }
 
   /**
@@ -1112,14 +1118,16 @@ public final class TXState implements TXStateInterface {
       }
 
       // No need to check for snapshot if we want to enable it for RC.
-      if(isSnapshot()) {
+      if(isSnapshot() || getLockingPolicy() == LockingPolicy.FAIL_FAST_TX) {
         // TODO: Suranjan MVCC
         // first take a lock at cache level so that we don't go into deadlock or sort array before
         // This is for tx RC, for snapshot just record all the versions from the queue
-        // this is not needed with event being present in rvv.record
-        // now just apply all the versions from the queue
         cache.acquireWriteLockOnSnapshotRvv();
+
         for (VersionInformation vi : queue) {
+          if (TXStateProxy.LOG_FINE) {
+            logger.info(LocalizedStrings.DEBUG, " Recording version " + vi + " in the snapshot region Version");
+          }
           ((LocalRegion)vi.region).getVersionVector().
               recordVersionForSnapshot((VersionSource)vi.member, vi.version, null);
         }
@@ -3768,7 +3776,7 @@ public final class TXState implements TXStateInterface {
             // It was destroyed by the transaction so skip
             // this key and try the next one
             return null; // fix for bug 34583
-          } else if (!isWrite) {
+          } else if (!isWrite && (getLockingPolicy() != LockingPolicy.FAIL_FAST_RR_TX)) {
             // the re has not been modified by this tx
             // check the re version with the snapshot version and then search in oldEntry
             if (dataRegion.getVersionVector() != null && !checkEntryVersion(dataRegion, re)) {
@@ -3779,7 +3787,7 @@ public final class TXState implements TXStateInterface {
           txr.unlock();
         }
       }
-    } else if (!isWrite) {
+    } else if (!isWrite && (getLockingPolicy() != LockingPolicy.FAIL_FAST_RR_TX)) {
       final Object key = re.getKeyCopy();
       if (dataRegion == null) {
         dataRegion = region.getDataRegionForRead(key, null, bucketId,
@@ -4006,6 +4014,15 @@ public final class TXState implements TXStateInterface {
       this.member = member;
       this.version = version;
       this.region = reg;
+    }
+
+    @Override
+    public String toString() {
+      final StringBuilder sb = new StringBuilder();
+      sb.append("Memmber : " + member);
+      sb.append(",version : " + version);
+      sb.append(",region : " + region);
+      return sb.toString();
     }
   }
 
