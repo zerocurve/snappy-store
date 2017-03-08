@@ -36,12 +36,17 @@ import com.pivotal.gemfirexd.internal.iapi.sql.conn.LanguageConnectionContext;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.ExecPreparedStatement;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.NoPutResultSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.TemporaryRowHolder;
+import com.pivotal.gemfirexd.internal.iapi.types.DataTypeDescriptor;
+import com.pivotal.gemfirexd.internal.iapi.types.TypeId;
+import com.pivotal.gemfirexd.internal.impl.sql.GenericParameterValueSet;
+import com.pivotal.gemfirexd.internal.impl.sql.GenericPreparedStatement;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericResultDescription;
 import com.pivotal.gemfirexd.internal.impl.sql.execute.BaseActivation;
 import com.pivotal.gemfirexd.internal.shared.common.sanity.SanityManager;
 import com.pivotal.gemfirexd.internal.snappy.LeadNodeExecutionContext;
 
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.List;
 import java.util.Vector;
 
@@ -54,12 +59,27 @@ public class SnappyActivation extends BaseActivation {
   private String sql;
   boolean returnRows;
 
-  public SnappyActivation(LanguageConnectionContext lcc, ExecPreparedStatement eps, boolean returnRows) {
+  public SnappyActivation(LanguageConnectionContext lcc, ExecPreparedStatement eps, boolean returnRows) throws StandardException {
     super(lcc);
     sql = eps.getSource();
     this.preStmt = eps;
     this.returnRows = returnRows;
     this.connectionID = lcc.getConnectionId();
+    int numberOfParameters = 1;
+    DataTypeDescriptor[] types = new DataTypeDescriptor[numberOfParameters];
+    for(int i = 0; i < numberOfParameters; i++) {
+      types[i] = new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.INTEGER), true);
+    }
+    pvs = (GenericParameterValueSet)lcc
+        .getLanguageFactory()
+        .newParameterValueSet(
+            lcc.getLanguageConnectionFactory().getClassFactory()
+                .getClassInspector(), 1, false/*return parameter*/);
+    pvs.initialize(types);
+    if (eps instanceof GenericPreparedStatement) {
+      GenericPreparedStatement gps = (GenericPreparedStatement)eps;
+      gps.setParameterTypes(types);
+    }
   }
 
   @Override
