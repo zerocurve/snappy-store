@@ -69,12 +69,21 @@ public class SnappyActivation extends BaseActivation {
   boolean isPrepStmt;
 
   public SnappyActivation(LanguageConnectionContext lcc, ExecPreparedStatement eps, 
-      boolean returnRows,  boolean isPrepStmt)  throws StandardException {
+      boolean returnRows,  boolean isPrepStmt) {
     super(lcc);
     sql = eps.getSource();
     this.preStmt = eps;
     this.returnRows = returnRows;
     this.connectionID = lcc.getConnectionId();
+    this.isPrepStmt = isPrepStmt;
+  }
+
+  public void initialize_pvs() throws StandardException {
+    // TODO : Need to get this information
+    // 1. Number of parameters
+    // 2. Type of each parameter
+    // 3. Is type nullable?
+    // 3. Any additional detail needed for DataTypeDescriptor i.e precesion for double?
     int numberOfParameters = 1;
     DataTypeDescriptor[] types = new DataTypeDescriptor[numberOfParameters];
     for(int i = 0; i < numberOfParameters; i++) {
@@ -86,11 +95,10 @@ public class SnappyActivation extends BaseActivation {
             lcc.getLanguageConnectionFactory().getClassFactory()
                 .getClassInspector(), 1, false/*return parameter*/);
     pvs.initialize(types);
-    if (eps instanceof GenericPreparedStatement) {
-      GenericPreparedStatement gps = (GenericPreparedStatement)eps;
+    if (preStmt instanceof GenericPreparedStatement) {
+      GenericPreparedStatement gps = (GenericPreparedStatement)preStmt;
       gps.setParameterTypes(types);
     }
-    this.isPrepStmt = isPrepStmt;
   }
 
   @Override

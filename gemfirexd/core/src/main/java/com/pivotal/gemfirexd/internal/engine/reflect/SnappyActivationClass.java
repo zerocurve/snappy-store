@@ -55,6 +55,8 @@ public class SnappyActivationClass implements GeneratedClass {
   public final Object newInstance(final LanguageConnectionContext lcc,
                                   final boolean addToLCC, final ExecPreparedStatement eps)
     throws StandardException {
-    return new SnappyActivation(lcc, eps, this.returnRows, this.isPrepStmt);
+    SnappyActivation sa = new SnappyActivation(lcc, eps, this.returnRows, this.isPrepStmt);
+    sa.initialize_pvs();
+    return sa;
   }
 }
