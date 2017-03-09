@@ -222,9 +222,10 @@ public class GenericStatement
 	// GemStone changes BEGIN
 	private GenericPreparedStatement getPreparedStatementForSnappy(
 			boolean commitNestedTransaction, StatementContext statementContext,
-			LanguageConnectionContext lcc, boolean isDDL, boolean checkCancellation) throws StandardException {
+			LanguageConnectionContext lcc, boolean isDDL, boolean checkCancellation,
+			boolean parseError) throws StandardException {
       GenericPreparedStatement gps = preparedStmt;
-      GeneratedClass ac = new SnappyActivationClass(lcc, !isDDL, isPreparedStatement());
+      GeneratedClass ac = new SnappyActivationClass(lcc, !isDDL, isPreparedStatement(), parseError);
       gps.setActivationClass(ac);
       gps.incrementVersionCounter();
       gps.makeValid();
@@ -593,7 +594,8 @@ public class GenericStatement
               FUNCTION_DDL_PREFIX.matcher(source).matches() )) {
 						if (prepareIsolationLevel == Connection.TRANSACTION_NONE) {
 							cc.markAsDDLForSnappyUse(true);
-							return getPreparedStatementForSnappy(false, statementContext, lcc, cc.isMarkedAsDDLForSnappyUse(), checkCancellation);
+							return getPreparedStatementForSnappy(false, statementContext, lcc,
+                  cc.isMarkedAsDDLForSnappyUse(), checkCancellation, false);
 						}
 					}
 					qt = p.parseStatement(getQueryStringForParse(lcc), paramDefaults);
@@ -604,7 +606,8 @@ public class GenericStatement
             if (STREAMING_DDL_PREFIX.matcher(source).matches()) {
               cc.markAsDDLForSnappyUse(true);
             }
-            return getPreparedStatementForSnappy(false, statementContext, lcc, cc.isMarkedAsDDLForSnappyUse(), checkCancellation);
+            return getPreparedStatementForSnappy(false, statementContext, lcc,
+                cc.isMarkedAsDDLForSnappyUse(), checkCancellation, true);
           }
           throw ex;
 				}
@@ -616,7 +619,8 @@ public class GenericStatement
                                    if (observer != null) {
                                      observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
                                    }
-				    return getPreparedStatementForSnappy(false, statementContext, lcc, true, checkCancellation);
+				    return getPreparedStatementForSnappy(false, statementContext, lcc, true,
+                checkCancellation, false);
 				}
 				//GemStone changes END
 				parseTime = getCurrentTimeMillis(lcc);
@@ -685,7 +689,8 @@ public class GenericStatement
                                                        if (observer != null) {
                                                          observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
                                                        }
-							return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
+							return getPreparedStatementForSnappy(true, statementContext, lcc, false,
+                  checkCancellation, false);
 						}
 						throw ex;
 					}
@@ -753,7 +758,8 @@ public class GenericStatement
                                                        if (observer != null) {
                                                          observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
                                                        }
-							return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
+							return getPreparedStatementForSnappy(true, statementContext, lcc, false,
+                  checkCancellation, false);
 						}
 						throw ex;
 					}
@@ -797,7 +803,7 @@ public class GenericStatement
                                                   observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
                                                 }
                                                 return getPreparedStatementForSnappy(true,
-                                                    statementContext, lcc, false, checkCancellation);
+                                                    statementContext, lcc, false, checkCancellation, false);
 
                                               } else if (qinfo.isUpdate() || qinfo.isDelete()) {
                                                 // Temporarily using the below sqlstate as this unsupported operation
@@ -911,7 +917,8 @@ public class GenericStatement
             if (observer != null) {
               observer.testExecutionEngineDecision(qinfo, ExecutionEngine.SPARK, this.statementText);
             }
-            return getPreparedStatementForSnappy(true, statementContext, lcc, false, checkCancellation);
+            return getPreparedStatementForSnappy(true, statementContext, lcc, false,
+                checkCancellation, false);
           }
 // GemStone changes END
 					lcc.commitNestedTransaction();
