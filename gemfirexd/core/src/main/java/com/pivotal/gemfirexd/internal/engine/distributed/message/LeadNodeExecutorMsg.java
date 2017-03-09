@@ -22,6 +22,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.Serializable;
 import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -34,12 +36,15 @@ import com.gemstone.gemfire.distributed.DistributedMember;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
 import com.gemstone.gemfire.distributed.internal.ReplyException;
 import com.gemstone.gemfire.distributed.internal.membership.InternalDistributedMember;
+import com.gemstone.gemfire.internal.ByteArrayDataInput;
 import com.gemstone.gemfire.internal.HeapDataOutputStream;
+import com.gemstone.gemfire.internal.InternalDataSerializer;
 import com.gemstone.gemfire.internal.cache.NoDataStoreAvailableException;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.shared.Version;
 import com.pivotal.gemfirexd.internal.engine.GfxdConstants;
 import com.pivotal.gemfirexd.internal.engine.Misc;
+import com.pivotal.gemfirexd.internal.engine.distributed.DVDIOUtil;
 import com.pivotal.gemfirexd.internal.engine.distributed.FunctionExecutionException;
 import com.pivotal.gemfirexd.internal.engine.distributed.GfxdDistributionAdvisor;
 import com.pivotal.gemfirexd.internal.engine.distributed.GfxdResultCollector;
@@ -47,6 +52,10 @@ import com.pivotal.gemfirexd.internal.engine.distributed.SnappyResultHolder;
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.GemFireXDUtils;
 import com.pivotal.gemfirexd.internal.engine.jdbc.GemFireXDRuntimeException;
 import com.pivotal.gemfirexd.internal.iapi.error.StandardException;
+import com.pivotal.gemfirexd.internal.iapi.sql.ParameterValueSet;
+import com.pivotal.gemfirexd.internal.iapi.types.DataTypeDescriptor;
+import com.pivotal.gemfirexd.internal.iapi.types.TypeId;
+import com.pivotal.gemfirexd.internal.impl.sql.GenericParameterValueSet;
 import com.pivotal.gemfirexd.internal.shared.common.reference.SQLState;
 import com.pivotal.gemfirexd.internal.shared.common.sanity.SanityManager;
 import com.pivotal.gemfirexd.internal.snappy.CallbackFactoryProvider;
@@ -63,13 +72,17 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
   private LeadNodeExecutionContext ctx;
   private transient SparkSQLExecute exec;
   private String schema;
+  protected ParameterValueSet pvs;
+  // transient members set during deserialization and used in execute
+  private transient byte[] pvsData;
 
   public LeadNodeExecutorMsg(String sql, String schema, LeadNodeExecutionContext ctx,
-      GfxdResultCollector<Object> rc) {
+      GfxdResultCollector<Object> rc, ParameterValueSet inpvs) {
     super(rc, null, false, true);
     this.schema = schema;
     this.sql = sql;
     this.ctx = ctx;
+    this.pvs = inpvs;
   }
 
   /**
@@ -118,9 +131,12 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
 
   @Override
   protected void execute() throws Exception {
-    if (GemFireXDUtils.TraceQuery) {
+    // TODO - remove this
+    if (GemFireXDUtils.TraceQuery || true) {
+      StringBuilder str = new StringBuilder();
+      appendFields(str);
       SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_QUERYDISTRIB,
-              "LeadNodeExecutorMsg.execute: Got sql = " + sql);
+              "LeadNodeExecutorMsg.execute:  = " + str.toString());
     }
     try {
       InternalDistributedMember m = this.getSenderForReply();
@@ -230,7 +246,7 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
   @Override
   protected LeadNodeExecutorMsg clone() {
     final LeadNodeExecutorMsg msg = new LeadNodeExecutorMsg(this.sql, this.schema, this.ctx,
-        (GfxdResultCollector<Object>)this.userCollector);
+        (GfxdResultCollector<Object>)this.userCollector, this.pvs);
     msg.exec = this.exec;
     return msg;
   }
@@ -246,6 +262,14 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
     this.sql = DataSerializer.readString(in);
     this.schema = DataSerializer.readString(in);
     this.ctx = DataSerializer.readObject(in);
+    try {
+      // for source as not-null take the serialized byte array to avoid taking
+      // long time in preparing the statement and thus potentially blocking
+      // message reader threads
+      this.pvsData = DataSerializer.readByteArray(in);
+    } catch (RuntimeException ex) {
+      throw ex;
+    }
   }
 
   @Override
@@ -254,10 +278,74 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
     DataSerializer.writeString(this.sql, out);
     DataSerializer.writeString(this.schema , out);
     DataSerializer.writeObject(ctx, out);
+
+    int paramCount = this.pvs != null ? this.pvs.getParameterCount() : 0;
+    final int numEightColGroups = BitSetSet.udiv8(paramCount);
+    final int numPartialCols = BitSetSet.umod8(paramCount);
+    try {
+      final HeapDataOutputStream hdos;
+      if (paramCount > 0) {
+        hdos = new HeapDataOutputStream();
+        DVDIOUtil.writeParameterValueSet(this.pvs, numEightColGroups,
+            numPartialCols, hdos);
+        InternalDataSerializer.writeArrayLength(hdos.size(), out);
+        hdos.sendTo(out);
+      }
+      else {
+        InternalDataSerializer.writeArrayLength(-1, out);
+      }
+    } catch (StandardException ex) {
+      throw GemFireXDRuntimeException.newRuntimeException(
+          "unexpected exception in writing parameters", ex);
+    }
   }
 
   public void appendFields(final StringBuilder sb) {
     sb.append("sql: " + sql);
     sb.append("schema: " + schema);
+    // call getParams first
+    try {
+      getParams();
+    } catch (Throwable t) {
+      // do nothing
+    }
+    sb.append(";pvs=").append(this.pvs);
+    sb.append(";pvsData=").append(Arrays.toString(this.pvsData));
+  }
+
+  private void readStatementPVS(final ByteArrayDataInput in)
+      throws IOException, SQLException, ClassNotFoundException,
+      StandardException {
+    // TODO See initialize_pvs()
+    int numberOfParameters = 1;
+    DataTypeDescriptor[] types = new DataTypeDescriptor[numberOfParameters];
+    for(int i = 0; i < numberOfParameters; i++) {
+      types[i] = new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.INTEGER), true);
+    }
+    pvs = new GenericParameterValueSet(null, 1, false/*return parameter*/);
+    pvs.initialize(types);
+
+    final int paramCount = this.pvs.getParameterCount();
+    final int numEightColGroups = BitSetSet.udiv8(paramCount);
+    final int numPartialCols = BitSetSet.umod8(paramCount);
+    DVDIOUtil.readParameterValueSet(this.pvs, in, numEightColGroups,
+        numPartialCols);
+  }
+
+  public ParameterValueSet getParams() throws Exception {
+    if (this.pvsData != null) {
+      ByteArrayDataInput dis = new ByteArrayDataInput();
+      dis.initialize(this.pvsData, null);
+      readStatementPVS(dis);
+    }
+
+    return this.pvs;
+  }
+
+  @Override
+  public void reset() {
+    super.reset();
+    this.pvsData = null;
+    this.pvs = null;
   }
 }

@@ -165,7 +165,7 @@ public class SnappyActivation extends BaseActivation {
     }
 
     executeOnLeadNode(rs, rc, querySql, enableStreaming, this.getConnectionID(), this.lcc
-        .getCurrentSchemaName());
+        .getCurrentSchemaName(), this.pvs);
   }
 
   protected GfxdResultCollector<Object> getResultCollector(
@@ -269,12 +269,12 @@ public class SnappyActivation extends BaseActivation {
   }
 
   public static void executeOnLeadNode(SnappySelectResultSet rs, GfxdResultCollector<Object> rc, String sql,
-      boolean enableStreaming, long connId, String schema)
+      boolean enableStreaming, long connId, String schema, ParameterValueSet pvs)
       throws StandardException {
     // TODO: KN probably username, statement id and connId to be sent in
     // execution and of course tx id when transaction will be supported.
     LeadNodeExecutionContext ctx = new LeadNodeExecutionContext(connId);
-    LeadNodeExecutorMsg msg = new LeadNodeExecutorMsg(sql, schema, ctx, rc);
+    LeadNodeExecutorMsg msg = new LeadNodeExecutorMsg(sql, schema, ctx, rc, pvs);
     try {
       msg.executeFunction(enableStreaming, false, rs, true);
     } catch (SQLException se) {
