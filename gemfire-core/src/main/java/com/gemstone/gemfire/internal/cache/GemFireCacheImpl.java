@@ -571,7 +571,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       }
     } else {
       BlockingQueue<RegionEntry> oldEntries = new LinkedBlockingDeque<RegionEntry>();
-      Map regionEntryMap = new ConcurrentHashMap<Object, Set<RegionEntry>>();
+      Map regionEntryMap = new ConcurrentHashMap<Object, BlockingQueue<RegionEntry>>();
       oldEntries.add((oldRe));
       regionEntryMap.put(oldRe.getKeyCopy(), oldEntries);
       this.oldEntryMap.put(regionPath, regionEntryMap);
