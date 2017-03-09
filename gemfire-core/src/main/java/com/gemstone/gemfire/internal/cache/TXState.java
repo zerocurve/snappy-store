@@ -109,7 +109,8 @@ public final class TXState implements TXStateInterface {
   // in this VM.
   private final ConcurrentTHashSet<TXRegionState> regions;
 
-  private List<RegionEntry> regionEntryRef = new ArrayList<RegionEntry>();
+  private final BlockingQueue<RegionEntry> regionEntryRef = new LinkedBlockingQueue<RegionEntry>();
+
   static final TXRegionState[] ZERO_REGIONS = new TXRegionState[0];
 
   /** the set of regions that will be committed or rolled back */
@@ -145,7 +146,7 @@ public final class TXState implements TXStateInterface {
 
   Map<String, Map<VersionSource,RegionVersionHolder>> snapshot;
 
-  BlockingQueue<VersionInformation> queue;
+  private final BlockingQueue<VersionInformation> queue = new LinkedBlockingQueue<VersionInformation>();
 
   /*
   private TXLockRequest locks = null;
@@ -432,7 +433,6 @@ public final class TXState implements TXStateInterface {
       this.txManager.getLogger().info(LocalizedStrings.DEBUG,
           " The snapshot taken in txStats is " + this.snapshot);
     }
-    queue = new LinkedBlockingQueue<VersionInformation>();
   }
 
   /**
