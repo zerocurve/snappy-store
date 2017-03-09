@@ -196,10 +196,13 @@ public abstract class AbstractOperationMessage extends DistributionMessage
       }
     }
     if (this.txId != null) {
-      LogWriterI18n logger = GemFireCacheImpl.getInstance().getLoggerI18n();
-      if (logger.fineEnabled()) {
-        logger.fine(" The operation tx id " + this.txId +
-            " locking policy " + getLockingPolicy() + " txState " + getTXState());
+      final GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
+      if (cache != null) {
+        LogWriterI18n logger = cache.getLoggerI18n();
+        if (logger.fineEnabled()) {
+          logger.fine(" The operation tx id " + this.txId +
+              " locking policy " + getLockingPolicy() + " txState " + getTXState());
+        }
       }
       try {
         basicProcess(dm);

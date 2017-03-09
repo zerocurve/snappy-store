@@ -43,6 +43,8 @@ import com.gemstone.gemfire.internal.cache.versions.VersionSource;
 import com.gemstone.gemfire.internal.cache.versions.VersionStamp;
 import com.gemstone.gemfire.internal.cache.versions.VersionTag;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
+import com.gemstone.gemfire.internal.offheap.OffHeapHelper;
+import com.gemstone.gemfire.internal.offheap.annotations.Released;
 import com.gemstone.gemfire.internal.shared.Version;
 
 public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
@@ -82,10 +84,17 @@ public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
     if (allowTombstones && re.isTombstone()) {
       this.value = Token.TOMBSTONE;
     } else {
-      if (faultInValue)
-        this.value = re.getValue(br); // OFFHEAP: copy into heap cd
-      else
-        this.value = re.getValueOffHeapOrDiskWithoutFaultIn(br);
+      @Released Object v = null;
+      if (faultInValue) {
+        v = re.getValue(br);
+      } else {
+        v = re.getValueOffHeapOrDiskWithoutFaultIn(br);
+      }
+      try {
+        this.value = OffHeapHelper.getHeapForm(v);  // OFFHEAP: copy into heap cd
+      } finally {
+        OffHeapHelper.release(v);
+      }
     }
     Assert.assertTrue(this.value != Token.NOT_AVAILABLE,
         "getEntry did not fault value in from disk");
