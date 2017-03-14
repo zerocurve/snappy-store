@@ -62,6 +62,7 @@ import com.gemstone.gnu.trove.TObjectProcedure;
 import com.pivotal.gemfirexd.Attribute;
 import com.pivotal.gemfirexd.internal.engine.GfxdConstants;
 import com.pivotal.gemfirexd.internal.engine.Misc;
+import com.pivotal.gemfirexd.internal.engine.ddl.catalog.GfxdSystemProcedures;
 import com.pivotal.gemfirexd.internal.engine.distributed.utils.GemFireXDUtils;
 import com.pivotal.gemfirexd.internal.engine.sql.conn.GfxdHeapThresholdListener;
 import com.pivotal.gemfirexd.internal.engine.store.GemFireStore;
@@ -664,6 +665,7 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
     } else {
       chunk.chunk = getAsBuffer(blob, (int)length);
       chunk.setLast(true);
+      blob.free();
     }
     return chunk;
   }
@@ -696,6 +698,7 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
       chunk.setLobId(lobId);
     } else {
       chunk.setChunk(clob.getSubString(1, (int)length)).setLast(true);
+      clob.free();
     }
     return chunk;
   }
@@ -1576,7 +1579,8 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
   }
 
   private StatementAttrs applyMergeAttributes(StatementAttrs source,
-      StatementAttrs target, Statement stmt) throws SQLException {
+      StatementAttrs target, EngineConnection conn, Statement stmt)
+      throws SQLException {
     if (target == null) {
       target = source;
     } else if (source != null) {
@@ -1589,6 +1593,10 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
       }
       if (source.isSetLobChunkSize() && !target.isSetLobChunkSize()) {
         target.setLobChunkSize(source.getLobChunkSize());
+      }
+      if (source.isSetBucketIds() && !target.isSetBucketIds()) {
+        target.setBucketIds(source.getBucketIds());
+        target.setBucketIdsTable(source.getBucketIdsTable());
       }
     }
     if (target != null) {
@@ -1604,6 +1612,11 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
       }
       if (target.isSetCursorName()) {
         stmt.setCursorName(target.getCursorName());
+      }
+      if (target.isSetBucketIds()) {
+        GfxdSystemProcedures.setBucketsForLocalExecution(
+            target.getBucketIdsTable(), target.getBucketIds(),
+            conn.getLanguageConnectionContext());
       }
     }
     return target;
@@ -1645,7 +1658,7 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
           getNextId(this.currentStatementId), sql, recordStatementStartTime,
           "EXECUTING");
       connHolder.setActiveStatement(stmtHolder);
-      applyMergeAttributes(null, attrs, stmt);
+      applyMergeAttributes(null, attrs, conn, stmt);
       // Now we have valid statement object and valid connect id.
       // Create new empty StatementResult.
       StatementResult sr = createEmptyStatementResult();
@@ -1698,6 +1711,11 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
       }
       checkSystemFailure(t);
       throw SnappyException(t);
+    } finally {
+      if (conn != null && attrs.isSetBucketIds()) {
+        conn.getLanguageConnectionContext().setExecuteLocally(
+            null, null, false, null);
+      }
     }
   }
 
@@ -1728,7 +1746,7 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
           getNextId(this.currentStatementId), sqls, recordStatementStartTime,
           singleUpdate ? "EXECUTING UPDATE" : "EXECUTING BATCH UPDATE");
       connHolder.setActiveStatement(stmtHolder);
-      applyMergeAttributes(null, attrs, stmt);
+      applyMergeAttributes(null, attrs, conn, stmt);
       if (singleUpdate) {
         int updateCount = stmt.executeUpdate(sqls.get(0));
         stmtHolder.setStatus("FILLING UPDATE COUNT");
@@ -1790,6 +1808,10 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
       if (stmt != null && sqls != null && sqls.size() > 1) {
         stmt.forceClearBatch();
       }
+      if (conn != null && attrs.isSetBucketIds()) {
+        conn.getLanguageConnectionContext().setExecuteLocally(
+            null, null, false, null);
+      }
     }
   }
 
@@ -1817,7 +1839,7 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
           getNextId(this.currentStatementId), sql, recordStatementStartTime,
           "EXECUTING QUERY");
       connHolder.setActiveStatement(stmtHolder);
-      applyMergeAttributes(null, attrs, stmt);
+      applyMergeAttributes(null, attrs, conn, stmt);
       rs = stmt.executeQuery(sql);
       stmtHolder.setStatus("FILLING RESULT SET");
       RowSet rowSet = getRowSet(stmt, stmtHolder, rs, INVALID_ID, null, connId,
@@ -1841,6 +1863,11 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
       }
       checkSystemFailure(t);
       throw SnappyException(t);
+    } finally {
+      if (conn != null && attrs.isSetBucketIds()) {
+        conn.getLanguageConnectionContext().setExecuteLocally(
+            null, null, false, null);
+      }
     }
   }
 
@@ -2206,6 +2233,8 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
               } else if (chunk.last) {
                 // set as a normal byte[]
                 pstmt.setBytes(paramPosition, chunk.getChunk());
+                // free any direct buffer immediately
+                ThriftUtils.releaseBlobChunk(chunk);
                 break;
               } else {
                 blob = conn.createBlob();
@@ -2215,6 +2244,8 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
                 offset += chunk.offset;
               }
               blob.setBytes(offset, chunk.getChunk());
+              // free any direct buffer immediately
+              ThriftUtils.releaseBlobChunk(chunk);
               pstmt.setBlob(paramPosition, blob);
             }
             break;
@@ -2293,7 +2324,7 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
       final Map<Integer, OutputParameter> outputParams, StatementAttrs attrs,
       ByteBuffer token) throws SnappyException {
     ConnectionHolder connHolder = null;
-    EngineConnection conn;
+    EngineConnection conn = null;
     PreparedStatement pstmt = null;
     CallableStatement cstmt = null;
     ParameterMetaData pmd = null;
@@ -2313,7 +2344,8 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
       stmtHolder.setStatus("EXECUTING PREPARED");
       stmtHolder.incrementAccessFrequency();
       connHolder.setActiveStatement(stmtHolder);
-      attrs = applyMergeAttributes(stmtHolder.getStatementAttrs(), attrs, pstmt);
+      attrs = applyMergeAttributes(stmtHolder.getStatementAttrs(), attrs,
+          conn, pstmt);
 
       if (outputParams != null && !outputParams.isEmpty()) {
         if (pstmt instanceof CallableStatement) {
@@ -2381,6 +2413,10 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
         }
         connHolder.clearActiveStatement(pstmt);
       }
+      if (conn != null && attrs.isSetBucketIds()) {
+        conn.getLanguageConnectionContext().setExecuteLocally(
+            null, null, false, null);
+      }
     }
   }
 
@@ -2392,7 +2428,7 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
       final Row params, StatementAttrs attrs, ByteBuffer token)
       throws SnappyException {
     ConnectionHolder connHolder = null;
-    EngineConnection conn;
+    EngineConnection conn = null;
     PreparedStatement pstmt = null;
     ResultSet rs = null;
     // prepared statement executions do not have posDup handling since
@@ -2409,7 +2445,8 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
       stmtHolder.setStatus("EXECUTING PREPARED UPDATE");
       stmtHolder.incrementAccessFrequency();
       connHolder.setActiveStatement(stmtHolder);
-      attrs = applyMergeAttributes(stmtHolder.getStatementAttrs(), attrs, pstmt);
+      attrs = applyMergeAttributes(stmtHolder.getStatementAttrs(), attrs,
+          conn, pstmt);
       // clear any existing parameters first
       pstmt.clearParameters();
       updateParameters(params, pstmt, null, conn);
@@ -2447,6 +2484,10 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
         }
         connHolder.clearActiveStatement(pstmt);
       }
+      if (conn != null && attrs.isSetBucketIds()) {
+        conn.getLanguageConnectionContext().setExecuteLocally(
+            null, null, false, null);
+      }
     }
   }
 
@@ -2457,7 +2498,7 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
   public RowSet executePreparedQuery(long stmtId, final Row params,
       StatementAttrs attrs, ByteBuffer token) throws SnappyException {
     ConnectionHolder connHolder = null;
-    EngineConnection conn;
+    EngineConnection conn = null;
     PreparedStatement pstmt = null;
     ResultSet rs = null;
     // prepared statement executions do not have posDup handling since
@@ -2473,7 +2514,8 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
       stmtHolder.setStatus("EXECUTING PREPARED QUERY");
       stmtHolder.incrementAccessFrequency();
       connHolder.setActiveStatement(stmtHolder);
-      attrs = applyMergeAttributes(stmtHolder.getStatementAttrs(), attrs, pstmt);
+      attrs = applyMergeAttributes(stmtHolder.getStatementAttrs(), attrs,
+          conn, pstmt);
       // clear any existing parameters first
       pstmt.clearParameters();
       updateParameters(params, pstmt, null, conn);
@@ -2496,6 +2538,10 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
         }
         connHolder.clearActiveStatement(pstmt);
       }
+      if (conn != null && attrs.isSetBucketIds()) {
+        conn.getLanguageConnectionContext().setExecuteLocally(
+            null, null, false, null);
+      }
     }
   }
 
@@ -2506,7 +2552,7 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
   public UpdateResult executePreparedBatch(long stmtId, List<Row> paramsBatch,
       StatementAttrs attrs, ByteBuffer token) throws SnappyException {
     ConnectionHolder connHolder = null;
-    EngineConnection conn;
+    EngineConnection conn = null;
     PreparedStatement pstmt = null;
     ResultSet rs = null;
     // prepared statement executions do not have posDup handling since
@@ -2522,7 +2568,8 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
       stmtHolder.setStatus("EXECUTING PREPARED BATCH");
       stmtHolder.incrementAccessFrequency();
       connHolder.setActiveStatement(stmtHolder);
-      attrs = applyMergeAttributes(stmtHolder.getStatementAttrs(), attrs, pstmt);
+      attrs = applyMergeAttributes(stmtHolder.getStatementAttrs(), attrs,
+          conn, pstmt);
       // clear any existing parameters first
       pstmt.clearParameters();
       pstmt.clearBatch();
@@ -2564,6 +2611,10 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
           checkSystemFailure(t);
         }
         connHolder.clearActiveStatement(pstmt);
+      }
+      if (conn != null && attrs.isSetBucketIds()) {
+        conn.getLanguageConnectionContext().setExecuteLocally(
+            null, null, false, null);
       }
     }
   }
@@ -3355,6 +3406,8 @@ public final class SnappyDataServiceImpl extends LocatorServiceImpl implements
         offset += chunk.offset;
       }
       blob.setBytes(offset, chunk.getChunk());
+      // free any direct buffer immediately
+      ThriftUtils.releaseBlobChunk(chunk);
       return lobId;
     } catch (Throwable t) {
       checkSystemFailure(t);
