@@ -27,6 +27,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.*;
+import javax.annotation.Nonnull;
 
 import com.gemstone.gemfire.cache.CacheException;
 import com.gemstone.gemfire.cache.EvictionAttributes;
@@ -2279,7 +2280,16 @@ public class GfxdSystemProcedures extends SystemProcedures {
           GfxdSystemProcedureMessage.SysProcMethod.dumpStacks, false, true);
     }
   }
-  
+
+  /**
+   * This procedure sets the local execution mode for a particular bucket.
+   */
+  public static void setBucketsForLocalExecution(String tableName,
+      Set<Integer> bucketSet, @Nonnull LanguageConnectionContext lcc) {
+    Region region = Misc.getRegionForTable(tableName, true);
+    lcc.setExecuteLocally(bucketSet, region, false, null);
+  }
+
 	/**
 	 * This procedure sets the local execution mode for a particular bucket. To prevent
      * clearing of lcc in case of thin client connections a flag BUCKET_RENTION_FOR_LOCAL_EXECUTION
@@ -2309,11 +2319,13 @@ public class GfxdSystemProcedures extends SystemProcedures {
         while(st.hasMoreTokens()){
           bucketSet.add(Integer.parseInt(st.nextToken()));
         }
-        lcc.setExecuteLocally(bucketSet, region, false, null);
+         setBucketsForLocalExecution(tableName, bucketSet, lcc);
          if (lcc instanceof GenericLanguageConnectionContext)
             ((GenericLanguageConnectionContext) lcc).setBucketRetentionForLocalExecution(true);
 	}
   
+
+
   /**
    * This procedure sets the Nanotimer type. NanoTimer are used extensively while 
    * generating the Explain plans. The timer can either be set to use 
