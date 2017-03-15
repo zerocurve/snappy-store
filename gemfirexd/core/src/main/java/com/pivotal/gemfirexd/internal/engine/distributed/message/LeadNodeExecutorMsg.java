@@ -76,13 +76,21 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
   // transient members set during deserialization and used in execute
   private transient byte[] pvsData;
 
+  private transient byte leadNodeFlags;
+  // possible values for leadNodeFlags
+  private static final byte IS_PREPARED_STATEMENT = 0x1;
+  private static final byte IS_PREPARED_PHASE = 0x2;
+
   public LeadNodeExecutorMsg(String sql, String schema, LeadNodeExecutionContext ctx,
-      GfxdResultCollector<Object> rc, ParameterValueSet inpvs) {
+      GfxdResultCollector<Object> rc, ParameterValueSet inpvs,
+      boolean isPreparedStatement, boolean isPreparedPhase) {
     super(rc, null, false, true);
     this.schema = schema;
     this.sql = sql;
     this.ctx = ctx;
     this.pvs = inpvs;
+    if (isPreparedStatement) leadNodeFlags |= IS_PREPARED_STATEMENT;
+    if (isPreparedPhase) leadNodeFlags |= IS_PREPARED_PHASE;
   }
 
   /**
@@ -90,6 +98,14 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
    */
   public LeadNodeExecutorMsg() {
     super(true);
+  }
+
+  private boolean isPreparedStatement() {
+    return (leadNodeFlags & IS_PREPARED_STATEMENT) != 0;
+  }
+
+  private boolean isPreparedPhase() {
+    return (leadNodeFlags & IS_PREPARED_PHASE) != 0;
   }
 
   @Override
@@ -246,7 +262,8 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
   @Override
   protected LeadNodeExecutorMsg clone() {
     final LeadNodeExecutorMsg msg = new LeadNodeExecutorMsg(this.sql, this.schema, this.ctx,
-        (GfxdResultCollector<Object>)this.userCollector, this.pvs);
+        (GfxdResultCollector<Object>)this.userCollector, this.pvs,
+        this.isPreparedStatement(), this.isPreparedPhase());
     msg.exec = this.exec;
     return msg;
   }
@@ -262,13 +279,17 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
     this.sql = DataSerializer.readString(in);
     this.schema = DataSerializer.readString(in);
     this.ctx = DataSerializer.readObject(in);
-    try {
-      // for source as not-null take the serialized byte array to avoid taking
-      // long time in preparing the statement and thus potentially blocking
-      // message reader threads
-      this.pvsData = DataSerializer.readByteArray(in);
-    } catch (RuntimeException ex) {
-      throw ex;
+
+    this.leadNodeFlags = DataSerializer.readByte(in);
+    if (isPreparedStatement() && !isPreparedPhase()) {
+      try {
+        // for source as not-null take the serialized byte array to avoid taking
+        // long time in preparing the statement and thus potentially blocking
+        // message reader threads
+        this.pvsData = DataSerializer.readByteArray(in);
+      } catch (RuntimeException ex) {
+        throw ex;
+      }
     }
   }
 
@@ -279,24 +300,26 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
     DataSerializer.writeString(this.schema , out);
     DataSerializer.writeObject(ctx, out);
 
-    int paramCount = this.pvs != null ? this.pvs.getParameterCount() : 0;
-    final int numEightColGroups = BitSetSet.udiv8(paramCount);
-    final int numPartialCols = BitSetSet.umod8(paramCount);
-    try {
-      final HeapDataOutputStream hdos;
-      if (paramCount > 0) {
-        hdos = new HeapDataOutputStream();
-        DVDIOUtil.writeParameterValueSet(this.pvs, numEightColGroups,
-            numPartialCols, hdos);
-        InternalDataSerializer.writeArrayLength(hdos.size(), out);
-        hdos.sendTo(out);
+    DataSerializer.writeByte(this.leadNodeFlags, out);
+    if (isPreparedStatement() && !isPreparedPhase()) {
+      int paramCount = this.pvs != null ? this.pvs.getParameterCount() : 0;
+      final int numEightColGroups = BitSetSet.udiv8(paramCount);
+      final int numPartialCols = BitSetSet.umod8(paramCount);
+      try {
+        final HeapDataOutputStream hdos;
+        if (paramCount > 0) {
+          hdos = new HeapDataOutputStream();
+          DVDIOUtil.writeParameterValueSet(this.pvs, numEightColGroups,
+              numPartialCols, hdos);
+          InternalDataSerializer.writeArrayLength(hdos.size(), out);
+          hdos.sendTo(out);
+        } else {
+          InternalDataSerializer.writeArrayLength(-1, out);
+        }
+      } catch (StandardException ex) {
+        throw GemFireXDRuntimeException.newRuntimeException(
+            "unexpected exception in writing parameters", ex);
       }
-      else {
-        InternalDataSerializer.writeArrayLength(-1, out);
-      }
-    } catch (StandardException ex) {
-      throw GemFireXDRuntimeException.newRuntimeException(
-          "unexpected exception in writing parameters", ex);
     }
   }
 
@@ -309,6 +332,8 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
     } catch (Throwable t) {
       // do nothing
     }
+    sb.append(";isPreparedStatement=").append(this.isPreparedStatement());
+    sb.append(";isPreparedPhase=").append(this.isPreparedPhase());
     sb.append(";pvs=").append(this.pvs);
     sb.append(";pvsData=").append(Arrays.toString(this.pvsData));
   }
