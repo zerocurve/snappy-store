@@ -79,7 +79,7 @@ public class PrepStatementSnappyActivation extends GemFireSelectDistributionActi
       }
       SnappyActivation.executeOnLeadNode((SnappySelectResultSet)rs, rc,
           querySql, enableStreaming, this.getConnectionID(), lcc.getCurrentSchemaName(),
-          this.pvs, true, false);
+          this.pvs, true);
     } else {
       throw StandardException.newException(
           SQLState.LANG_UNEXPECTED_USER_EXCEPTION,

@@ -115,12 +115,12 @@ public class SnappyActivation extends BaseActivation {
 
   public final ResultSet prepare() throws StandardException {
     try {
-      SnappySelectResultSet rs = createResultSet(0);
+      SnappyPrepareResultSet rs = createPreapreResultSet(0);
       if (GemFireXDUtils.TraceQuery) {
         SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_QUERYDISTRIB,
             "SnappyActivation.prepare: Created SnappySelectResultSet: " + rs);
       }
-      executeWithResultSet(rs, true);
+      prepareWithResultSet(rs);
       if (GemFireXDUtils.TraceQuery) {
         SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_QUERYDISTRIB,
             "SnappyActivation.prepare: Done");
@@ -144,7 +144,7 @@ public class SnappyActivation extends BaseActivation {
       }
       rs.open();
       this.resultSet = rs;
-      executeWithResultSet(rs, false);
+      executeWithResultSet(rs);
       if (GemFireXDUtils.TraceQuery) {
         SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_QUERYDISTRIB,
             "SnappyActivation.execute: Done");
@@ -175,22 +175,35 @@ public class SnappyActivation extends BaseActivation {
     return new SnappySelectResultSet(this, this.returnRows);
   }
 
-  protected void executeWithResultSet(SnappySelectResultSet rs, boolean isPreparedPhase)
+  protected SnappyPrepareResultSet createPreapreResultSet(int resultsetNumber)
+      throws StandardException {
+    return new SnappyPrepareResultSet(this);
+  }
+
+  protected void executeWithResultSet(SnappySelectResultSet rs)
       throws StandardException {
     boolean enableStreaming = this.lcc.streamingEnabled();
     GfxdResultCollector<Object> rc = null;
     rc = getResultCollector(enableStreaming, rs);
     String querySql = this.sql;
     if (isPrepStmt) {
-      if (isPreparedPhase) {
-        querySql = doNotCheckIn_getModifiedSQL(this.sql);
-      } else {
-        querySql = getModifiedSql(this.preStmt, this.sql, this.pvs);
-      }
+      querySql = getModifiedSql(this.preStmt, this.sql, this.pvs);
     }
 
     executeOnLeadNode(rs, rc, querySql, enableStreaming, this.getConnectionID(), this.lcc
-        .getCurrentSchemaName(), this.pvs, this.isPrepStmt, isPreparedPhase);
+        .getCurrentSchemaName(), this.pvs, this.isPrepStmt);
+  }
+
+  protected void prepareWithResultSet(SnappyPrepareResultSet rs)
+      throws StandardException {
+    boolean enableStreaming = this.lcc.streamingEnabled();
+    GfxdResultCollector<Object> rc = null;
+    rc = getPrepareResultCollector(rs);
+    String querySql = this.sql;
+    querySql = doNotCheckIn_getModifiedSQL(this.sql);
+
+    prepareOnLeadNode(rs, rc, querySql, enableStreaming, this.getConnectionID(), this.lcc
+        .getCurrentSchemaName(), this.pvs);
   }
 
   protected GfxdResultCollector<Object> getResultCollector(
@@ -202,6 +215,14 @@ public class SnappyActivation extends BaseActivation {
     } else {
       rc = new GfxdQueryResultCollector();
     }
+    rs.setupRC(rc);
+    return rc;
+  }
+
+  protected GfxdResultCollector<Object> getPrepareResultCollector(
+      final SnappyPrepareResultSet rs)
+      throws StandardException {
+    final GfxdResultCollector<Object> rc = new GfxdQueryResultCollector();
     rs.setupRC(rc);
     return rc;
   }
@@ -295,18 +316,34 @@ public class SnappyActivation extends BaseActivation {
 
   public static void executeOnLeadNode(SnappySelectResultSet rs, GfxdResultCollector<Object> rc, String sql,
       boolean enableStreaming, long connId, String schema, ParameterValueSet pvs,
-      boolean isPreparedStatement, boolean isPreparedPhase)
+      boolean isPreparedStatement)
       throws StandardException {
     // TODO: KN probably username, statement id and connId to be sent in
     // execution and of course tx id when transaction will be supported.
     LeadNodeExecutionContext ctx = new LeadNodeExecutionContext(connId);
     LeadNodeExecutorMsg msg = new LeadNodeExecutorMsg(sql, schema, ctx, rc, pvs,
-        isPreparedStatement, isPreparedPhase);
+        isPreparedStatement, false);
     try {
       msg.executeFunction(enableStreaming, false, rs, true);
     } catch (SQLException se) {
       throw Misc.processFunctionException(
           "SnappyActivation::execute", se, null, null);
+    }
+  }
+
+  public static void prepareOnLeadNode(SnappyPrepareResultSet rs, GfxdResultCollector<Object> rc, String sql,
+      boolean enableStreaming, long connId, String schema, ParameterValueSet pvs)
+      throws StandardException {
+    // TODO: KN probably username, statement id and connId to be sent in
+    // execution and of course tx id when transaction will be supported.
+    LeadNodeExecutionContext ctx = new LeadNodeExecutionContext(connId);
+    LeadNodeExecutorMsg msg = new LeadNodeExecutorMsg(sql, schema, ctx, rc, pvs,
+        true, true);
+    try {
+      msg.executeFunction(enableStreaming, false, rs, true);
+    } catch (SQLException se) {
+      throw Misc.processFunctionException(
+          "SnappyActivation::prepareOnLeadNode", se, null, null);
     }
   }
 

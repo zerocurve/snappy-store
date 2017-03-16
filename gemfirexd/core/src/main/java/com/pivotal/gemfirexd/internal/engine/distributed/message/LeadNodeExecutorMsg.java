@@ -100,11 +100,11 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
     super(true);
   }
 
-  private boolean isPreparedStatement() {
+  public boolean isPreparedStatement() {
     return (leadNodeFlags & IS_PREPARED_STATEMENT) != 0;
   }
 
-  private boolean isPreparedPhase() {
+  public boolean isPreparedPhase() {
     return (leadNodeFlags & IS_PREPARED_PHASE) != 0;
   }
 
@@ -158,7 +158,7 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
       InternalDistributedMember m = this.getSenderForReply();
       final Version v = m.getVersionObject();
       exec = CallbackFactoryProvider.getClusterCallbacks().getSQLExecute(
-          sql, schema, ctx, v);
+          sql, schema, ctx, v, this.isPreparedStatement() && this.isPreparedPhase());
       SnappyResultHolder srh = new SnappyResultHolder(exec);
 
       srh.prepareSend(this);

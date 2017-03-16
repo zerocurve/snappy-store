@@ -39,7 +39,8 @@ public interface ClusterCallbacks {
 
   void stopExecutor();
 
-  SparkSQLExecute getSQLExecute(String sql, String schema, LeadNodeExecutionContext ctx, Version v);
+  SparkSQLExecute getSQLExecute(String sql, String schema, LeadNodeExecutionContext ctx,
+      Version v, boolean isPreparedPhase);
 
   Object readDataType(ByteArrayDataInput in);
 
