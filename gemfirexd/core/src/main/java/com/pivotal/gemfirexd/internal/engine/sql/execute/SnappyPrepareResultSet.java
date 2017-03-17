@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
+import com.gemstone.gemfire.DataSerializer;
+import com.gemstone.gemfire.internal.ByteArrayDataInput;
 import com.gemstone.gemfire.internal.cache.TXState;
 import com.pivotal.gemfirexd.internal.engine.Misc;
 import com.pivotal.gemfirexd.internal.engine.distributed.GfxdResultCollector;
@@ -32,16 +34,11 @@ import com.pivotal.gemfirexd.internal.iapi.error.StandardException;
 import com.pivotal.gemfirexd.internal.iapi.reference.SQLState;
 import com.pivotal.gemfirexd.internal.iapi.services.io.FormatableBitSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.Activation;
-import com.pivotal.gemfirexd.internal.iapi.sql.ResultColumnDescriptor;
-import com.pivotal.gemfirexd.internal.iapi.sql.ResultDescription;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.ExecRow;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.NoPutResultSet;
 import com.pivotal.gemfirexd.internal.iapi.sql.execute.TargetResultSet;
-import com.pivotal.gemfirexd.internal.iapi.types.DataTypeDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
 import com.pivotal.gemfirexd.internal.iapi.types.RowLocation;
-import com.pivotal.gemfirexd.internal.impl.sql.GenericColumnDescriptor;
-import com.pivotal.gemfirexd.internal.impl.sql.GenericResultDescription;
 import com.pivotal.gemfirexd.internal.impl.sql.execute.ResultSetStatisticsVisitor;
 
 /**
@@ -193,27 +190,9 @@ public final class SnappyPrepareResultSet
             + this.getClass().getSimpleName());
   }
 
-  public ResultDescription makeResultDescription() {
-    String[] colNames = firstResultHolder.getColumnNames();
-    int[] colTypes = firstResultHolder.getColumnTypes();
-    String[] tableNames = firstResultHolder.getTableNames();
-    DataTypeDescriptor[] dtds = firstResultHolder.getDtds();
-    if (colNames == null || colTypes == null || !(colNames.length > 0) || !(colTypes.length > 0)) {
-        throw new IllegalStateException("colnames and colTypes are required");
-    }
-
-    GenericResultDescription resultDescription = new GenericResultDescription(
-        new ResultColumnDescriptor[colTypes.length], null);
-
-    // TODO: KN remove hard coding
-    for(int i=0; i<colNames.length; i++) {
-      ResultColumnDescriptor rcd = new GenericColumnDescriptor(
-          colNames[i], "APP", tableNames[i],
-          i+1, dtds[i], false, false);
-      resultDescription.setColumnDescriptor(
-          i, rcd);
-    }
-    return resultDescription;
+  public int[] makePrepareResult() throws IOException {
+    ByteArrayDataInput dis = firstResultHolder.getByteArrayDataInput();
+    return DataSerializer.readIntArray(dis);
   }
 
   public void setup(Object res, int numMembers) throws StandardException {

@@ -24,6 +24,7 @@ import com.pivotal.gemfirexd.internal.engine.Misc;
 import com.pivotal.gemfirexd.internal.engine.distributed.GfxdQueryResultCollector;
 import com.pivotal.gemfirexd.internal.engine.distributed.GfxdQueryStreamingResultCollector;
 import com.pivotal.gemfirexd.internal.engine.distributed.GfxdResultCollector;
+import com.pivotal.gemfirexd.internal.engine.distributed.SnappyResultHolder;
 import com.pivotal.gemfirexd.internal.engine.distributed.message.LeadNodeExecutorMsg;
 import com.pivotal.gemfirexd.internal.engine.distributed.metadata.DMLQueryInfo;
 import com.pivotal.gemfirexd.internal.engine.distributed.metadata.TableQueryInfo;
@@ -41,17 +42,16 @@ import com.pivotal.gemfirexd.internal.iapi.sql.execute.TemporaryRowHolder;
 import com.pivotal.gemfirexd.internal.iapi.types.DataTypeDescriptor;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericParameterValueSet;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericPreparedStatement;
-import com.pivotal.gemfirexd.internal.iapi.types.DataValueDescriptor;
-import com.pivotal.gemfirexd.internal.iapi.types.TypeId;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericParameter;
 import com.pivotal.gemfirexd.internal.impl.sql.GenericResultDescription;
-import com.pivotal.gemfirexd.internal.impl.sql.compile.Token;
 import com.pivotal.gemfirexd.internal.impl.sql.execute.BaseActivation;
 import com.pivotal.gemfirexd.internal.shared.common.sanity.SanityManager;
 import com.pivotal.gemfirexd.internal.snappy.LeadNodeExecutionContext;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -78,23 +78,29 @@ public class SnappyActivation extends BaseActivation {
   }
 
   public void initialize_pvs() throws StandardException {
-    ResultSet rs = prepare();
+    // Index 0: Number of parameter
+    // Index 1, 2 ,3 - 1st parameter...and so on
+    int[] preparedResult = prepare();
+    assert preparedResult != null;
+    assert preparedResult.length > 0;
 
     // TODO : Need to get this information
     // 1. Number of parameters
     // 2. Type of each parameter
     // 3. Is type nullable?
     // 3. Any additional detail needed for DataTypeDescriptor i.e precesion for double?
-    int numberOfParameters = 1;
+    int numberOfParameters = preparedResult[0];
     DataTypeDescriptor[] types = new DataTypeDescriptor[numberOfParameters];
     for(int i = 0; i < numberOfParameters; i++) {
-      types[i] = new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.INTEGER), true);
+      int index = i * 3 + 1;
+      SnappyResultHolder.getNewNullDVD(preparedResult[index], i, types,
+          preparedResult[index + 1], preparedResult[index + 2], true);
     }
     pvs = (GenericParameterValueSet)lcc
         .getLanguageFactory()
         .newParameterValueSet(
             lcc.getLanguageConnectionFactory().getClassFactory()
-                .getClassInspector(), 1, false/*return parameter*/);
+                .getClassInspector(), numberOfParameters, false/*return parameter*/);
     pvs.initialize(types);
     if (preStmt instanceof GenericPreparedStatement) {
       GenericPreparedStatement gps = (GenericPreparedStatement)preStmt;
@@ -113,7 +119,7 @@ public class SnappyActivation extends BaseActivation {
 
   }
 
-  public final ResultSet prepare() throws StandardException {
+  public final int[] prepare() throws StandardException {
     try {
       SnappyPrepareResultSet rs = createPreapreResultSet(0);
       if (GemFireXDUtils.TraceQuery) {
@@ -121,17 +127,21 @@ public class SnappyActivation extends BaseActivation {
             "SnappyActivation.prepare: Created SnappySelectResultSet: " + rs);
       }
       prepareWithResultSet(rs);
+      int[] typeNames = rs.makePrepareResult();
       if (GemFireXDUtils.TraceQuery) {
         SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_QUERYDISTRIB,
-            "SnappyActivation.prepare: Done");
+            "SnappyActivation.prepare: Done." +
+                " Prepared-result: " + Arrays.toString(typeNames));
       }
-      return rs;
+      return typeNames;
     } catch (GemFireXDRuntimeException gfxdrtex) {
       StandardException cause = getCause(gfxdrtex);
       if (cause != null) {
         throw cause;
       }
       throw gfxdrtex;
+    } catch (IOException ioex) {
+      throw StandardException.newException(ioex.getMessage(), (Throwable)ioex);
     }
   }
 
