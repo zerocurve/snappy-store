@@ -557,8 +557,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   //TODO:Suranjan This has to be replcaed with better approach. guava cache or WeakHashMap.
   protected final Map<String, Map<Object, BlockingQueue<RegionEntry>
     /*RegionEntry*/>>  oldEntryMap;
-
-  volatile boolean st=false;
+  
   private ScheduledExecutorService oldEntryMapCleanerService;
 
   /**
