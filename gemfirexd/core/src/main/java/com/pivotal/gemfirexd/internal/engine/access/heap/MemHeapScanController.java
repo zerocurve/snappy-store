@@ -207,6 +207,8 @@ public class MemHeapScanController implements MemScanController, RowCountable,
 
   private TXState localTXState;
 
+  private TXStateInterface localSnapshotTXState;
+
   private Object lockContext;
 
   private boolean restoreBatching = true;
@@ -406,9 +408,14 @@ public class MemHeapScanController implements MemScanController, RowCountable,
       }
     }
     else {
-      // Start snapshot tx only for read operations.
+      // Start snapshot tx only for read operations.but not for read_only mode
+      boolean forReadOnly = (this.openMode & GfxdConstants
+          .SCAN_OPENMODE_FOR_READONLY_LOCK) != 0;
       if (region.getConcurrencyChecksEnabled() &&
-          (region.getCache().getCacheTransactionManager().getTXState() == null) && (this.forUpdate == 0)) {
+          (region.getCache().getCacheTransactionManager().getTXState() == null)
+          && (this.forUpdate == 0)
+          && !forReadOnly) {
+
         if (GemFireXDUtils.TraceQuery) {
           SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_QUERYDISTRIB,
               "MemHeapScanController scanning table: " + this.regionName
@@ -556,6 +563,7 @@ public class MemHeapScanController implements MemScanController, RowCountable,
       // gemfire tx shouldn't be cleared in case of row buffer scan
       if (!(this.getGemFireContainer().isRowBuffer() && lcc.isSkipConstraintChecks())) {
         TXManagerImpl.snapshotTxState.set(null);
+        this.localSnapshotTXState = this.txState;
       }
       this.txState = null;
       this.localTXState = null;
@@ -1087,6 +1095,10 @@ public class MemHeapScanController implements MemScanController, RowCountable,
     this.txId = null;
     this.txState = null;
     //TODO: Suranjan if the tx has been started for snapshot then clean it from hostedTxState too.
+    if (this.localSnapshotTXState != null)
+      this.localSnapshotTXState.commit(null);
+
+    this.localSnapshotTXState = null;
     this.readLockMode = null;
     this.localTXState = null;
     this.lockContext = null;

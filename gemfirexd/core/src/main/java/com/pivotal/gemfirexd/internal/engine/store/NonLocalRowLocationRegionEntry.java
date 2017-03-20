@@ -782,7 +782,9 @@ public final class NonLocalRowLocationRegionEntry extends NonLocalRegionEntry
    */
   @Override
   public boolean isNull() {
-    throw new UnsupportedOperationException("unexpected invocation");
+    // For snapshot and tx this should be returned only for READ operations
+    return isDestroyedOrRemoved();
+    //throw new UnsupportedOperationException("unexpected invocation");
   }
 
   /**

@@ -641,9 +641,12 @@ public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
 
   @Override
   public boolean isUpdateInProgress() {
-    throw new UnsupportedOperationException(LocalizedStrings
+    // In case of Snapshot we will return this only for read operations:
+    // so update in progress should be false
+    return false;
+    /*throw new UnsupportedOperationException(LocalizedStrings
         .PartitionedRegion_NOT_APPROPRIATE_FOR_PARTITIONEDREGIONNONLOCALREGIONENTRY
-            .toLocalizedString());
+            .toLocalizedString());*/
   }
 
   @Override
