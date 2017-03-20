@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.gemstone.gemfire.cache.AttributesFactory;
@@ -862,13 +863,22 @@ public class SnapShotTxDUnit extends DistributedSQLTestBase {
     });
   }
 
-  public void _testRegionEntryGarbageCollection() throws Exception {
+  public void testRegionEntryGarbageCollection() throws Exception {
     startVMs(0, 2);
     Properties props = new Properties();
     final Connection conn = TestUtil.getConnection(props);
     Statement st = conn.createStatement();
 
 
+    for (VM vm : this.serverVMs) {
+      vm.invoke(new SerializableRunnable() {
+        @Override
+        public void run() {
+          final GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
+          cache.setOldEntriesCleanerTimeIntervalAndRestart(500);
+        }
+      });
+    }
     VM server1 = this.serverVMs.get(0);
     VM server2 = this.serverVMs.get(1);
     server1.invoke(SnapShotTxDUnit.class, "createPR", new Object[]{regionName, 1, 1});
@@ -877,6 +887,7 @@ public class SnapShotTxDUnit extends DistributedSQLTestBase {
     server1.invoke(new SerializableRunnable() {
       @Override
       public void run() {
+
         final GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
         //take an snapshot again//gemfire level
         final Region r = cache.getRegion(regionName);
@@ -892,27 +903,28 @@ public class SnapShotTxDUnit extends DistributedSQLTestBase {
 
         r.put(i, new Integer(4));
         r.put(i,new Integer(5));
-        Map<Object, Set<WeakReference<RegionEntry>>> oldEntries = cache
-            .getOldEntriesForRegion("_B__T1_0");
-        assertNotNull(oldEntries.get(1).iterator().next().get());
+        Map<Object, BlockingQueue<RegionEntry>> oldEntries = cache
+            .getOldEntriesForRegion("/__PR/_B__T1_0");
+        assertNotNull(oldEntries.get(1).iterator().next());
         // even before commit it should be visible
         i=null;
         System.gc();
-        oldEntries = cache.getOldEntriesForRegion("_B__T1_0");
+        oldEntries = cache.getOldEntriesForRegion("/__PR/_B__T1_0");
+
         //Should not be null as the transaction is currently active
-        assertNotNull(oldEntries.get(1).iterator().next().get());
+        assertNotNull(oldEntries.get(1).iterator().next());
         r.getCache().getCacheTransactionManager().commit();
-        System.gc();
         try {
-          Thread.sleep(1000);
-          System.gc();
+        System.gc();
+
+          Thread.sleep(2000);
         } catch (Exception e) {
           e.printStackTrace();
         }
-        oldEntries = cache.getOldEntriesForRegion("_B__T1_0");
+        oldEntries = cache.getOldEntriesForRegion("/__PR/_B__T1_0");
         System.out.println("Oldentries"+oldEntries);
         //Should be null as no transaction is active and we have executed System.gc
-        assertNull(oldEntries.get(1).iterator().next().get());
+        assertTrue(oldEntries.get(1) == null);
         assertEquals(cache.getCacheTransactionManager().getHostedTransactionsInProgress().size(), 0);
         assertNull(cache.getCacheTransactionManager().getCurrentTXState());
 

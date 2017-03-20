@@ -4032,4 +4032,7 @@ public final class TXState implements TXStateInterface {
   public void addRegionEntryReference(RegionEntry re) {
     regionEntryRef.add(re);
   }
+  public boolean containsRegionEntryReference(RegionEntry re) {
+    return regionEntryRef.contains(re);
+  }
 }

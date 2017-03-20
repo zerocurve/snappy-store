@@ -2391,7 +2391,8 @@ RETRY_LOOP:
       }
       } finally {
         //owner.releaseAcquiredWriteLocksOnIndexes(lockedIndexes);
-        if (shouldCopyOldEntry(owner, null)) {
+        if (shouldCopyOldEntry(owner, null) && re.getVersionStamp()!=null && re.getVersionStamp()
+            .asVersionTag().getEntryVersion()>1) {
           owner.getCache().addOldEntry(oldRe, owner.getFullPath());
         }
       }
@@ -3955,7 +3956,8 @@ RETRY_LOOP:
                         createEntry(event, owner, re);
                       }
                       // need to put old entry in oldEntryMap for MVCC
-                      if (shouldCopyOldEntry(owner, event)) {
+                      if (shouldCopyOldEntry(owner, event) && re.getVersionStamp()!=null && re
+                          .getVersionStamp().asVersionTag().getEntryVersion()>1) {
                         owner.getCache().addOldEntry(oldRe, owner.getFullPath());
                       }
                       owner.recordEvent(event);
@@ -4337,7 +4339,8 @@ RETRY_LOOP:
         cacheWrite, expectedOldValue, createdForDestroy, removeRecoveredEntry);
     // we can add the old value to
     if (retVal) {
-      if (shouldCopyOldEntry(_getOwner(), event)) {
+      if (shouldCopyOldEntry(_getOwner(), event) && re.getVersionStamp()!=null && re.getVersionStamp()
+          .asVersionTag().getEntryVersion()>1) {
         _getOwner().getCache().addOldEntry(oldRe, _getOwner().getFullPath());
       }
       EntryLogger.logDestroy(event);
@@ -4562,7 +4565,8 @@ RETRY_LOOP:
         }
       }
       if (opCompleted) {
-        if (shouldCopyOldEntry(owner, null)) {
+        if (shouldCopyOldEntry(owner, null) && re.getVersionStamp()!=null && re.getVersionStamp()
+            .asVersionTag().getEntryVersion()>1) {
           owner.getCache().addOldEntry(oldRe, owner.getFullPath());
         }
         if (re != null && owner.isUsedForPartitionedRegionBucket()) {
