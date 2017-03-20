@@ -75,6 +75,7 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
   protected ParameterValueSet pvs;
   // transient members set during deserialization and used in execute
   private transient byte[] pvsData;
+  private transient int[] pvsTypes;
 
   private transient byte leadNodeFlags;
   // possible values for leadNodeFlags
@@ -158,7 +159,7 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
       InternalDistributedMember m = this.getSenderForReply();
       final Version v = m.getVersionObject();
       exec = CallbackFactoryProvider.getClusterCallbacks().getSQLExecute(
-          sql, schema, ctx, v, this.isPreparedStatement() && this.isPreparedPhase());
+          sql, schema, ctx, v, this.isPreparedStatement(), this.isPreparedPhase(), this.pvs);
       SnappyResultHolder srh = new SnappyResultHolder(exec);
 
       srh.prepareSend(this);
@@ -283,9 +284,7 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
     this.leadNodeFlags = DataSerializer.readByte(in);
     if (isPreparedStatement() && !isPreparedPhase()) {
       try {
-        // for source as not-null take the serialized byte array to avoid taking
-        // long time in preparing the statement and thus potentially blocking
-        // message reader threads
+        this.pvsTypes = DataSerializer.readIntArray(in);
         this.pvsData = DataSerializer.readByteArray(in);
       } catch (RuntimeException ex) {
         throw ex;
@@ -306,6 +305,20 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
       final int numEightColGroups = BitSetSet.udiv8(paramCount);
       final int numPartialCols = BitSetSet.umod8(paramCount);
       try {
+        // Write Types
+        // TODO: See SparkSQLPreapreImpl
+        if (this.pvsTypes == null) {
+          this.pvsTypes = new int[paramCount * 3 + 1];
+          this.pvsTypes[0] = paramCount;
+          for (int i = 0; i < paramCount; i ++) {
+            this.pvsTypes[i * 3 + 1] = this.pvs.getParameter(i).getTypeFormatId();
+            this.pvsTypes[i * 3 + 2] = -1;
+            this.pvsTypes[i * 3 + 3] = -1;
+          }
+        }
+        DataSerializer.writeIntArray(this.pvsTypes, out);
+
+        // Write Data
         final HeapDataOutputStream hdos;
         if (paramCount > 0) {
           hdos = new HeapDataOutputStream();
@@ -342,13 +355,15 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
       throws IOException, SQLException, ClassNotFoundException,
       StandardException {
     // TODO See initialize_pvs()
-    int numberOfParameters = 1;
+    int numberOfParameters = this.pvsTypes[0];
     DataTypeDescriptor[] types = new DataTypeDescriptor[numberOfParameters];
     for(int i = 0; i < numberOfParameters; i++) {
-      types[i] = new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.INTEGER), true);
+      int index = i * 3 + 1;
+      SnappyResultHolder.getNewNullDVD(this.pvsTypes[index], i, types,
+          this.pvsTypes[index + 1], this.pvsTypes[index + 2], true);
     }
-    pvs = new GenericParameterValueSet(null, 1, false/*return parameter*/);
-    pvs.initialize(types);
+    this.pvs = new GenericParameterValueSet(null, numberOfParameters, false/*return parameter*/);
+    this.pvs.initialize(types);
 
     final int paramCount = this.pvs.getParameterCount();
     final int numEightColGroups = BitSetSet.udiv8(paramCount);
