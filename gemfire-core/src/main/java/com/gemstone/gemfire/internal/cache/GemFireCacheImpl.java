@@ -555,8 +555,37 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   private String vmIdRegionPath;
 
   //TODO:Suranjan This has to be replcaed with better approach. guava cache or WeakHashMap.
-  protected volatile Map<String, Map<Object, BlockingQueue<RegionEntry>
+  protected final Map<String, Map<Object, BlockingQueue<RegionEntry>
     /*RegionEntry*/>>  oldEntryMap;
+
+  volatile boolean st=false;
+  private ScheduledExecutorService oldEntryMapCleanerService;
+
+  /**
+   * Time interval after which oldentries cleaner thread run
+   */
+  public static long OLD_ENTRIES_CLEANER_TIME_INTERVAL = Long.getLong("gemfire" +
+      ".snapshot-oldentries-cleaner-time-interval", 60000);
+
+
+  /**
+   * Test only method
+   *
+   * @param oldEntriesCleanerTimeInterval
+   */
+  public void setOldEntriesCleanerTimeIntervalAndRestart(long
+      oldEntriesCleanerTimeInterval) {
+    OLD_ENTRIES_CLEANER_TIME_INTERVAL = oldEntriesCleanerTimeInterval;
+    if (oldEntryMapCleanerService != null) {
+      oldEntryMapCleanerService.shutdownNow();
+      oldEntryMapCleanerService = Executors.newScheduledThreadPool(1);
+      oldEntryMapCleanerService.scheduleAtFixedRate(new OldEntriesCleanerThread(), 0,
+          OLD_ENTRIES_CLEANER_TIME_INTERVAL,
+          TimeUnit.MILLISECONDS);
+
+    }
+  }
+
 
   // For each entry this should be in sync
   public void addOldEntry(RegionEntry oldRe, String regionPath) {
@@ -575,6 +604,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       oldEntries.add((oldRe));
       regionEntryMap.put(oldRe.getKeyCopy(), oldEntries);
       this.oldEntryMap.put(regionPath, regionEntryMap);
+
     }
     for (TXStateProxy txProxy : getTxManager().getHostedTransactionsInProgress()) {
       if (txProxy.getLocalTXState() != null) {
@@ -775,6 +805,9 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 
     //this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
     this.oldEntryMap = new ConcurrentHashMap<String, Map<Object, BlockingQueue<RegionEntry>>>();
+    oldEntryMapCleanerService = Executors.newScheduledThreadPool(1);
+    oldEntryMapCleanerService.scheduleAtFixedRate(new OldEntriesCleanerThread(), 0, OLD_ENTRIES_CLEANER_TIME_INTERVAL,
+        TimeUnit.MILLISECONDS);
     // initialize advisor for normal DMs immediately
     InternalDistributedSystem ids = (InternalDistributedSystem)system;
     StaticSystemCallbacks sysCallbacks = getInternalProductCallbacks();
@@ -6112,6 +6145,49 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 
   public Map getOldEntriesForRegion(String regionName) {
     return oldEntryMap.get(regionName);
+  }
+
+  class OldEntriesCleanerThread implements Runnable {
+    public void run() {
+      try {
+        if (!oldEntryMap.isEmpty()) {
+          for (Map<Object, BlockingQueue<RegionEntry>> regionEntryMap : oldEntryMap.values()) {
+            for (BlockingQueue<RegionEntry> oldEntriesQueue : regionEntryMap.values()) {
+              for(RegionEntry re: oldEntriesQueue) {
+                boolean entryFoundInTxState = false;
+                for (TXStateProxy txProxy : getTxManager().getHostedTransactionsInProgress()) {
+                  TXState txState = txProxy.getLocalTXState();
+                  if ( txState != null && txState.containsRegionEntryReference(re) && !txState
+                      .isCommitted()) {
+                    entryFoundInTxState = true;
+                    break;
+                  }
+                }
+                if(!entryFoundInTxState) {
+                  oldEntriesQueue.remove(re);
+                }
+              }
+
+            }
+
+          }
+        }
+
+        for (Map<Object, BlockingQueue<RegionEntry>> regionEntryMap : oldEntryMap.values()) {
+          for(Entry<Object, BlockingQueue<RegionEntry>> entry: regionEntryMap.entrySet()) {
+            if(entry.getValue().size()==0) {
+              regionEntryMap.remove(entry.getKey());
+            }
+          }
+        }
+      } catch (Exception e) {
+        if (getLoggerI18n().finerEnabled()) {
+          getLoggerI18n().finer(
+              "OldEntriesCleanerThread : Error ocured while cleaning the oldentries map.Actual " +
+                  "Exception:", e);
+        }
+      }
+    }
   }
 
 }
