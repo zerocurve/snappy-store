@@ -3804,7 +3804,7 @@ public final class TXState implements TXStateInterface {
 
   // Writer should add old entry with tombstone with region version in the common map
   // wait till writer has written to common old entry map.
-  private Object getOldVersionedEntry(LocalRegion dataRegion, Object key, RegionEntry re){
+  private Object getOldVersionedEntry(LocalRegion dataRegion, Object key, RegionEntry re) {
     Object oldEntry = getCache().readOldEntry(dataRegion, key, snapshot,
         true, re, this);
     if (oldEntry != null) {
@@ -3819,8 +3819,8 @@ public final class TXState implements TXStateInterface {
       // 1. Copy of the old value
       // 2. New tx starts and takes the snapshot
       // 3. old tx increments the regionVersion
-      // 4. old tx changes the RE
-      // 5. New tx scans and misses the changed RE as its version is higher than the snapshot.
+      // 4. New tx scans and misses the changed RE as its version is higher than the snapshot.
+      // 5. old tx changes the RE
 
       // For Transaction NONE we can get locally. For tx isolation level RC/RR
       // we will have to get from a common DS.
@@ -3851,8 +3851,7 @@ public final class TXState implements TXStateInterface {
     if (TXStateProxy.LOG_FINEST) {
       for (String regionName : snapshot.keySet()) {
         final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
-
-        if (TXStateProxy.LOG_FINE) {
+        if (TXStateProxy.LOG_FINEST) {
           logger.info(LocalizedStrings.DEBUG, "The snapshot is for region  " + regionName + " is : "
               + snapshot.get(regionName) + " txstate " + this + " snapshot is " +
               Integer.toHexString(System.identityHashCode(snapshot)));
@@ -3901,7 +3900,7 @@ public final class TXState implements TXStateInterface {
       if (snapshot != null) {
         if (TXStateProxy.LOG_FINE) {
           logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
-              + region.getFullPath() + " RegionEntry(" + entry  + ") with version" + stamp
+              + region.getFullPath() + " RegionEntry(" + entry  + ") with version " + stamp
               .getRegionVersion());
         }
         if (isVersionInSnapshot(region, id, stamp.getRegionVersion())) {

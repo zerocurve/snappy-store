@@ -781,8 +781,12 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     }
 
     if (logger.fineEnabled()) {
+      String regionpath = "";
+      if (event != null && event.getRegion() != null) {
+        regionpath = event.getRegion().getFullPath();
+      }
       logger.fine("Recorded version: " + version + " for member " + member + " in the snapshot " +
-          " region " + event != null ? null : event.getRegion().getFullPath());
+          " region : " + regionpath);
     }
   }
 
