@@ -18,8 +18,9 @@
 package com.gemstone.gemfire.internal.shared.unsafe;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
@@ -30,6 +31,8 @@ import com.gemstone.gemfire.internal.shared.ChannelBufferInputStream;
 import com.gemstone.gemfire.internal.shared.ChannelBufferOutputStream;
 import com.gemstone.gemfire.internal.shared.InputStreamChannel;
 import com.gemstone.gemfire.internal.shared.OutputStreamChannel;
+import org.apache.spark.unsafe.Platform;
+import sun.misc.Cleaner;
 
 /**
  * Holder for static sun.misc.Unsafe instance and some convenience methods. Use
@@ -43,14 +46,25 @@ public abstract class UnsafeHolder {
   private static final class Wrapper {
 
     static final sun.misc.Unsafe unsafe;
+    static final Constructor<?> directBufferConstructor;
+    static final Field directBufferCleanerField;
 
     static {
       sun.misc.Unsafe v;
+      Constructor<?> dbConstructor;
+      Field dbCleanerField;
       // try using "theUnsafe" field
       try {
         Field field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
         field.setAccessible(true);
         v = (sun.misc.Unsafe)field.get(null);
+
+        Class<?> cls = Class.forName("java.nio.DirectByteBuffer");
+        dbConstructor = cls.getDeclaredConstructor(
+            Long.TYPE, Integer.TYPE);
+        dbConstructor.setAccessible(true);
+        dbCleanerField = cls.getDeclaredField("cleaner");
+        dbCleanerField.setAccessible(true);
       } catch (LinkageError le) {
         throw le;
       } catch (Throwable t) {
@@ -60,6 +74,8 @@ public abstract class UnsafeHolder {
         throw new ExceptionInInitializerError("theUnsafe not found");
       }
       unsafe = v;
+      directBufferConstructor = dbConstructor;
+      directBufferCleanerField = dbCleanerField;
     }
 
     static void init() {
@@ -67,39 +83,17 @@ public abstract class UnsafeHolder {
   }
 
   private static final boolean hasUnsafe;
-  private static final Method directByteBufferAddressMethod;
-  // Cached array base offset
-  public static final long arrayBaseOffset;
 
   static {
     boolean v;
-    long arrayOffset = -1;
     try {
       Wrapper.init();
-      // try to access arrayBaseOffset via unsafe
-      arrayOffset = (long)Wrapper.unsafe.arrayBaseOffset(byte[].class);
       v = true;
     } catch (LinkageError le) {
       le.printStackTrace();
       v = false;
     }
     hasUnsafe = v;
-    arrayBaseOffset = arrayOffset;
-
-    // check for "address()" method within DirectByteBuffer
-    if (hasUnsafe) {
-      Method m;
-      ByteBuffer testBuf = ByteBuffer.allocateDirect(1);
-      try {
-        m = testBuf.getClass().getDeclaredMethod("address");
-        m.setAccessible(true);
-      } catch (Exception e) {
-        m = null;
-      }
-      directByteBufferAddressMethod = m;
-    } else {
-      directByteBufferAddressMethod = null;
-    }
   }
 
   private UnsafeHolder() {
@@ -110,8 +104,44 @@ public abstract class UnsafeHolder {
     return hasUnsafe;
   }
 
-  public static Method getDirectByteBufferAddressMethod() {
-    return directByteBufferAddressMethod;
+  public static ByteBuffer allocateDirectBuffer(int size) {
+    return allocateDirectBuffer(Platform.allocateMemory(size), size);
+  }
+
+  public static ByteBuffer allocateDirectBuffer(final long address, int size) {
+    try {
+      ByteBuffer buffer = (ByteBuffer)Wrapper.directBufferConstructor
+          .newInstance(address, size);
+      Cleaner cleaner = Cleaner.create(buffer, new Runnable() {
+        @Override
+        public void run() {
+          Platform.freeMemory(address);
+        }
+      });
+      Wrapper.directBufferCleanerField.set(buffer, cleaner);
+      return buffer;
+    } catch (Exception e) {
+      Platform.throwException(e);
+      throw new IllegalStateException("unreachable");
+    }
+  }
+
+  public static long getDirectBufferAddress(Buffer buffer) {
+    return ((sun.nio.ch.DirectBuffer)buffer).address();
+  }
+
+  public static void releaseIfDirectBuffer(Buffer buffer) {
+    if (buffer != null && buffer.isDirect()) {
+      releaseDirectBuffer(buffer);
+    }
+  }
+
+  public static void releaseDirectBuffer(Buffer buffer) {
+    sun.misc.Cleaner cleaner = ((sun.nio.ch.DirectBuffer)buffer).cleaner();
+    if (cleaner != null) {
+      cleaner.clean();
+      cleaner.clear();
+    }
   }
 
   public static sun.misc.Unsafe getUnsafe() {
@@ -121,7 +151,7 @@ public abstract class UnsafeHolder {
   @SuppressWarnings("resource")
   public static InputStreamChannel newChannelBufferInputStream(
       ReadableByteChannel channel, int bufferSize) throws IOException {
-    return (directByteBufferAddressMethod != null
+    return (hasUnsafe
         ? new ChannelBufferUnsafeInputStream(channel, bufferSize)
         : new ChannelBufferInputStream(channel, bufferSize));
   }
@@ -129,7 +159,7 @@ public abstract class UnsafeHolder {
   @SuppressWarnings("resource")
   public static OutputStreamChannel newChannelBufferOutputStream(
       WritableByteChannel channel, int bufferSize) throws IOException {
-    return (directByteBufferAddressMethod != null
+    return (hasUnsafe
         ? new ChannelBufferUnsafeOutputStream(channel, bufferSize)
         : new ChannelBufferOutputStream(channel, bufferSize));
   }
@@ -137,7 +167,7 @@ public abstract class UnsafeHolder {
   @SuppressWarnings("resource")
   public static InputStreamChannel newChannelBufferFramedInputStream(
       ReadableByteChannel channel, int bufferSize) throws IOException {
-    return (directByteBufferAddressMethod != null
+    return (hasUnsafe
         ? new ChannelBufferUnsafeFramedInputStream(channel, bufferSize)
         : new ChannelBufferFramedInputStream(channel, bufferSize));
   }
@@ -145,77 +175,20 @@ public abstract class UnsafeHolder {
   @SuppressWarnings("resource")
   public static OutputStreamChannel newChannelBufferFramedOutputStream(
       WritableByteChannel channel, int bufferSize) throws IOException {
-    return (directByteBufferAddressMethod != null
+    return (hasUnsafe
         ? new ChannelBufferUnsafeFramedOutputStream(channel, bufferSize)
         : new ChannelBufferFramedOutputStream(channel, bufferSize));
   }
 
-  // Maximum number of bytes to copy in one call of Unsafe's copyMemory.
-  static final long UNSAFE_COPY_THRESHOLD = 1024L * 1024L;
-
-  // Minimum size below which byte-wise copy is used instead of
-  // Unsafe's copyMemory.
-  static final int ARRAY_COPY_THRESHOLD = 6;
-
   /**
-   * Copy from given source object to destination object.
-   * <p/>
-   *
-   * @param src       source object; can be null in which case the
-   *                  <code>srcOffset</code> must be a memory address
-   * @param srcOffset offset in source object to start copy
-   * @param dst       destination object; can be null in which case the
-   *                  <code>dstOffset</code> must be a memory address
-   * @param dstOffset destination address
-   * @param length    number of bytes to copy
+   * Checks that the range described by {@code offset} and {@code size}
+   * doesn't exceed {@code arrayLength}.
    */
-  public static void copyMemory(final Object src, long srcOffset,
-      final Object dst, long dstOffset, long length,
-      final sun.misc.Unsafe unsafe) {
-    while (length > 0) {
-      long size = Math.min(length, UNSAFE_COPY_THRESHOLD);
-      unsafe.copyMemory(src, srcOffset, dst, dstOffset, size);
-      length -= size;
-      srcOffset += size;
-      dstOffset += size;
-    }
-  }
-
-  public static boolean checkBounds(int off, int len, int size) {
-    return ((off | len | (off + len) | (size - (off + len))) >= 0);
-  }
-
-  /**
-   * @see ByteBuffer#get(byte[], int, int)
-   */
-  public static void bufferGet(final byte[] dst, long address, int offset,
-      final int length, final sun.misc.Unsafe unsafe) {
-    if (length > ARRAY_COPY_THRESHOLD) {
-      copyMemory(null, address, dst, arrayBaseOffset + offset, length, unsafe);
-    } else {
-      final int end = offset + length;
-      while (offset < end) {
-        dst[offset] = unsafe.getByte(address);
-        address++;
-        offset++;
-      }
-    }
-  }
-
-  /**
-   * @see ByteBuffer#put(byte[], int, int)
-   */
-  public static void bufferPut(final byte[] src, long address, int offset,
-      final int length, final sun.misc.Unsafe unsafe) {
-    if (length > ARRAY_COPY_THRESHOLD) {
-      copyMemory(src, arrayBaseOffset + offset, null, address, length, unsafe);
-    } else {
-      final int end = offset + length;
-      while (offset < end) {
-        unsafe.putByte(address, src[offset]);
-        address++;
-        offset++;
-      }
+  public static void checkBounds(int arrayLength, int offset, int len) {
+    if ((offset | len) < 0 || offset > arrayLength ||
+        arrayLength - offset < len) {
+      throw new ArrayIndexOutOfBoundsException("Array index out of range: " +
+          "length=" + arrayLength + " offset=" + offset + " length=" + len);
     }
   }
 }

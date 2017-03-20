@@ -200,6 +200,10 @@ namespace client {
       }
     }
 
+    const thrift::HostAddress& getCurrentHostAddress() const noexcept;
+
+    const thrift::OpenConnectionArgs& getConnectionArgs() const noexcept;
+
     void setSendBufferSize(uint32_t sz);
 
     void setReceiveBufferSize(uint32_t sz);
@@ -269,8 +273,6 @@ namespace client {
     void commitTransaction(bool startNewTransaction);
 
     void rollbackTransaction(bool startNewTransaction);
-
-    void prepareCommitTransaction();
 
     const std::string getNativeSQL(const std::string& sql) const;
 
