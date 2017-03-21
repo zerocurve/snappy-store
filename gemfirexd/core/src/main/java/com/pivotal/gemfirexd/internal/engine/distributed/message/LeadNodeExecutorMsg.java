@@ -338,17 +338,17 @@ public final class LeadNodeExecutorMsg extends MemberExecutorMessage<Object> {
 
   public void appendFields(final StringBuilder sb) {
     sb.append("sql: " + sql);
-    sb.append("schema: " + schema);
+    sb.append(" ;schema: " + schema);
     // call getParams first
     try {
       getParams();
     } catch (Throwable t) {
       // do nothing
     }
-    sb.append(";isPreparedStatement=").append(this.isPreparedStatement());
-    sb.append(";isPreparedPhase=").append(this.isPreparedPhase());
-    sb.append(";pvs=").append(this.pvs);
-    sb.append(";pvsData=").append(Arrays.toString(this.pvsData));
+    sb.append(" ;isPreparedStatement=").append(this.isPreparedStatement());
+    sb.append(" ;isPreparedPhase=").append(this.isPreparedPhase());
+    sb.append(" ;pvs=").append(this.pvs);
+    sb.append(" ;pvsData=").append(Arrays.toString(this.pvsData));
   }
 
   private void readStatementPVS(final ByteArrayDataInput in)
