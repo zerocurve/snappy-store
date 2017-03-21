@@ -2771,7 +2771,7 @@ public abstract class EmbedConnection implements EngineConnection
 			GemFireStore store = Misc.getMemStoreBootingNoThrow();
 			if (store != null && store.isSnappyStore()) {
 				iLevel = ExecutionContext.REPEATABLE_READ_ISOLATION_LEVEL;
-//				setAutoCommit(true);
+				setAutoCommit(true);
 				break;
 			}
 
