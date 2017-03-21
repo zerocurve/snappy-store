@@ -198,6 +198,14 @@ namespace impl {
       return m_token.empty() ? NULL : m_token.c_str();
     }
 
+    const thrift::HostAddress& getCurrentHostAddress() const noexcept {
+      return m_currentHostAddr;
+    }
+
+    const thrift::OpenConnectionArgs& getConnectionArgs() const noexcept {
+      return m_connArgs;
+    }
+
     IsolationLevel getCurrentIsolationLevel() const noexcept {
       return m_isolationLevel;
     }
@@ -244,7 +252,7 @@ namespace impl {
         const thrift::StatementAttrs& attrs);
 
     void getNextResultSet(thrift::RowSet& result,
-        const int32_t cursorId, const int8_t otherResultSetBehaviour);
+        const int64_t cursorId, const int8_t otherResultSetBehaviour);
 
     void getBlobChunk(thrift::BlobChunk& result, const int32_t lobId,
         const int64_t offset, const int32_t size,
@@ -254,23 +262,23 @@ namespace impl {
         const int64_t offset, const int32_t size,
         const bool freeLobAtEnd);
 
-    int32_t sendBlobChunk(thrift::BlobChunk& chunk);
+    int64_t sendBlobChunk(thrift::BlobChunk& chunk);
 
-    int32_t sendClobChunk(thrift::ClobChunk& chunk);
+    int64_t sendClobChunk(thrift::ClobChunk& chunk);
 
     void freeLob(const int32_t lobId);
 
-    void scrollCursor(thrift::RowSet& result, const int32_t cursorId,
+    void scrollCursor(thrift::RowSet& result, const int64_t cursorId,
         const int32_t offset, const bool offsetIsAbsolute,
         const bool fetchReverse, const int32_t fetchSize);
 
-    void executeCursorUpdate(const int32_t cursorId,
+    void executeCursorUpdate(const int64_t cursorId,
         const thrift::CursorUpdateOperation::type operation,
         const thrift::Row& changedRow,
         const std::vector<int32_t>& changedColumns,
         const int32_t changedRowIndex);
 
-    void executeBatchCursorUpdate(const int32_t cursorId,
+    void executeBatchCursorUpdate(const int64_t cursorId,
         const std::vector<thrift::CursorUpdateOperation::type>& operations,
         const std::vector<thrift::Row>& changedRows,
         const std::vector<std::vector<int32_t> >& changedColumnsList,
@@ -312,11 +320,11 @@ namespace impl {
         thrift::ServiceMetaDataArgs& metadataArgs, const int32_t scope,
         const bool nullable);
 
-    void closeResultSet(const int32_t cursorId);
+    void closeResultSet(const int64_t cursorId);
 
-    void cancelStatement(const int32_t stmtId);
+    void cancelStatement(const int64_t stmtId);
 
-    void closeStatement(const int32_t stmtId);
+    void closeStatement(const int64_t stmtId);
 
     void bulkClose(const std::vector<thrift::EntityId>& entities);
 

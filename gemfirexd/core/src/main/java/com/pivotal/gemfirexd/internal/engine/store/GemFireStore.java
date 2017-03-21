@@ -83,7 +83,6 @@ import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
 import com.gemstone.gemfire.internal.shared.ClientSharedUtils;
 import com.gemstone.gemfire.internal.shared.FinalizeObject;
 import com.gemstone.gemfire.internal.shared.StringPrintWriter;
-import com.gemstone.gemfire.internal.snappy.StoreCallbacks;
 import com.gemstone.gnu.trove.THashMap;
 import com.gemstone.gnu.trove.TLongHashSet;
 import com.pivotal.gemfirexd.Attribute;
@@ -2471,7 +2470,7 @@ public final class GemFireStore implements AccessFactory, ModuleControl,
         this.database.setdisableStatementOptimizationToGenericPlan();
       }
     }
-    ClientSharedUtils.setThriftIsDefault(this.snappyStore);
+    ClientSharedUtils.setThriftDefault(this.snappyStore);
   }
 
   private String databaseName;

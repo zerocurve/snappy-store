@@ -42,11 +42,12 @@ import java.util.EnumMap;
 
 import com.gemstone.gemfire.internal.shared.ClientSharedData;
 import com.gemstone.gemfire.internal.shared.SystemProperties;
+import com.gemstone.gemfire.internal.shared.unsafe.UnsafeHolder;
 import com.pivotal.gemfirexd.Attribute;
 import com.pivotal.gemfirexd.internal.shared.common.SharedUtils;
+import io.snappydata.thrift.BlobChunk;
 import io.snappydata.thrift.HostAddress;
 import io.snappydata.thrift.TransactionAttribute;
-import org.apache.spark.unsafe.Platform;
 import org.apache.thrift.TBaseHelper;
 import org.apache.thrift.transport.TNonblockingTransport;
 import org.apache.thrift.transport.TTransport;
@@ -172,9 +173,9 @@ public abstract class ThriftUtils {
       return ByteBuffer.wrap(buffer);
     }
 
-    // use Platform.allocate which does not have the smallish limit used
+    // use Unsafe for allocation which does not have the smallish limit used
     // by ByteBuffer.allocateDirect -- see sun.misc.VM.maxDirectMemory()
-    ByteBuffer buffer = Platform.allocateDirectBuffer(length);
+    ByteBuffer buffer = UnsafeHolder.allocateDirectBuffer(length);
     buffer.limit(length);
     try {
       while (length > 0) {
@@ -226,5 +227,10 @@ public abstract class ThriftUtils {
       final byte[] bytes = toBytes(buffer, buffer.remaining(), length);
       transport.write(bytes, 0, length);
     }
+  }
+
+  public static void releaseBlobChunk(BlobChunk chunk) {
+    UnsafeHolder.releaseIfDirectBuffer(chunk.chunk);
+    chunk.chunk = null;
   }
 }
