@@ -977,7 +977,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       }
     }
 
-    this.clientpf = null;
+   // this.clientpf = null;
     
     if (FactoryStatics.systemCallbacks != null) {
       if (!FactoryStatics.systemCallbacks.isAdmin()) {
