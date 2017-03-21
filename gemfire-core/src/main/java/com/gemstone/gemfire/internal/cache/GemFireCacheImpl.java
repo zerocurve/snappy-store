@@ -689,7 +689,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   // }
 
   public static GemFireCacheImpl create(boolean isClient, PoolFactory pf, DistributedSystem system, CacheConfig cacheConfig) {
-    return new GemFireCacheImpl(true, pf, system, cacheConfig).init();
+    return new GemFireCacheImpl(isClient, pf, system, cacheConfig).init();
   }
 
   public static GemFireCacheImpl create(DistributedSystem system, CacheConfig cacheConfig) {
@@ -1081,6 +1081,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
         determineDefaultPool();
         initializeClientRegionShortcuts(this);
       } else {
+        determineDefaultPool();
         initializeRegionShortcuts(this);
       }
       initializePdxRegistry();
@@ -2544,9 +2545,11 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
    * Used to set the default pool on a new GemFireCache.
    */
   public void determineDefaultPool() {
+    /*
     if (!isClient()) {
       throw new UnsupportedOperationException();
     }
+    */
     Pool pool = null;
     // create the pool if it does not already exist
     if (this.clientpf == null) {
@@ -4153,7 +4156,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   }
 
   public final QueryService getQueryService() {
-    if (isClient()) {
+    if (this.clientpf != null) {
       Pool p = getDefaultPool();
       if (p == null) {
         throw new IllegalStateException("Client cache does not have a default pool. Use getQueryService(String poolName) instead.");
@@ -4707,6 +4710,13 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     // no shortcuts for GemFireXD since these are not used and some combinations
     // are not supported
     if (gfxdSystem()) {
+      if (((GemFireCacheImpl)c).clientpf != null) {
+        AttributesFactory af = new AttributesFactory();
+        af.setDataPolicy(DataPolicy.EMPTY);
+        UserSpecifiedRegionAttributes ra = (UserSpecifiedRegionAttributes) af.create();
+        ra.requiresPoolName = true;
+        c.setRegionAttributes(ClientRegionShortcut.PROXY.toString(), ra);
+      }
       return;
     }
     for (RegionShortcut pra : RegionShortcut.values()) {
@@ -4950,6 +4960,8 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
         throw new IllegalStateException("unhandled enum " + pra);
       }
     }
+
+
   }
 
   public static void initializeClientRegionShortcuts(Cache c) {

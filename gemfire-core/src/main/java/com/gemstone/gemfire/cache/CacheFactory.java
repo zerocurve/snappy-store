@@ -19,6 +19,7 @@ package com.gemstone.gemfire.cache;
 
 import java.util.Properties;
 
+import com.gemstone.gemfire.cache.client.PoolFactory;
 import com.gemstone.gemfire.distributed.DistributedSystem;
 import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
 import com.gemstone.gemfire.internal.GemFireVersion;
@@ -225,6 +226,24 @@ public class CacheFactory {
         ds = DistributedSystem.connect(this.dsProps);
       }
       return create(ds, true, cacheConfig);
+    }
+  }
+
+  public Cache create(PoolFactory pf)
+          throws TimeoutException, CacheWriterException,
+          GatewayException,
+          RegionExistsException
+  {
+    synchronized(CacheFactory.class) {
+      DistributedSystem ds = null;
+      if (this.dsProps.isEmpty()) {
+        // any ds will do
+        ds = InternalDistributedSystem.getConnectedInstance();
+      }
+      if (ds == null) {
+        ds = DistributedSystem.connect(this.dsProps);
+      }
+      return GemFireCacheImpl.create(false, pf, ds, cacheConfig);
     }
   }
 
