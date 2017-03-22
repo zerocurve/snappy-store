@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 SnappyData, Inc. All rights reserved.
+ * Copyright (c) 2017 SnappyData, Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -15,9 +15,19 @@
  * LICENSE file.
  */
 
-dependencies {
-  compile 'net.java.dev.jna:jna:4.2.2'
-  compile 'commons-io:commons-io:2.5'
-  compile project(subprojectBase + 'gemfire-trove')
-  compile "io.snappydata:snappy-spark-unsafe_${scalaBinaryVersion}:${snappySparkVersion}"
+package io.snappydata.thrift.common;
+
+import java.nio.ByteBuffer;
+
+import org.apache.thrift.TException;
+
+/**
+ * Adds method to read binary value as a direct ByteBuffer if possible.
+ */
+public interface TProtocolDirectBinary {
+
+  /**
+   * Read a binary value as a direct ByteBuffer if possible.
+   */
+  ByteBuffer readDirectBinary() throws TException;
 }

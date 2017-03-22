@@ -754,7 +754,8 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
       if (tx != null && !committed) {
         tx.recordVersionForSnapshot(member, version, event.getRegion());
         if (logger.fineEnabled()) {
-          logger.fine("Recording version: " + version + " for member " + member + " in the snapshot tx " +
+          logger.fine("/Recording version:" +
+              "/ " + version + " for member " + member + " in the snapshot tx " +
               " region " + event.getRegion() + " for tx " + tx);
         }
         return;
@@ -781,8 +782,12 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     }
 
     if (logger.fineEnabled()) {
-      logger.fine("Recorded version: " + version + " for member " + member + " in the snapshot " +
-          " region " + event != null ? null : event.getRegion().getFullPath());
+      String regionpath = "";
+      if (event != null && event.getRegion() != null) {
+        regionpath = event.getRegion().getFullPath();
+      }
+      logger.fine("Recorded version: " + version + " for member " + member +
+          " in the snapshot region : " + regionpath );
     }
   }
 
@@ -1737,21 +1742,22 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     this.lockingThreadId.remove();
   }
 
+  //TODO: Suranjan Could there be a case where we are reinitializing and localVersion is getting incremented
   public void reInitializeSnapshotRvv() {
     LogWriterI18n logger = getLoggerI18n();
     if (DEBUG && logger != null) {
       logger.info(LocalizedStrings.DEBUG, "reInitializing the snapshot rvv, current: " +
           this.memberToVersionSnapshot + " with : " + memberToVersion);
     }
-
-    this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>(memberToVersion);
-
+    for (Map.Entry<T,RegionVersionHolder<T>> entry: this.memberToVersion.entrySet()) {
+      RegionVersionHolder holder = entry.getValue().clone();
+      this.memberToVersionSnapshot.put(entry.getKey(), holder);
+    }
     // update the snapshot with local version too
     RegionVersionHolder holder = localExceptions.clone();
     holder.id = myId;
-    holder.version = localVersion.get();
+    holder.version = getCurrentVersion();
     this.memberToVersionSnapshot.put(myId, holder);
-
   }
 
 

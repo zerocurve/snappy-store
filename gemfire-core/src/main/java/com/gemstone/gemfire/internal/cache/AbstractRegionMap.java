@@ -973,6 +973,7 @@ abstract class AbstractRegionMap implements RegionMap {
       if (lastModifiedTime != 0) {
         newRe.setLastModified(lastModifiedTime);
       }
+      //TODO : Suranjan check here.
       RegionEntry oldRe = putEntryIfAbsent(key, newRe);
       LocalRegion owner = null;
       if (_isOwnerALocalRegion()) {
@@ -1165,6 +1166,7 @@ abstract class AbstractRegionMap implements RegionMap {
       }
       synchronized (newRe) {
         try {
+          // TODO: Suranjan in case of GII do the put here..see if oldEntryMap needs to be checked.
           oldRe = putEntryIfAbsent(key, newRe);
           while (!done && oldRe != null) {
             synchronized (oldRe) {
@@ -1650,6 +1652,7 @@ RETRY_LOOP:
           }
           try {
             synchronized (newRe) {
+              //TODO:MVCC this will get covered in destroyEntry
               RegionEntry oldRe = putEntryIfAbsent(event.getKey(), newRe);
               try { // bug #42228 - leaving "removed" entries in the cache
               while (!opCompleted && oldRe != null) {
@@ -1804,6 +1807,7 @@ RETRY_LOOP:
                 newRe.returnToPool();
                 continue RETRY_LOOP;
               }
+              //TODO: MVCC this case?
               re = (RegionEntry)_getMap().putIfAbsent(event.getKey(), newRe);
               if (re != null && re != tombstone) {
                 // concurrent change - try again
@@ -2246,6 +2250,10 @@ RETRY_LOOP:
         }
 
         oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, owner, true);
+        if (shouldCopyOldEntry(owner, null) /*&& re.getVersionStamp()!=null && re.getVersionStamp()
+            .asVersionTag().getEntryVersion()>1*/) {
+          owner.getCache().addOldEntry(oldRe, owner.getFullPath());
+        }
         txRemoveOldIndexEntry(Operation.DESTROY, re);
         boolean clearOccured = false;
         try {
@@ -2305,6 +2313,10 @@ RETRY_LOOP:
         }
 
         oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, owner, true);
+        if (shouldCopyOldEntry(owner, null) /*&& re.getVersionStamp()!=null && re.getVersionStamp()
+            .asVersionTag().getEntryVersion()>1*/) {
+          owner.getCache().addOldEntry(oldRe, owner.getFullPath());
+        }
         try {
           EntryEventImpl txEvent = null;
           if (!isRegionReady) {
@@ -2391,10 +2403,6 @@ RETRY_LOOP:
       }
       } finally {
         //owner.releaseAcquiredWriteLocksOnIndexes(lockedIndexes);
-        if (shouldCopyOldEntry(owner, null) && re.getVersionStamp()!=null && re.getVersionStamp()
-            .asVersionTag().getEntryVersion()>1) {
-          owner.getCache().addOldEntry(oldRe, owner.getFullPath());
-        }
       }
     } catch (DiskAccessException dae) {
       owner.handleDiskAccessException(dae, true/* stop bridge servers*/);
@@ -3946,6 +3954,11 @@ RETRY_LOOP:
                         // we need to do the same for secondary as well.
                         // need to set the version information.
                         oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, event.getRegion(), true);
+                        // need to put old entry in oldEntryMap for MVCC
+                        if (shouldCopyOldEntry(owner, event) && re.getVersionStamp() != null /*&& re
+                            .getVersionStamp().asVersionTag().getEntryVersion() > 1*/) {
+                          owner.getCache().addOldEntry(oldRe, owner.getFullPath());
+                        }
                       }
                       if ((cacheWrite && event.getOperation().isUpdate()) // if there is a cacheWriter, type of event has already been set
                           || !re.isRemoved()
@@ -3954,11 +3967,6 @@ RETRY_LOOP:
                       } else {
                         // create
                         createEntry(event, owner, re);
-                      }
-                      // need to put old entry in oldEntryMap for MVCC
-                      if (shouldCopyOldEntry(owner, event) && re.getVersionStamp()!=null && re
-                          .getVersionStamp().asVersionTag().getEntryVersion()>1) {
-                        owner.getCache().addOldEntry(oldRe, owner.getFullPath());
                       }
                       owner.recordEvent(event);
                       eventRecorded = true;
@@ -4331,6 +4339,9 @@ RETRY_LOOP:
     if (shouldCopyOldEntry(_getOwner(), event)) {
       // we need to do the same for secondary as well.
       oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, event.getRegion(), true);
+      /*if (shouldCopyOldEntry(_getOwner(), event) && re.getVersionStamp() != null && re.getVersionStamp()
+          .asVersionTag().getEntryVersion() > 1) {*/
+      _getOwner().getCache().addOldEntry(oldRe, _getOwner().getFullPath());
     }
     processVersionTag(re, event);
     final int oldSize = _getOwner().calculateRegionEntryValueSize(re);
@@ -4339,10 +4350,6 @@ RETRY_LOOP:
         cacheWrite, expectedOldValue, createdForDestroy, removeRecoveredEntry);
     // we can add the old value to
     if (retVal) {
-      if (shouldCopyOldEntry(_getOwner(), event) && re.getVersionStamp()!=null && re.getVersionStamp()
-          .asVersionTag().getEntryVersion()>1) {
-        _getOwner().getCache().addOldEntry(oldRe, _getOwner().getFullPath());
-      }
       EntryLogger.logDestroy(event);
       _getOwner().updateSizeOnRemove(event.getKey(), oldSize);
     }
@@ -4499,7 +4506,10 @@ RETRY_LOOP:
         // Put the copy to into common place instead of all the running tx.
         // as there is a race.
         oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, owner, true);
-
+        if (shouldCopyOldEntry(owner, null) /*&& re.getVersionStamp()!=null && re.getVersionStamp()
+            .asVersionTag().getEntryVersion()>1*/) {
+          owner.getCache().addOldEntry(oldRe, owner.getFullPath());
+        }
         re.setValue(owner, re.prepareValueForCache(owner, newValue, !putOp.isCreate(), false));
         if (putOp.isCreate()) {
           isCreate = true;
@@ -4565,10 +4575,6 @@ RETRY_LOOP:
         }
       }
       if (opCompleted) {
-        if (shouldCopyOldEntry(owner, null) && re.getVersionStamp()!=null && re.getVersionStamp()
-            .asVersionTag().getEntryVersion()>1) {
-          owner.getCache().addOldEntry(oldRe, owner.getFullPath());
-        }
         if (re != null && owner.isUsedForPartitionedRegionBucket()) {
           BucketRegion br = (BucketRegion)owner;
           CachePerfStats stats = br.getPartitionedRegion().getCachePerfStats();

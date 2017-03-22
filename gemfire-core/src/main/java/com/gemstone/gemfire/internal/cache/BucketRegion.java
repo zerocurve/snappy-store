@@ -760,8 +760,8 @@ public class BucketRegion extends DistributedRegion implements Bucket {
     if (this.batchUUID != null && doFlush && getBucketAdvisor().isPrimary()) {
       // need to flush the region
       if (getCache().getLoggerI18n().fineEnabled()) {
-        getCache().getLoggerI18n().info(LocalizedStrings.DEBUG, "createAndInsertCachedBatch: " +
-            "Creating the cached batch for bucket " + this.getId()
+        getCache().getLoggerI18n().fine("createAndInsertColumnBatch: " +
+            "Creating the column batch for bucket " + this.getId()
             + ", and batchID " + this.batchUUID);
       }
       getCache().getCacheTransactionManager().begin(IsolationLevel.SNAPSHOT, null);

@@ -557,8 +557,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   //TODO:Suranjan This has to be replcaed with better approach. guava cache or WeakHashMap.
   protected final Map<String, Map<Object, BlockingQueue<RegionEntry>
     /*RegionEntry*/>>  oldEntryMap;
-
-  volatile boolean st=false;
+  
   private ScheduledExecutorService oldEntryMapCleanerService;
 
   /**
@@ -589,6 +588,10 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 
   // For each entry this should be in sync
   public void addOldEntry(RegionEntry oldRe, String regionPath) {
+    if(getLoggerI18n().fineEnabled()) {
+      getLoggerI18n().info(LocalizedStrings.DEBUG, "For region  " + regionPath + " adding " + oldRe + " to oldEntrMap");
+    }
+
     if (oldEntryMap.containsKey(regionPath)) {
       Map<Object, BlockingQueue<RegionEntry>> snapshot = this.oldEntryMap.get(regionPath);
       if (!snapshot.containsKey(oldRe.getKeyCopy())) {
@@ -626,14 +629,37 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       return oldRegionEntry;
     } else {
       List<RegionEntry> oldEntries = new ArrayList<>();
-      BlockingQueue<RegionEntry> entries = oldEntryMap.get(regionPath).get(entryKey);
+      Map<Object, BlockingQueue<RegionEntry>> regionMap = oldEntryMap.get(regionPath);
+      if (regionMap == null) {
+        if (getLoggerI18n().fineEnabled()) {
+          getLoggerI18n().info(LocalizedStrings.DEBUG, "For region  " + region + " the snapshot doesn't have any snapshot yet but there " +
+              "are entries present in the region" +
+              " the RVV " + ((LocalRegion)region).getVersionVector().fullToString() + " and snapshot RVV " +
+              ((LocalRegion)region).getVersionVector().getSnapShotOfMemberVersion() + "against the key " + entryKey +
+              " the entry in region is " + re + " with version " + re.getVersionStamp().asVersionTag());
+        }
+        return null;
+      }
+
+      BlockingQueue<RegionEntry> entries = regionMap.get(entryKey);
+      if (entries == null) {
+        if (getLoggerI18n().fineEnabled()) {
+        getLoggerI18n().info(LocalizedStrings.DEBUG, "For region  " + region + " the snapshot doesn't have any snapshot yet but there " +
+            "are entries present in the region" +
+            " the RVV " + ((LocalRegion)region).getVersionVector().fullToString() + " and snapshot RVV " +
+            ((LocalRegion)region).getVersionVector().getSnapShotOfMemberVersion() + " the entries are " + entries + "against the key " + entryKey +
+        " the entry in region is " + re + " with version " + re.getVersionStamp().asVersionTag());
+        }
+        return null;
+      }
       for (RegionEntry value : entries) {
         if (txState.checkEntryVersion(region, value)) {
           oldEntries.add(value);
         }
       }
 
-      RegionEntry max = null;
+      RegionEntry max = NonLocalRegionEntry.newEntry(re.getKeyCopy(), Token.TOMBSTONE,
+          (LocalRegion)region, null);
       for (RegionEntry entry : oldEntries) {
         if (null == max) {
           max = entry;
@@ -641,6 +667,14 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
             .getEntryVersion()) {
           max = entry;
         }
+      }
+      if (getLoggerI18n().fineEnabled()) {
+        getLoggerI18n().info(LocalizedStrings.DEBUG, "For region  " + region +
+            " the RVV " + ((LocalRegion)region).getVersionVector().fullToString() + " and snapshot RVV " +
+            ((LocalRegion)region).getVersionVector().getSnapShotOfMemberVersion() + " the entries are " + entries +
+            "against the key " + entryKey +
+            " the entry in region is " + re + " with version " + re.getVersionStamp().asVersionTag() +
+            " the oldEntries are " + oldEntries + " returning : " + max);
       }
       return max;
     }

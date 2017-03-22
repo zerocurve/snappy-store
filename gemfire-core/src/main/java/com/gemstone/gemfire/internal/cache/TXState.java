@@ -1678,7 +1678,8 @@ public final class TXState implements TXStateInterface {
             : event.shortToString()) + " for " + this.txId.toString()
             +", sending it back to region for snapshot isolation.");
       }
-      return region.getSharedDataView().putEntry(event, ifNew, ifOld, requireOldValue, checkResources, cacheWrite,
+      return region.getSharedDataView().putEntry(event, ifNew, ifOld, null, requireOldValue,
+          cacheWrite,
           lastModified, overwriteDestroyed);
     }
 
@@ -3804,7 +3805,7 @@ public final class TXState implements TXStateInterface {
 
   // Writer should add old entry with tombstone with region version in the common map
   // wait till writer has written to common old entry map.
-  private Object getOldVersionedEntry(LocalRegion dataRegion, Object key, RegionEntry re){
+  private Object getOldVersionedEntry(LocalRegion dataRegion, Object key, RegionEntry re) {
     Object oldEntry = getCache().readOldEntry(dataRegion, key, snapshot,
         true, re, this);
     if (oldEntry != null) {
@@ -3819,23 +3820,26 @@ public final class TXState implements TXStateInterface {
       // 1. Copy of the old value
       // 2. New tx starts and takes the snapshot
       // 3. old tx increments the regionVersion
-      // 4. old tx changes the RE
-      // 5. New tx scans and misses the changed RE as its version is higher than the snapshot.
+      // 4. New tx scans and misses the changed RE as its version is higher than the snapshot.
+      // 5. old tx changes the RE
 
       // For Transaction NONE we can get locally. For tx isolation level RC/RR
       // we will have to get from a common DS.
-      while ((oldEntry = getCache().readOldEntry(dataRegion, key, snapshot, true, re, this)) ==
-          null) {
+      oldEntry = getCache().readOldEntry(dataRegion, key, snapshot, true, re, this);
+
+      while (oldEntry == null) {
         if (TXStateProxy.LOG_FINE) {
           LogWriterI18n logger = dataRegion.getLogWriterI18n();
-          logger.fine(" Waiting for older entry for this snapshot to arrive for key " + key);
+          logger.info(LocalizedStrings.DEBUG, " Waiting for older entry for this snapshot to arrive " +
+              "for key " + key + " re " + re + " for region " + dataRegion.getFullPath());
         }
         try {
-          //TODO: Should we wait indefinitely?
+          //TODO: Suranjan Should we wait indefinitely?
           Thread.sleep(10);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
+        oldEntry = getCache().readOldEntry(dataRegion, key, snapshot, true, re, this);
       }
       return oldEntry;
     }
@@ -3848,17 +3852,28 @@ public final class TXState implements TXStateInterface {
    */
   private boolean isVersionInSnapshot(Region region, VersionSource id, long version) {
     // For snapshot we don't  need to check from the current version
+    final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
     if (TXStateProxy.LOG_FINEST) {
       for (String regionName : snapshot.keySet()) {
-        final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
-
-        if (TXStateProxy.LOG_FINE) {
+        if (TXStateProxy.LOG_FINEST) {
           logger.info(LocalizedStrings.DEBUG, "The snapshot is for region  " + regionName + " is : "
               + snapshot.get(regionName) + " txstate " + this + " snapshot is " +
               Integer.toHexString(System.identityHashCode(snapshot)));
         }
       }
     }
+
+    for (VersionInformation obj : this.queue) {
+      if (id == ((VersionInformation)obj).member && (version == (
+          (VersionInformation)obj).version) &&
+          region == ((VersionInformation)obj).region)
+
+        if (TXStateProxy.LOG_FINE) {
+          logger.info(LocalizedStrings.DEBUG, " The version found in the current tx : " + this);
+        }
+        return true;
+    }
+
     if (this.snapshot.get(region.getFullPath()) != null) {
       RegionVersionHolder holder = this.snapshot.get(region.getFullPath()).get(id);
       if (holder == null) {
@@ -3901,20 +3916,20 @@ public final class TXState implements TXStateInterface {
       if (snapshot != null) {
         if (TXStateProxy.LOG_FINE) {
           logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
-              + region.getFullPath() + " RegionEntry(" + entry  + ") with version" + stamp
-              .getRegionVersion());
+              + region.getFullPath() + " RegionEntry(" + entry  + ") with version " + stamp
+              .getRegionVersion() + " id: " + id);
         }
         if (isVersionInSnapshot(region, id, stamp.getRegionVersion())) {
           return true;
         }
       }
       if (TXStateProxy.LOG_FINE) {
-        logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region " + region.getFullPath() +
-                " returning false.");
+        logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
+            + region.getFullPath() + " RegionEntry(" + entry + ") with version " + stamp
+            .getRegionVersion() + " id: " + id + " , returning false.");
       }
       return false;
     }
-    // For
     return true;
   }
 
@@ -4018,6 +4033,26 @@ public final class TXState implements TXStateInterface {
       this.member = member;
       this.version = version;
       this.region = reg;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == null) {
+        return false;
+      }
+      if (obj == this)
+        return true;
+      if (!(obj instanceof VersionInformation)) {
+        return false;
+      }
+
+      if (this.member == ((VersionInformation)obj).member && (this.version == (
+          (VersionInformation)obj).version) &&
+          this.region == ((VersionInformation)obj).region) {
+        return true;
+      }
+
+      return false;
     }
 
     @Override
