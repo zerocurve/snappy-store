@@ -658,7 +658,8 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
         }
       }
 
-      RegionEntry max = null;
+      RegionEntry max = NonLocalRegionEntry.newEntry(re.getKeyCopy(), Token.TOMBSTONE,
+          (LocalRegion)region, null);
       for (RegionEntry entry : oldEntries) {
         if (null == max) {
           max = entry;
@@ -666,6 +667,14 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
             .getEntryVersion()) {
           max = entry;
         }
+      }
+      if (getLoggerI18n().fineEnabled()) {
+        getLoggerI18n().info(LocalizedStrings.DEBUG, "For region  " + region +
+            " the RVV " + ((LocalRegion)region).getVersionVector().fullToString() + " and snapshot RVV " +
+            ((LocalRegion)region).getVersionVector().getSnapShotOfMemberVersion() + " the entries are " + entries +
+            "against the key " + entryKey +
+            " the entry in region is " + re + " with version " + re.getVersionStamp().asVersionTag() +
+            " the oldEntries are " + oldEntries + " returning : " + max);
       }
       return max;
     }

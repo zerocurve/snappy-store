@@ -1741,6 +1741,7 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     this.lockingThreadId.remove();
   }
 
+  //TODO: Suranjan Could there be a case where we are reinitializing and localVersion is getting incremented
   public void reInitializeSnapshotRvv() {
     LogWriterI18n logger = getLoggerI18n();
     if (DEBUG && logger != null) {
@@ -1755,7 +1756,6 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
     holder.id = myId;
     holder.version = localVersion.get();
     this.memberToVersionSnapshot.put(myId, holder);
-
   }
 
 

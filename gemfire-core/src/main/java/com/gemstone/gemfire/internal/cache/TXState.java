@@ -3824,18 +3824,21 @@ public final class TXState implements TXStateInterface {
 
       // For Transaction NONE we can get locally. For tx isolation level RC/RR
       // we will have to get from a common DS.
-      while ((oldEntry = getCache().readOldEntry(dataRegion, key, snapshot, true, re, this)) ==
-          null) {
+      oldEntry = getCache().readOldEntry(dataRegion, key, snapshot, true, re, this);
+
+      while (oldEntry == null) {
         if (TXStateProxy.LOG_FINE) {
           LogWriterI18n logger = dataRegion.getLogWriterI18n();
-          logger.fine(" Waiting for older entry for this snapshot to arrive for key " + key);
+          logger.info(LocalizedStrings.DEBUG, " Waiting for older entry for this snapshot to arrive " +
+              "for key " + key + " re " + re + " for region " + dataRegion.getFullPath());
         }
         try {
-          //TODO: Should we wait indefinitely?
+          //TODO: Suranjan Should we wait indefinitely?
           Thread.sleep(10);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
+        oldEntry = getCache().readOldEntry(dataRegion, key, snapshot, true, re, this);
       }
       return oldEntry;
     }
@@ -3901,19 +3904,19 @@ public final class TXState implements TXStateInterface {
         if (TXStateProxy.LOG_FINE) {
           logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
               + region.getFullPath() + " RegionEntry(" + entry  + ") with version " + stamp
-              .getRegionVersion());
+              .getRegionVersion() + " id: " + id);
         }
         if (isVersionInSnapshot(region, id, stamp.getRegionVersion())) {
           return true;
         }
       }
       if (TXStateProxy.LOG_FINE) {
-        logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region " + region.getFullPath() +
-                " returning false.");
+        logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
+            + region.getFullPath() + " RegionEntry(" + entry + ") with version " + stamp
+            .getRegionVersion() + " id: " + id + " , returning false.");
       }
       return false;
     }
-    // For
     return true;
   }
 
