@@ -116,7 +116,7 @@ public enum IsolationLevel {
    */
   final static int NO_ALTERNATIVE_JDBC_LEVEL = -1;
 
-  final static int NO_JDBC_LEVEL = -1;
+  public final static int NO_JDBC_LEVEL = -1;
 
   /**
    * If some other JDBC isolation level is to be upgraded to this one, then
