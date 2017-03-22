@@ -1678,7 +1678,8 @@ public final class TXState implements TXStateInterface {
             : event.shortToString()) + " for " + this.txId.toString()
             +", sending it back to region for snapshot isolation.");
       }
-      return region.getSharedDataView().putEntry(event, ifNew, ifOld, requireOldValue, checkResources, cacheWrite,
+      return region.getSharedDataView().putEntry(event, ifNew, ifOld, null, requireOldValue,
+          cacheWrite,
           lastModified, overwriteDestroyed);
     }
 
@@ -3848,9 +3849,9 @@ public final class TXState implements TXStateInterface {
    */
   private boolean isVersionInSnapshot(Region region, VersionSource id, long version) {
     // For snapshot we don't  need to check from the current version
+    final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
     if (TXStateProxy.LOG_FINEST) {
       for (String regionName : snapshot.keySet()) {
-        final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
         if (TXStateProxy.LOG_FINEST) {
           logger.info(LocalizedStrings.DEBUG, "The snapshot is for region  " + regionName + " is : "
               + snapshot.get(regionName) + " txstate " + this + " snapshot is " +
@@ -3858,6 +3859,18 @@ public final class TXState implements TXStateInterface {
         }
       }
     }
+
+    for (VersionInformation obj : this.queue) {
+      if (id == ((VersionInformation)obj).member && (version == (
+          (VersionInformation)obj).version) &&
+          region == ((VersionInformation)obj).region)
+
+        if (TXStateProxy.LOG_FINE) {
+          logger.info(LocalizedStrings.DEBUG, " The version found in the current tx : " + this);
+        }
+        return true;
+    }
+
     if (this.snapshot.get(region.getFullPath()) != null) {
       RegionVersionHolder holder = this.snapshot.get(region.getFullPath()).get(id);
       if (holder == null) {
@@ -4017,6 +4030,26 @@ public final class TXState implements TXStateInterface {
       this.member = member;
       this.version = version;
       this.region = reg;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == null) {
+        return false;
+      }
+      if (obj == this)
+        return true;
+      if (!(obj instanceof VersionInformation)) {
+        return false;
+      }
+
+      if (this.member == ((VersionInformation)obj).member && (this.version == (
+          (VersionInformation)obj).version) &&
+          this.region == ((VersionInformation)obj).region) {
+        return true;
+      }
+
+      return false;
     }
 
     @Override

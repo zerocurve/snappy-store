@@ -754,7 +754,8 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
       if (tx != null && !committed) {
         tx.recordVersionForSnapshot(member, version, event.getRegion());
         if (logger.fineEnabled()) {
-          logger.fine("Recording version: " + version + " for member " + member + " in the snapshot tx " +
+          logger.fine("/Recording version:" +
+              "/ " + version + " for member " + member + " in the snapshot tx " +
               " region " + event.getRegion() + " for tx " + tx);
         }
         return;
@@ -785,8 +786,8 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
       if (event != null && event.getRegion() != null) {
         regionpath = event.getRegion().getFullPath();
       }
-      logger.fine("Recorded version: " + version + " for member " + member + " in the snapshot " +
-          " region : " + regionpath);
+      logger.fine("Recorded version: " + version + " for member " + member +
+          " in the snapshot region : " + regionpath );
     }
   }
 
@@ -1747,13 +1748,14 @@ public abstract class RegionVersionVector<T extends VersionSource<?>> implements
       logger.info(LocalizedStrings.DEBUG, "reInitializing the snapshot rvv, current: " +
           this.memberToVersionSnapshot + " with : " + memberToVersion);
     }
-
-    this.memberToVersionSnapshot = new CopyOnWriteHashMap<T, RegionVersionHolder<T>>(memberToVersion);
-
+    for (Map.Entry<T,RegionVersionHolder<T>> entry: this.memberToVersion.entrySet()) {
+      RegionVersionHolder holder = entry.getValue().clone();
+      this.memberToVersionSnapshot.put(entry.getKey(), holder);
+    }
     // update the snapshot with local version too
     RegionVersionHolder holder = localExceptions.clone();
     holder.id = myId;
-    holder.version = localVersion.get();
+    holder.version = getCurrentVersion();
     this.memberToVersionSnapshot.put(myId, holder);
 
   }
