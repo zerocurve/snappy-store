@@ -79,28 +79,32 @@ public class SnappyActivation extends BaseActivation {
 
   public void initialize_pvs() throws StandardException {
     // Index 0: Number of parameter
-    // Index 1, 2 ,3 - 1st parameter...and so on
+    // Index 1 - 1st parameter: DataTYpe
+    // Index 2 - 1st parameter: precision
+    // Index 3 - 1st parameter: scale
+    // ...and so on
     int[] preparedResult = prepare();
     assert preparedResult != null;
     assert preparedResult.length > 0;
 
-    // TODO : Need to get this information
-    // 1. Number of parameters
-    // 2. Type of each parameter
-    // 3. Is type nullable?
-    // 3. Any additional detail needed for DataTypeDescriptor i.e precesion for double?
+    // Cannot get nullable information from remote. So always true
+    // Also see ParamConstants.getSQLType()
+    boolean nullAble = true;
+
     int numberOfParameters = preparedResult[0];
     DataTypeDescriptor[] types = new DataTypeDescriptor[numberOfParameters];
-    for(int i = 0; i < numberOfParameters; i++) {
+    for (int i = 0; i < numberOfParameters; i++) {
       int index = i * 3 + 1;
       SnappyResultHolder.getNewNullDVD(preparedResult[index], i, types,
-          preparedResult[index + 1], preparedResult[index + 2], true);
+          preparedResult[index + 1], preparedResult[index + 2], nullAble);
     }
+
+    boolean hasReturnParameter = false;
     pvs = (GenericParameterValueSet)lcc
         .getLanguageFactory()
         .newParameterValueSet(
             lcc.getLanguageConnectionFactory().getClassFactory()
-                .getClassInspector(), numberOfParameters, false/*return parameter*/);
+                .getClassInspector(), numberOfParameters, hasReturnParameter);
     pvs.initialize(types);
     if (preStmt instanceof GenericPreparedStatement) {
       GenericPreparedStatement gps = (GenericPreparedStatement)preStmt;
