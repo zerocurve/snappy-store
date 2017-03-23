@@ -78,25 +78,23 @@ public class SnappyActivation extends BaseActivation {
   }
 
   public void initialize_pvs() throws StandardException {
+    // Also see ParamConstants.getSQLType()
     // Index 0: Number of parameter
     // Index 1 - 1st parameter: DataTYpe
     // Index 2 - 1st parameter: precision
     // Index 3 - 1st parameter: scale
+    // Index 4 - 1st parameter: nullable
     // ...and so on
     int[] preparedResult = prepare();
     assert preparedResult != null;
     assert preparedResult.length > 0;
 
-    // Cannot get nullable information from remote. So always true
-    // Also see ParamConstants.getSQLType()
-    boolean nullAble = true;
-
     int numberOfParameters = preparedResult[0];
     DataTypeDescriptor[] types = new DataTypeDescriptor[numberOfParameters];
     for (int i = 0; i < numberOfParameters; i++) {
-      int index = i * 3 + 1;
+      int index = i * 4 + 1;
       SnappyResultHolder.getNewNullDVD(preparedResult[index], i, types,
-          preparedResult[index + 1], preparedResult[index + 2], nullAble);
+          preparedResult[index + 1], preparedResult[index + 2], preparedResult[index + 2] == 1);
     }
 
     boolean hasReturnParameter = false;
