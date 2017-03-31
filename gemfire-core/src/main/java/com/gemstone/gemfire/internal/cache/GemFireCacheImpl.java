@@ -331,7 +331,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
    * True if this cache is being created by a ClientCacheFactory.
    */
   private final boolean isClient;
-  private PoolFactory clientpf;
+  protected PoolFactory clientpf;
   /**
    * It is not final to allow cache.xml parsing to set it.
    */
@@ -690,7 +690,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   // }
 
   public static GemFireCacheImpl create(boolean isClient, PoolFactory pf, DistributedSystem system, CacheConfig cacheConfig) {
-    return new GemFireCacheImpl(isClient, pf, system, cacheConfig).init();
+    return new GemFireCacheImpl(true, pf, system, cacheConfig).init();
   }
 
   public static GemFireCacheImpl create(DistributedSystem system, CacheConfig cacheConfig) {
@@ -946,7 +946,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
    *
    * @return the initialized instance of the cache
    */
-  private GemFireCacheImpl init() {
+  protected GemFireCacheImpl init() {
     ClassPathLoader.setLatestToDefault();
         
     SystemMemberCacheEventProcessor.send(this, Operation.CACHE_CREATE);
@@ -978,7 +978,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       }
     }
 
-   // this.clientpf = null;
+    this.clientpf = null;
     
     if (FactoryStatics.systemCallbacks != null) {
       if (!FactoryStatics.systemCallbacks.isAdmin()) {
@@ -1082,7 +1082,6 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
         determineDefaultPool();
         initializeClientRegionShortcuts(this);
       } else {
-        determineDefaultPool();
         initializeRegionShortcuts(this);
       }
       initializePdxRegistry();
@@ -2546,15 +2545,16 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     return defpf;
   }
 
+  protected void checkValidityForPool() {
+    if (!isClient()) {
+      throw new UnsupportedOperationException();
+    }
+  }
   /**
    * Used to set the default pool on a new GemFireCache.
    */
   public void determineDefaultPool() {
-    /*
-    if (!isClient()) {
-      throw new UnsupportedOperationException();
-    }
-    */
+    this.checkValidityForPool();
     Pool pool = null;
     // create the pool if it does not already exist
     if (this.clientpf == null) {
@@ -4161,7 +4161,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   }
 
   public final QueryService getQueryService() {
-    if (this.clientpf != null) {
+    if (isClient()) {
       Pool p = getDefaultPool();
       if (p == null) {
         throw new IllegalStateException("Client cache does not have a default pool. Use getQueryService(String poolName) instead.");
@@ -4715,13 +4715,6 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     // no shortcuts for GemFireXD since these are not used and some combinations
     // are not supported
     if (gfxdSystem()) {
-      if (((GemFireCacheImpl)c).clientpf != null) {
-        AttributesFactory af = new AttributesFactory();
-        af.setDataPolicy(DataPolicy.EMPTY);
-        UserSpecifiedRegionAttributes ra = (UserSpecifiedRegionAttributes) af.create();
-        ra.requiresPoolName = true;
-        c.setRegionAttributes(ClientRegionShortcut.PROXY.toString(), ra);
-      }
       return;
     }
     for (RegionShortcut pra : RegionShortcut.values()) {

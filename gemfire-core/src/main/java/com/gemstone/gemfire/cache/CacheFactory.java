@@ -83,9 +83,9 @@ Applications that need to explicitly control the individual region attributes ca
  */
 public class CacheFactory {
 
-  private final Properties dsProps;
+  protected final Properties dsProps;
   
-  private final CacheConfig cacheConfig =  new CacheConfig();
+  protected final CacheConfig cacheConfig =  new CacheConfig();
        
   /**
    * Creates a default cache factory.
@@ -229,23 +229,6 @@ public class CacheFactory {
     }
   }
 
-  public Cache create(PoolFactory pf)
-          throws TimeoutException, CacheWriterException,
-          GatewayException,
-          RegionExistsException
-  {
-    synchronized(CacheFactory.class) {
-      DistributedSystem ds = null;
-      if (this.dsProps.isEmpty()) {
-        // any ds will do
-        ds = InternalDistributedSystem.getConnectedInstance();
-      }
-      if (ds == null) {
-        ds = DistributedSystem.connect(this.dsProps);
-      }
-      return GemFireCacheImpl.create(false, pf, ds, cacheConfig);
-    }
-  }
 
   /**
    * Gets the instance of {@link Cache} produced by an

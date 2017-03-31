@@ -63,6 +63,7 @@ import com.gemstone.gemfire.cache.client.internal.locator.GetAllServersRequest;
 import com.gemstone.gemfire.cache.client.internal.locator.GetAllServersResponse;
 import com.gemstone.gemfire.cache.execute.FunctionService;
 import com.gemstone.gemfire.cache.util.ObjectSizer;
+import com.gemstone.gemfire.cache.wan.GemFireSparkConnectorCacheFactory;
 import com.gemstone.gemfire.distributed.DistributedMember;
 import com.gemstone.gemfire.distributed.DistributedSystem;
 import com.gemstone.gemfire.distributed.internal.*;
@@ -1074,20 +1075,26 @@ public final class GemFireStore implements AccessFactory, ModuleControl,
       }
 
       try {
-        CacheFactory c = new CacheFactory(dsProps);
+        CacheFactory c = null;
+        PoolFactory pf = null;
+        if(remoteGemFireLocators != null) {
+          pf = PoolManager.createFactory();
+          pf.setReadTimeout(30000);
+          this.configurePool(pf, remoteGemFireLocators);
+          c = new GemFireSparkConnectorCacheFactory(dsProps);
+        } else {
+          c = new CacheFactory(dsProps);
+        }
+
         if (this.persistingDD) {
           c.setPdxPersistent(true);
           c.setPdxDiskStore(GfxdConstants.GFXD_DD_DISKSTORE_NAME);
         }
-        if (remoteGemFireLocators != null) {
-          PoolFactory pf = PoolManager.createFactory();
-          pf.setReadTimeout(30000);
-          this.configurePool(pf, remoteGemFireLocators);
-          this.gemFireCache = (GemFireCacheImpl) c.create(pf);
+        if (pf != null) {
+          this.gemFireCache = (GemFireCacheImpl) ((GemFireSparkConnectorCacheFactory)c).create(pf);
         } else {
-          this.gemFireCache = (GemFireCacheImpl) c.create();
+          this.gemFireCache = (GemFireCacheImpl)c.create();
         }
-
 
         this.gemFireCache.getLogger().info(
             "GemFire Cache successfully created.");
