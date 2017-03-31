@@ -586,10 +586,18 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   }
 
 
+
+  // For each entry this should be in sync
+  public void removeRegionFromOldEntryMap(String regionPath) {
+    oldEntryMap.remove(regionPath);
+
+  }
+
   // For each entry this should be in sync
   public void addOldEntry(RegionEntry oldRe, String regionPath) {
     if(getLoggerI18n().fineEnabled()) {
-      getLoggerI18n().info(LocalizedStrings.DEBUG, "For region  " + regionPath + " adding " + oldRe + " to oldEntrMap");
+      getLoggerI18n().info(LocalizedStrings.DEBUG, "For region  " + regionPath + " adding " +
+          oldRe + " to oldEntrMap", new NullPointerException("OLDENTRY"));
     }
 
     if (oldEntryMap.containsKey(regionPath)) {

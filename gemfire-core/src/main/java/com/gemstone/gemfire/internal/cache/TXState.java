@@ -1126,7 +1126,8 @@ public final class TXState implements TXStateInterface {
 
         for (VersionInformation vi : queue) {
           if (TXStateProxy.LOG_FINE) {
-            logger.info(LocalizedStrings.DEBUG, " Recording version " + vi + " in the snapshot region Version");
+            logger.info(LocalizedStrings.DEBUG, "Recording version " + vi + " from snapshot to " +
+                 "region.");
           }
           ((LocalRegion)vi.region).getVersionVector().
               recordVersionForSnapshot((VersionSource)vi.member, vi.version, null);
@@ -1678,7 +1679,7 @@ public final class TXState implements TXStateInterface {
             : event.shortToString()) + " for " + this.txId.toString()
             +", sending it back to region for snapshot isolation.");
       }
-      return region.getSharedDataView().putEntry(event, ifNew, ifOld, null, requireOldValue,
+      return region.getSharedDataView().putEntry(event, ifNew, ifOld, expectedOldValue, requireOldValue,
           cacheWrite,
           lastModified, overwriteDestroyed);
     }
