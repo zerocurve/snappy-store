@@ -1357,7 +1357,8 @@ public class GfxdSystemProcedures extends SystemProcedures {
       String[] partColumns,
       String[] indexColumns,
       Clob[] bucketToServerMapping,
-      int[] relationDestroyVersion)
+      int[] relationDestroyVersion,
+      String[] pkColumns)
       throws SQLException {
     String schema;
     String table;
@@ -1414,6 +1415,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
         // get index columns
         if (hiveCatalog.isRowTable(schema, table, true)) {
           getIndexColumns(indexColumns, region);
+          getPKColumns(pkColumns, region);
         }
       } catch (StandardException se) {
         // getContainerForTable can throw error for external tables
@@ -1423,6 +1425,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
           partColumns[0] = null;
           indexColumns[0] = null;
           bucketToServerMapping[0] = new HarmonySerialClob(""); // to avoid NPE
+          pkColumns[0] = null;
         } else {
           throw PublicAPI.wrapStandardException(se);
         }
@@ -1515,6 +1518,26 @@ public class GfxdSystemProcedures extends SystemProcedures {
       }
     }
     indexColumns[0] = cols;
+  }
+
+  public static void getPKColumns(String[] pkColumns,
+      LocalRegion region) throws StandardException {
+    GemFireContainer container = (GemFireContainer)region.getUserAttribute();
+    TableDescriptor td = container.getTableDescriptor();
+    String cols = null;
+    if (td != null) {
+      String[] baseColumns = td.getColumnNamesArray();
+      ReferencedKeyConstraintDescriptor primaryKey = td.getPrimaryKey();
+      if (primaryKey != null) {
+        int[] pkCols = primaryKey.getKeyColumns();
+        if (pkCols != null) {
+          for (int i = 0; i < pkCols.length; i++) {
+            cols += baseColumns[pkCols[i] - 1] + ":";
+          }
+        }
+      }
+    }
+    pkColumns[0] = cols;
   }
 
   public static void CREATE_SNAPPY_TABLE(

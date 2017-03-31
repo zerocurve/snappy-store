@@ -1633,7 +1633,7 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
       String[] arg_names = new String[] { "TABLE_NAME",
           "TABLE_OBJECT", "BUCKET_COUNT", "PARTITIONING_COLUMNS",
           "INDEX_COLUMNS", "BUCKET_TO_SERVER_MAPPING",
-          "RELATION_DESTROY_VERSION" };
+          "RELATION_DESTROY_VERSION", "PK_COLUMNS" };
       TypeDescriptor[] arg_types = new TypeDescriptor[] { DataTypeDescriptor
           .getCatalogType(Types.VARCHAR),
           DataTypeDescriptor.getCatalogType(Types.BLOB),
@@ -1641,9 +1641,10 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
           DataTypeDescriptor.getCatalogType(Types.VARCHAR),
           DataTypeDescriptor.getCatalogType(Types.VARCHAR),
           DataTypeDescriptor.getCatalogType(Types.CLOB),
-          DataTypeDescriptor.getCatalogType(Types.INTEGER)};
+          DataTypeDescriptor.getCatalogType(Types.INTEGER),
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR)};
       super.createSystemProcedureOrFunction("GET_TABLE_METADATA",
-          sysUUID, arg_names, arg_types, 6, 0, RoutineAliasInfo.READS_SQL_DATA, null,
+          sysUUID, arg_names, arg_types, 7, 0, RoutineAliasInfo.READS_SQL_DATA, null,
           newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);
     }
 
