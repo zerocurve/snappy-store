@@ -45,6 +45,9 @@ public class MVCCDUnitTest extends DistributedSQLTestBase {
     return "fine";
   }
 
+  public String getSuffix() {
+    return " replicate persistent ";
+  }
 
   public void testSnapshotInsertAPI() throws Exception {
     startVMs(1, 2);
@@ -53,7 +56,7 @@ public class MVCCDUnitTest extends DistributedSQLTestBase {
     Statement st1 = conn.createStatement();
 
     clientSQLExecute(1, "create table " + regionName + " (intcol int not null, text varchar" +
-        "(100) not null) replicate persistent enable concurrency checks");
+        "(100) not null) "+ getSuffix() +" enable concurrency checks");
 
 
     VM server1 = this.serverVMs.get(0);
