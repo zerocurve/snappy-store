@@ -1612,7 +1612,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
   }
 
   public static void CREATE_SNAPPY_UDF(String db, String functionName,
-      String className, Blob funcResources) throws SQLException {
+      String className, String jarURI) throws SQLException {
     if (GemFireXDUtils.TraceSysProcedures) {
       SanityManager.DEBUG_PRINT(GfxdConstants.TRACE_SYS_PROCEDURES,
           "executing CREATE_SNAPPY_UDF ");
@@ -1620,7 +1620,7 @@ public class GfxdSystemProcedures extends SystemProcedures {
     LeadNodeSmartConnectorOpContext ctx = new LeadNodeSmartConnectorOpContext(
         LeadNodeSmartConnectorOpContext.OpType.CREATE_UDF,
         null, null, null, null, null, null, true, false, null, null,
-        db, functionName, className, funcResources.getBytes(1, (int)funcResources.length()));
+        db, functionName, className, jarURI);
 
     sendConnectorOpToLead(ctx);
   }

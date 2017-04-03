@@ -1704,12 +1704,12 @@ public final class GfxdDataDictionary extends DataDictionaryImpl {
 
     {
       // CREATE_SNAPPY_UDF
-      String[] arg_names = new String[] { "DB", "FUNCTION_NAME", "CLASS_NAME", "FUNCTION_RESOURCES"};
+      String[] arg_names = new String[] { "DB", "FUNCTION_NAME", "CLASS_NAME", "JAR_URI"};
       TypeDescriptor[] arg_types = new TypeDescriptor[] {
           DataTypeDescriptor.getCatalogType(Types.VARCHAR),
           DataTypeDescriptor.getCatalogType(Types.VARCHAR),
           DataTypeDescriptor.getCatalogType(Types.VARCHAR),
-          DataTypeDescriptor.getCatalogType(Types.BLOB)};
+          DataTypeDescriptor.getCatalogType(Types.VARCHAR)};
       super.createSystemProcedureOrFunction("CREATE_SNAPPY_UDF",
           sysUUID, arg_names, arg_types, 0, 0, RoutineAliasInfo.READS_SQL_DATA, null,
           newlyCreatedRoutines, tc, GFXD_SYS_PROC_CLASSNAME, false);

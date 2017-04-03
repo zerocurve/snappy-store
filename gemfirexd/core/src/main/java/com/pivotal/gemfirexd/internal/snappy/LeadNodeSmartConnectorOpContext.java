@@ -52,7 +52,7 @@ public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
   private String db; // for udf
   private String functionName; // for udf
   private String className; // for udf
-  private byte[] funcResources; // for udf
+  private String jarURI; // for udf
 
 
 
@@ -70,7 +70,7 @@ public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
       Boolean isBuiltIn,
       Boolean ifExists,
       String indexIdentifier,
-      byte[] indexColumns, String db, String functionName, String className, byte[] funcResources) {
+      byte[] indexColumns, String db, String functionName, String className, String jarURI) {
     this.type = type;
     this.tableIdentifier = tableIdentifier;
     this.provider = provider;
@@ -85,7 +85,7 @@ public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
     this.db = db;
     this.functionName = functionName;
     this.className = className;
-    this.funcResources = funcResources;
+    this.jarURI = jarURI;
   }
 
   @Override
@@ -114,7 +114,7 @@ public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
     DataSerializer.writeString(db, out);
     DataSerializer.writeString(functionName, out);
     DataSerializer.writeString(className, out);
-    DataSerializer.writeByteArray(funcResources, out);
+    DataSerializer.writeString(jarURI, out);
   }
 
   @Override
@@ -133,7 +133,7 @@ public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
     this.db = DataSerializer.readString(in);
     this.functionName = DataSerializer.readString(in);
     this.className = DataSerializer.readString(in);
-    this.funcResources = DataSerializer.readByteArray(in);
+    this.jarURI = DataSerializer.readString(in);
   }
 
   @Override
@@ -189,7 +189,7 @@ public final class LeadNodeSmartConnectorOpContext implements GfxdSerializable {
 
   public String getClassName() { return className; }
 
-  public byte[] getFuncResources() { return funcResources; }
+  public String getjarURI() { return jarURI; }
 
 
 }
