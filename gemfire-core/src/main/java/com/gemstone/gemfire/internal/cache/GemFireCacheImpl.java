@@ -581,15 +581,14 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       oldEntryMapCleanerService.scheduleAtFixedRate(new OldEntriesCleanerThread(), 0,
           OLD_ENTRIES_CLEANER_TIME_INTERVAL,
           TimeUnit.MILLISECONDS);
-
     }
   }
-
 
   // For each entry this should be in sync
   public void addOldEntry(RegionEntry oldRe, String regionPath) {
     if(getLoggerI18n().fineEnabled()) {
-      getLoggerI18n().info(LocalizedStrings.DEBUG, "For region  " + regionPath + " adding " + oldRe + " to oldEntrMap");
+      getLoggerI18n().info(LocalizedStrings.DEBUG, "For region  " + regionPath + " adding " +
+          oldRe + " to oldEntrMap");
     }
 
     if (oldEntryMap.containsKey(regionPath)) {
@@ -837,11 +836,6 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
     this.clientpf = pf;
     this.cacheConfig = cacheConfig; // do early for bug 43213
 
-    //this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
-    this.oldEntryMap = new ConcurrentHashMap<String, Map<Object, BlockingQueue<RegionEntry>>>();
-    oldEntryMapCleanerService = Executors.newScheduledThreadPool(1);
-    oldEntryMapCleanerService.scheduleAtFixedRate(new OldEntriesCleanerThread(), 0, OLD_ENTRIES_CLEANER_TIME_INTERVAL,
-        TimeUnit.MILLISECONDS);
     // initialize advisor for normal DMs immediately
     InternalDistributedSystem ids = (InternalDistributedSystem)system;
     StaticSystemCallbacks sysCallbacks = getInternalProductCallbacks();
@@ -906,6 +900,24 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
 
       // clear any old TXState
       this.txMgr.clearTXState();
+
+      //this.oldEntryMap = new CustomEntryConcurrentHashMap<>();
+      this.oldEntryMap = new ConcurrentHashMap<String, Map<Object, BlockingQueue<RegionEntry>>>();
+
+      final LogWriterImpl.LoggingThreadGroup threadGroup = LogWriterImpl.createThreadGroup("OldEntry GC Thread Group",
+          this.system.getLogWriterI18n());
+      ThreadFactory oldEntryGCtf = new ThreadFactory() {
+        public Thread newThread(Runnable command) {
+          Thread thread = new Thread(threadGroup, command,
+              "OldEntry GC Thread");
+          thread.setDaemon(true);
+          return thread;
+        }
+      };
+
+      oldEntryMapCleanerService = Executors.newScheduledThreadPool(1, oldEntryGCtf);
+      oldEntryMapCleanerService.scheduleAtFixedRate(new OldEntriesCleanerThread(), 0, OLD_ENTRIES_CLEANER_TIME_INTERVAL,
+          TimeUnit.MILLISECONDS);
 
       this.creationDate = new Date();
 
@@ -1948,7 +1960,11 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       if (isClosed()) {
         return;
       }
-      
+
+      if (oldEntryMapCleanerService != null) {
+        oldEntryMapCleanerService.shutdownNow();
+      }
+
       /**
        * First close the ManagementService as it uses a lot of infra which will be closed by cache.close()
        **/
@@ -6187,36 +6203,35 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
         if (!oldEntryMap.isEmpty()) {
           for (Map<Object, BlockingQueue<RegionEntry>> regionEntryMap : oldEntryMap.values()) {
             for (BlockingQueue<RegionEntry> oldEntriesQueue : regionEntryMap.values()) {
-              for(RegionEntry re: oldEntriesQueue) {
+              for (RegionEntry re : oldEntriesQueue) {
                 boolean entryFoundInTxState = false;
                 for (TXStateProxy txProxy : getTxManager().getHostedTransactionsInProgress()) {
                   TXState txState = txProxy.getLocalTXState();
-                  if ( txState != null && txState.containsRegionEntryReference(re) && !txState
+                  if (txState != null && txState.containsRegionEntryReference(re) && !txState
                       .isCommitted()) {
                     entryFoundInTxState = true;
                     break;
                   }
                 }
-                if(!entryFoundInTxState) {
+                if (!entryFoundInTxState) {
                   oldEntriesQueue.remove(re);
                 }
               }
-
             }
-
           }
         }
 
         for (Map<Object, BlockingQueue<RegionEntry>> regionEntryMap : oldEntryMap.values()) {
-          for(Entry<Object, BlockingQueue<RegionEntry>> entry: regionEntryMap.entrySet()) {
-            if(entry.getValue().size()==0) {
+          for (Entry<Object, BlockingQueue<RegionEntry>> entry : regionEntryMap.entrySet()) {
+            if (entry.getValue().size() == 0) {
               regionEntryMap.remove(entry.getKey());
             }
           }
         }
-      } catch (Exception e) {
-        if (getLoggerI18n().finerEnabled()) {
-          getLoggerI18n().finer(
+      }
+      catch (Exception e) {
+        if (getLoggerI18n().fineEnabled()) {
+          getLoggerI18n().fine(
               "OldEntriesCleanerThread : Error ocured while cleaning the oldentries map.Actual " +
                   "Exception:", e);
         }
