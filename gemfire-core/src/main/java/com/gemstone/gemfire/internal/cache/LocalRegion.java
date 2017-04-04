@@ -7837,7 +7837,8 @@ public class LocalRegion extends AbstractRegion
             // recent
             this.parentRegion.updateStats();
           }
-  
+
+          getCache().removeRegionFromOldEntryMap(this.getFullPath());
         
           try {
             eventSet = callbackEvents ? new HashSet() : null;

@@ -2250,8 +2250,8 @@ RETRY_LOOP:
         }
 
         oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, owner, true);
-        if (shouldCopyOldEntry(owner, null) /*&& re.getVersionStamp()!=null && re.getVersionStamp()
-            .asVersionTag().getEntryVersion()>1*/) {
+        if (shouldCopyOldEntry(owner, null) /*&& re.getVersionStamp() != null && re.getVersionStamp()
+            .asVersionTag().getEntryVersion() > 0*/ ) {
           owner.getCache().addOldEntry(oldRe, owner.getFullPath());
         }
         txRemoveOldIndexEntry(Operation.DESTROY, re);
@@ -2314,7 +2314,7 @@ RETRY_LOOP:
 
         oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, owner, true);
         if (shouldCopyOldEntry(owner, null) /*&& re.getVersionStamp()!=null && re.getVersionStamp()
-            .asVersionTag().getEntryVersion()>1*/) {
+            .asVersionTag().getEntryVersion()>0*/) {
           owner.getCache().addOldEntry(oldRe, owner.getFullPath());
         }
         try {
@@ -3950,15 +3950,13 @@ RETRY_LOOP:
                   try {
                     try {
                       RegionEntry oldRe = null;
-                      if (shouldCopyOldEntry(owner,event)) {
+                      if (shouldCopyOldEntry(owner, event) && re.getVersionStamp() != null && re
+                          .getVersionStamp().asVersionTag().getEntryVersion() > 0) {
                         // we need to do the same for secondary as well.
                         // need to set the version information.
                         oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, event.getRegion(), true);
                         // need to put old entry in oldEntryMap for MVCC
-                        if (shouldCopyOldEntry(owner, event) && re.getVersionStamp() != null /*&& re
-                            .getVersionStamp().asVersionTag().getEntryVersion() > 1*/) {
-                          owner.getCache().addOldEntry(oldRe, owner.getFullPath());
-                        }
+                        owner.getCache().addOldEntry(oldRe, owner.getFullPath());
                       }
                       if ((cacheWrite && event.getOperation().isUpdate()) // if there is a cacheWriter, type of event has already been set
                           || !re.isRemoved()
@@ -4336,11 +4334,10 @@ RETRY_LOOP:
       throws CacheWriterException, TimeoutException, EntryNotFoundException,
       RegionClearedException {
     RegionEntry oldRe = null;
-    if (shouldCopyOldEntry(_getOwner(), event)) {
+    if (shouldCopyOldEntry(_getOwner(), event) /*&& re.getVersionStamp() != null && re.getVersionStamp()
+        .asVersionTag().getEntryVersion() > 0*/) {
       // we need to do the same for secondary as well.
       oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, event.getRegion(), true);
-      /*if (shouldCopyOldEntry(_getOwner(), event) && re.getVersionStamp() != null && re.getVersionStamp()
-          .asVersionTag().getEntryVersion() > 1) {*/
       _getOwner().getCache().addOldEntry(oldRe, _getOwner().getFullPath());
     }
     processVersionTag(re, event);
@@ -4506,8 +4503,8 @@ RETRY_LOOP:
         // Put the copy to into common place instead of all the running tx.
         // as there is a race.
         oldRe = NonLocalRegionEntry.newEntryWithoutFaultIn(re, owner, true);
-        if (shouldCopyOldEntry(owner, null) /*&& re.getVersionStamp()!=null && re.getVersionStamp()
-            .asVersionTag().getEntryVersion()>1*/) {
+        if (shouldCopyOldEntry(owner, null) /*&& re.getVersionStamp() != null && re.getVersionStamp()
+            .asVersionTag().getEntryVersion() > 0*/) {
           owner.getCache().addOldEntry(oldRe, owner.getFullPath());
         }
         re.setValue(owner, re.prepareValueForCache(owner, newValue, !putOp.isCreate(), false));

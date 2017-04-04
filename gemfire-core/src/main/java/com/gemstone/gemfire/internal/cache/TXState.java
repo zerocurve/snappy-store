@@ -414,7 +414,7 @@ public final class TXState implements TXStateInterface {
 
     // We don't know the semantics for RR, so ideally there shouldn't be snapshot for it.
     // Need to disable it.
-    if (getCache().snaphshotEnabled() /*&& this.lockPolicy != LockingPolicy.FAIL_FAST_RR_TX*/) {
+    if (getCache().snaphshotEnabled() && this.lockPolicy == LockingPolicy.SNAPSHOT) {
       takeSnapshot();
     } else {
       this.snapshot = null;
@@ -1126,7 +1126,8 @@ public final class TXState implements TXStateInterface {
 
         for (VersionInformation vi : queue) {
           if (TXStateProxy.LOG_FINE) {
-            logger.info(LocalizedStrings.DEBUG, " Recording version " + vi + " in the snapshot region Version");
+            logger.info(LocalizedStrings.DEBUG, "Recording version " + vi + " from snapshot to " +
+                 "region.");
           }
           ((LocalRegion)vi.region).getVersionVector().
               recordVersionForSnapshot((VersionSource)vi.member, vi.version, null);
@@ -1678,7 +1679,7 @@ public final class TXState implements TXStateInterface {
             : event.shortToString()) + " for " + this.txId.toString()
             +", sending it back to region for snapshot isolation.");
       }
-      return region.getSharedDataView().putEntry(event, ifNew, ifOld, null, requireOldValue,
+      return region.getSharedDataView().putEntry(event, ifNew, ifOld, expectedOldValue, requireOldValue,
           cacheWrite,
           lastModified, overwriteDestroyed);
     }
@@ -3895,7 +3896,7 @@ public final class TXState implements TXStateInterface {
    * @return
    */
   public boolean checkEntryVersion(Region region, RegionEntry entry) {
-    if (getCache().snaphshotEnabled() && ((LocalRegion)region).concurrencyChecksEnabled) {
+    if (isSnapshot() && ((LocalRegion)region).concurrencyChecksEnabled) {
       VersionStamp stamp = entry.getVersionStamp();
       VersionSource id = stamp.getMemberID();
       final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
@@ -3914,12 +3915,12 @@ public final class TXState implements TXStateInterface {
       }
       // if rvv is not present then
       if (snapshot != null) {
-        if (TXStateProxy.LOG_FINE) {
-          logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
-              + region.getFullPath() + " RegionEntry(" + entry  + ") with version " + stamp
-              .getRegionVersion() + " id: " + id);
-        }
         if (isVersionInSnapshot(region, id, stamp.getRegionVersion())) {
+          if (TXStateProxy.LOG_FINE) {
+            logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
+                + region.getFullPath() + " RegionEntry(" + entry  + ") with version " + stamp
+                .getRegionVersion() + " id: " + id + " , returning true.");
+          }
           return true;
         }
       }
