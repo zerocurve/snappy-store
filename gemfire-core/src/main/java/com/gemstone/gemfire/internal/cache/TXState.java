@@ -3854,15 +3854,6 @@ public final class TXState implements TXStateInterface {
   private boolean isVersionInSnapshot(Region region, VersionSource id, long version) {
     // For snapshot we don't  need to check from the current version
     final LogWriterI18n logger = ((LocalRegion)region).getLogWriterI18n();
-    if (TXStateProxy.LOG_FINEST) {
-      for (String regionName : snapshot.keySet()) {
-        if (TXStateProxy.LOG_FINEST) {
-          logger.info(LocalizedStrings.DEBUG, "The snapshot is for region  " + regionName + " is : "
-              + snapshot.get(regionName) + " txstate " + this + " snapshot is " +
-              Integer.toHexString(System.identityHashCode(snapshot)));
-        }
-      }
-    }
 
     for (VersionInformation obj : this.queue) {
       if (id == ((VersionInformation)obj).member && (version == (
@@ -3878,6 +3869,9 @@ public final class TXState implements TXStateInterface {
     if (this.snapshot.get(region.getFullPath()) != null) {
       RegionVersionHolder holder = this.snapshot.get(region.getFullPath()).get(id);
       if (holder == null) {
+        if (TXStateProxy.LOG_FINE) {
+          logger.info(LocalizedStrings.DEBUG, " The holder against the region is null, returning false. ");
+        }
         return false;
       } else {
         return holder.contains(version);

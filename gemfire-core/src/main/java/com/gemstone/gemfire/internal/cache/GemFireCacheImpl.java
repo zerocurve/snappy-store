@@ -624,7 +624,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
       final Map<String, Map<VersionSource, RegionVersionHolder>> snapshot, final boolean
       checkValid, RegionEntry re, TXState txState) {
     String regionPath = region.getFullPath();
-    if (re.getVersionStamp().getEntryVersion() == 1) {
+    if (re.getVersionStamp().getEntryVersion() <= 1) {
       RegionEntry oldRegionEntry = NonLocalRegionEntry.newEntry(re.getKeyCopy(), Token.TOMBSTONE,
           (LocalRegion)region, re.getVersionStamp().asVersionTag());
       //TODO: In some cases, persistence, GII old Entry may not be present
