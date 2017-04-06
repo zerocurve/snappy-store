@@ -593,26 +593,28 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   // For each entry this should be in sync
   public void addOldEntry(RegionEntry oldRe, String regionPath) {
     if(getLoggerI18n().fineEnabled()) {
-      getLoggerI18n().info(LocalizedStrings.DEBUG, "For region  " + regionPath + " adding " + oldRe + " to oldEntrMap");
+      getLoggerI18n().info(LocalizedStrings.DEBUG, "For region  " + regionPath + " adding " +
+          oldRe + " to oldEntrMap");
     }
 
-    if (oldEntryMap.containsKey(regionPath)) {
-      Map<Object, BlockingQueue<RegionEntry>> snapshot = this.oldEntryMap.get(regionPath);
-      if (!snapshot.containsKey(oldRe.getKeyCopy())) {
-        BlockingQueue<RegionEntry> oldEntries = new LinkedBlockingDeque<RegionEntry>();
-        oldEntries.add(oldRe);
-        snapshot.put(oldRe.getKeyCopy(), oldEntries);
+    Map<Object, BlockingQueue<RegionEntry>> snapshot = this.oldEntryMap.get(regionPath);
+    if (snapshot != null) {
+      BlockingQueue<RegionEntry> oldEntryqueue = snapshot.get(oldRe.getKeyCopy());
+      if (oldEntryqueue == null) {
+        oldEntryqueue = new LinkedBlockingDeque<RegionEntry>();
+        oldEntryqueue.add(oldRe);
+        snapshot.put(oldRe.getKeyCopy(), oldEntryqueue);
       } else {
-        snapshot.get(oldRe.getKeyCopy()).add(oldRe);
+        oldEntryqueue.add(oldRe);
       }
     } else {
-      BlockingQueue<RegionEntry> oldEntries = new LinkedBlockingDeque<RegionEntry>();
-      Map regionEntryMap = new ConcurrentHashMap<Object, BlockingQueue<RegionEntry>>();
-      oldEntries.add((oldRe));
-      regionEntryMap.put(oldRe.getKeyCopy(), oldEntries);
-      this.oldEntryMap.put(regionPath, regionEntryMap);
-
+      BlockingQueue<RegionEntry> oldEntryqueue= new LinkedBlockingDeque<RegionEntry>();
+      snapshot = new ConcurrentHashMap<Object, BlockingQueue<RegionEntry>>();
+      oldEntryqueue.add(oldRe);
+      snapshot.put(oldRe.getKeyCopy(), oldEntryqueue);
+      this.oldEntryMap.put(regionPath, snapshot);
     }
+
     for (TXStateProxy txProxy : getTxManager().getHostedTransactionsInProgress()) {
       if (txProxy.getLocalTXState() != null) {
         txProxy.getLocalTXState().addRegionEntryReference(oldRe);
