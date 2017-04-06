@@ -56,11 +56,7 @@ public interface StoreCallbacks {
 
   boolean isSnappyStore();
 
-  long getRegionOverhead(LocalRegion region);
-
   void resetMemoryManager();
-
-  long getNumBytesForEviction();
 
   long getStoragePoolUsedMemory();
   long getStoragePoolSize();

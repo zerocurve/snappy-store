@@ -14335,11 +14335,12 @@ public class LocalRegion extends AbstractRegion
   protected volatile long diskIdOverHead = -1L;
 
   protected void accountRegionOverhead() {// Not throwing LowMemoryException while region creation
-    if (!this.reservedTable() && !regionOverHeadAccounted && needAccounting() ) {
+    if (!this.reservedTable() && !regionOverHeadAccounted && needAccounting()) {
       synchronized (this) {
         if (!regionOverHeadAccounted) {
           callback.acquireStorageMemory(getFullPath(),
-              callback.getRegionOverhead(this), null, true);
+                  ReflectionSingleObjectSizer.INSTANCE.sizeof(this),
+                  null, true);
           regionOverHeadAccounted = true;
 
         }
