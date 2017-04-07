@@ -299,6 +299,10 @@ namespace client {
         return m_currentRow != NULL;
       }
 
+      inline bool isBeforeFirst() const noexcept {
+        return m_currentRow == NULL && m_endBatch != NULL;
+      }
+
       /** Dereference the iterator. No NULL check like STL iterators. */
       TRow& operator*() const noexcept {
         return *m_currentRow;
