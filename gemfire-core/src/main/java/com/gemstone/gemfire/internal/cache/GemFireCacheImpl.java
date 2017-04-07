@@ -6205,7 +6205,11 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
   }
 
   class OldEntriesCleanerThread implements Runnable {
+    // Keep each entry alive for atleast 5 mins.
+    long expiryTime = 5 * 60 * 1000;
+
     public void run() {
+      long now = System.currentTimeMillis();
       try {
         if (!oldEntryMap.isEmpty()) {
           for (Map<Object, BlockingQueue<RegionEntry>> regionEntryMap : oldEntryMap.values()) {
@@ -6220,7 +6224,7 @@ public class GemFireCacheImpl implements InternalCache, ClientCache, HasCachePer
                     break;
                   }
                 }
-                if (!entryFoundInTxState) {
+                if (!entryFoundInTxState && (((NonLocalRegionEntry)re).getCreationTime() + expiryTime) > now) {
                   oldEntriesQueue.remove(re);
                 }
               }

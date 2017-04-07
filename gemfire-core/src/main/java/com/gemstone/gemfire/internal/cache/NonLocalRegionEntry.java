@@ -53,6 +53,7 @@ public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
   protected Object key;
   protected Object value;
   private VersionTag<?> versionTag;
+  protected long creationTime;
 
   /**
    * Create one of these in the local case so that we have a snapshot of the
@@ -75,6 +76,7 @@ public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
     if (stamp != null) {
       this.versionTag = stamp.asVersionTag();
     }
+    this.creationTime = System.currentTimeMillis();
   }
 
   protected NonLocalRegionEntry(RegionEntry re, LocalRegion br,
@@ -104,6 +106,7 @@ public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
     if (stamp != null) {
       this.versionTag = stamp.asVersionTag();
     }
+    this.creationTime = System.currentTimeMillis();
   }
 
   /* If below is enabled then use the factory methods below to work correctly
@@ -141,6 +144,7 @@ public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
     this.isRemoved = Token.isRemoved(value);
     // TODO need to get version information from transaction entries
     this.versionTag = versionTag;
+    this.creationTime = System.currentTimeMillis();
   }
 
   @Override
@@ -226,6 +230,7 @@ public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
     out.writeLong(this.lastModified);
     out.writeBoolean(this.isRemoved);
     DataSerializer.writeObject(this.versionTag, out);
+    DataSerializer.writeLong(this.creationTime, out);
   }
 
   public void fromData(DataInput in) throws IOException,
@@ -235,6 +240,11 @@ public class NonLocalRegionEntry implements RegionEntry, VersionStamp {
     this.lastModified = in.readLong();
     this.isRemoved = in.readBoolean();
     this.versionTag = (VersionTag)DataSerializer.readObject(in);
+    this.creationTime = in.readLong();
+  }
+
+  public long getCreationTime() {
+    return this.creationTime;
   }
 
   public long getLastModified() {

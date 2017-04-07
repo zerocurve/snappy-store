@@ -3827,7 +3827,7 @@ public final class TXState implements TXStateInterface {
       // For Transaction NONE we can get locally. For tx isolation level RC/RR
       // we will have to get from a common DS.
       oldEntry = getCache().readOldEntry(dataRegion, key, snapshot, true, re, this);
-
+      int numtimes = 0;
       while (oldEntry == null) {
         if (TXStateProxy.LOG_FINE) {
           LogWriterI18n logger = dataRegion.getLogWriterI18n();
@@ -3836,7 +3836,13 @@ public final class TXState implements TXStateInterface {
         }
         try {
           //TODO: Suranjan Should we wait indefinitely?
-          Thread.sleep(10);
+          // As
+          if (numtimes < 10) {
+            Thread.sleep(10);
+            numtimes++;
+          } else {
+            Thread.sleep(100 * numtimes);
+          }
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
@@ -3901,7 +3907,7 @@ public final class TXState implements TXStateInterface {
         } else {
           id = InternalDistributedSystem.getAnyInstance().getDistributedMember();
         }
-        if (TXStateProxy.LOG_FINE) {
+        if (TXStateProxy.LOG_FINEST) {
           logger.info(LocalizedStrings.DEBUG, "checkEntryVersion: for region "
               + region.getFullPath() + " RegionEntry(" + entry + ")" + " id not set in Entry, setting id to: " +
               id);
@@ -3910,7 +3916,7 @@ public final class TXState implements TXStateInterface {
       // if rvv is not present then
       if (snapshot != null) {
         if (isVersionInSnapshot(region, id, stamp.getRegionVersion())) {
-          if (TXStateProxy.LOG_FINE) {
+          if (TXStateProxy.LOG_FINEST) {
             logger.info(LocalizedStrings.DEBUG, "getLocalEntry: for region "
                 + region.getFullPath() + " RegionEntry(" + entry  + ") with version " + stamp
                 .getRegionVersion() + " id: " + id + " , returning true.");
