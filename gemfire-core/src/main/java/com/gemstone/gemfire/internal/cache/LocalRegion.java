@@ -14353,6 +14353,12 @@ public class LocalRegion extends AbstractRegion
     Object key = entry.getRawKey();
     if (key != null) {
       entryOverhead += ReflectionSingleObjectSizer.INSTANCE.sizeof(key);
+    }else{
+      // first key.
+      Object firstKey = this.getRegionMap().keySet().iterator().next();
+      if(firstKey != null){
+        entryOverhead += ReflectionSingleObjectSizer.INSTANCE.sizeof(firstKey);
+      }
     }
     if (entry instanceof DiskEntry) {
       DiskId diskId = ((DiskEntry)entry).getDiskId();
@@ -14365,8 +14371,12 @@ public class LocalRegion extends AbstractRegion
 
   protected long calculateEntryOverhead(RegionEntry entry) {
     if (!this.reservedTable() && entryOverHead == -1L && needAccounting()) {
-      entryOverHead = getEntryOverhead(entry);
-      memTrace("Entry overhead for " + getFullPath() + " = " + entryOverHead);
+      synchronized (this){
+        if(entryOverHead == -1L){
+          entryOverHead = getEntryOverhead(entry);
+          memTrace("Entry overhead for " + getFullPath() + " = " + entryOverHead);
+        }
+      }
     }
     return entryOverHead;
   }
